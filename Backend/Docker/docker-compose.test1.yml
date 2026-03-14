@@ -1,0 +1,128 @@
+version: '3.8'
+
+networks:
+  factory_sys_backend:
+    driver: bridge
+
+volumes:
+  factory_sys_django_db_data: {}
+  factory_sys_media_data: {}
+  factory_sys_postgres_data: {}
+  factory_sys_static_vol: {}
+  factory_sys_redis_data: {}
+
+services:
+
+  factory_sys_postgres_db:
+    image: postgres:13
+    env_file:
+      - ../ENV/.env.test
+    environment:
+      ENVIRONMENT: test
+      POSTGRES_DB: ${TEST_DATABASE_NAME}
+      POSTGRES_USER: ${TEST_DATABASE_USER}
+      POSTGRES_PASSWORD: ${TEST_DATABASE_PASSWORD}
+    volumes:
+      - factory_sys_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"  # Changed from 5434 to 5435
+    networks:
+      - factory_sys_backend
+
+  factory_sys_django:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile
+    container_name: factory_sys_app
+    command: uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --reload --reload-include '*.py' --reload-include '*.html'
+    restart: always
+    volumes:
+      - ..:/code
+      - factory_sys_media_data:/code/media
+      - factory_sys_django_db_data:/code/Docker/volumes/db_volume
+      - factory_sys_static_vol:/code/staticfiles
+    env_file:
+      - ../ENV/.env.test
+    environment:
+      - ENVIRONMENT=test
+      - DJANGO_SETTINGS_MODULE=config.django
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    ports:
+      - "8003:8000"  # Changed from 8002 to 8003
+    depends_on:
+      - factory_sys_redis
+      - factory_sys_postgres_db
+      - factory_sys_celery
+      - factory_sys_celery_beat
+    networks:
+      - factory_sys_backend
+
+  factory_sys_redis:
+    container_name: factory_sys_redis
+    image: redis:latest
+    command: redis-server --appendonly yes --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    ports:
+      - "6380:6379"  # Changed from 6379 to 6380
+    volumes:
+      - factory_sys_redis_data:/data
+    networks:
+      - factory_sys_backend
+
+  factory_sys_celery:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile
+    container_name: factory_sys_celery
+    command: celery -A config.settings.celery worker -l info
+    volumes:
+      - ..:/code
+      - ./code/db:/code/Docker/volumes/celery_db
+    env_file:
+      - ../ENV/.env.test
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.django
+      - ENVIRONMENT=test
+    depends_on:
+      - factory_sys_redis
+    networks:
+      - factory_sys_backend
+
+  factory_sys_celery_beat:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile
+    container_name: factory_sys_celery_beat
+    command: celery -A config.settings.celery beat -l info
+    volumes:
+      - ..:/code
+      - ./code/db:/code/Docker/volumes/celery_db
+    env_file:
+      - ../ENV/.env.test
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.django
+      - ENVIRONMENT=test
+    depends_on:
+      - factory_sys_redis
+    networks:
+      - factory_sys_backend
+
+  factory_sys_nginx:
+    build: ../nginx/test_nginx
+    volumes:
+      - factory_sys_static_vol:/code/staticfiles
+      - factory_sys_media_data:/code/media
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/lib/letsencrypt:/var/lib/letsencrypt:ro
+    ports:
+      - "83:80"      # Changed from 82 to 83
+      - "9444:443"   # Changed from 9443 to 9444
+    depends_on:
+      - factory_sys_django
+    networks:
+      - factory_sys_backend

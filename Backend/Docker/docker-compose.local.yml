@@ -1,0 +1,137 @@
+version: '3'
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  django_db_data: {}
+  media_data: {}
+  static_vol: {}
+  redis_data: {}
+  celery_db_data: {}  # Add this
+
+services:
+
+  django:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile
+    container_name: local_Alyasen_app
+    command: >
+      uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --reload --reload-include '*.py' --reload-include '*.html'
+    restart: always
+    volumes:
+      - ..:/code
+      - media_data:/code/media # Ensure media directory persists in the directory
+      - django_db_data:/code/Docker/volumes/db_volume
+      - static_vol:/code/staticfiles
+    env_file:
+      - ../ENV/.env.local
+    environment:
+      - ENVIRONMENT=local
+      - DJANGO_SETTINGS_MODULE=config.django
+      - PYTHONUNBUFFERED=1  # Better logging
+      - PYTHONDONTWRITEBYTECODE=1  # Don't create .pyc files
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      redis:
+        condition: service_started
+    networks:
+      - backend
+
+  nginx:
+    build: ../nginx/local_nginx
+    container_name: local_Alyasen_nginx
+    volumes:
+      - static_vol:/code/staticfiles
+      - media_data:/code/media
+    ports:
+      - "80:80"
+    depends_on:
+      - django
+    networks:
+      - backend
+
+  redis:
+    container_name: local_Alyasen_redis
+    image: redis:latest
+    command: redis-server --appendonly yes --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+
+  celery:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile
+    container_name: local_Alyasen_Celery
+    command: celery -A config.settings.celery worker -l info --concurrency=2 --pool=solo
+    volumes:
+      - ..:/code
+      - ./code/db:/code/Docker/volumes/celery_db # Ensure SQLite database file persists in the directory
+    env_file:
+      - ../ENV/.env.local
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.django
+      - ENVIRONMENT=local
+    depends_on:
+      - redis
+    networks:
+      - backend
+
+  celery-beat:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile
+    container_name: local_Alyasen_Celeryeat
+    command: celery -A config.settings.celery beat -l info --schedule=/tmp/celerybeat-schedule
+    volumes:
+      - ..:/code
+      - ./code/db:/code/Docker/volumes/celery_db # Ensure SQLite database file persists in the directory
+    env_file:
+      - ../ENV/.env.local
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.django
+      - ENVIRONMENT=local
+    depends_on:
+      - redis
+    networks:
+      - backend
+
+  flower:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile
+    container_name: local_Alyasen_flower
+    command: celery -A config.settings flower --port=5555
+    ports:
+      - "5555:5555"
+    volumes:
+      - ..:/code
+      - ./code/db:/code/Docker/volumes/celery_db # Optional: only needed if Flower logs should persist
+    env_file:
+      - ../ENV/.env.local
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.django
+      - ENVIRONMENT=local
+    depends_on:
+      - redis
+    networks:
+      - backend
+  
