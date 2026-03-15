@@ -1,4 +1,5 @@
 import sys
+import os
 import time
 from PyQt5.QtWidgets import QApplication, QSplashScreen
 from PyQt5.QtGui import QFont, QPixmap
@@ -24,18 +25,21 @@ class AppController:
 
     def start(self):
         """Shows the initial authentication window to the user."""
-        self.main_win.show()
-        # self.auth_win.show()
+        # self.main_win.show()
+        self.auth_win.show()
 
     def show_main_window(self, user_name: str = ""):
         """Closes the auth window and shows the main application window."""
         if hasattr(self.main_win, "set_user_name"):
             self.main_win.set_user_name(user_name or "")
-        # self.main_win.show()
+        self.main_win.show()
         self.auth_win.close()
 
 
 if __name__ == "__main__":
+    os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
+    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
     app = QApplication(sys.argv)
 
     # --- Set Application-Wide Locale ---
@@ -43,8 +47,10 @@ if __name__ == "__main__":
     english_locale = QLocale(QLocale.English, QLocale.UnitedStates)
     QLocale.setDefault(english_locale)
 
+    
+
     # --- Splash Screen Setup ---
-    pixmap = QPixmap(rf"{BASE_DIR}\resources\logo1.png").scaled(
+    pixmap = QPixmap(rf"{BASE_DIR}/resources/banner.png").scaled(
         1000, 400, Qt.KeepAspectRatio, Qt.SmoothTransformation
     )
     splash = QSplashScreen(pixmap, Qt.WindowStaysOnTopHint)

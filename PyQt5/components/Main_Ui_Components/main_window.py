@@ -68,7 +68,7 @@ class MainWindow(QMainWindow):
         pixmap = QPixmap(logo_path)
         if not pixmap.isNull():
             app_icon.setPixmap(pixmap)
-        title_text = QLabel(f"المهندس - {APP_VERSION}")
+        title_text = QLabel(f"الياسيين - {APP_VERSION}")
         title_text.setObjectName("titleBarText")
 
         self.minimize_button = QPushButton()
@@ -184,31 +184,25 @@ class MainWindow(QMainWindow):
     def create_pages(self):
         # Create all page instances
         self.dashboard_page = DashboardUI()
-        self.workers_page = WorkersUI()
         self.clients_page = ClientsUI()
         self.suppliers_page = SuppliersUI()
         self.expenses_page = ExpensesUI()
-        self.mixes_page = MixesUI()
         self.reports_page = ReportsUI()
         self.materials_page = MaterialsInventoryUI()
         self.program_log_page = ProgramLogUI()
         self.machines_page = MachinesUI()
-        self.segmantel_invoices_page = SegmentalInvoicesUI()
 
         # Dashboard already has scroll implemented, so skip wrapping it
         self.stacked_widget.addWidget(self.dashboard_page)
 
         # Wrap all other pages in scroll areas
-        self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.workers_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.clients_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.suppliers_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.expenses_page))
-        self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.mixes_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.reports_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.materials_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.program_log_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.machines_page))
-        self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.segmantel_invoices_page))
 
     @pyqtSlot(int)
     def change_page(self, index):

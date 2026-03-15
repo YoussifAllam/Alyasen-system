@@ -12,18 +12,14 @@ third_party_urls = [
 urlpatterns = [
     path("api/", include("apps.Users.urls")),
     path("api/registertion/", include("apps.registertion.urls")),
-    path("api/transactions_log/", include("apps.TransactionsLog.urls")),
-    path("api/expenses/", include("apps.Expenses.urls")),
-    path("api/material-warehouse-log/", include("apps.Material_Warehouse_Log.urls")),
-    path("api/material-warehouse/", include("apps.Material_Warehouse.urls")),
-    path("api/suppliers/", include("apps.Suppliers.urls")),
-    path("api/mixtures/", include("apps.Mixtures.urls")),
-    path("api/reports/", include("apps.Reports.urls")),
-    path("api/clients/", include("apps.Clients.urls")),
-    path("api/dashboard/", include("apps.Dashboard.urls")),
-    path("api/workers/", include("apps.Workers.urls")),
-    path("api/machines/", include("apps.Machines.urls")),
-    path("api/segmental-salling/", include("apps.SegmentalSallling.urls")),
+    # path("api/transactions_log/", include("apps.TransactionsLog.urls")),
+    # path("api/expenses/", include("apps.Expenses.urls")),
+    # path("api/suppliers/", include("apps.Suppliers.urls")),
+    # path("api/reports/", include("apps.Reports.urls")),
+    # path("api/clients/", include("apps.Clients.urls")),
+    # path("api/dashboard/", include("apps.Dashboard.urls")),
+    # path("api/machines/", include("apps.Machines.urls")),
+
     # Health check endpoint
     path("health/", lambda request: HttpResponse("OK")),
 ] + third_party_urls  # noqa

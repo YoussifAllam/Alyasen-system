@@ -34,9 +34,8 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_BEAT_SCHEDULE = {}
 
 CELERY_IMPORTS = (
-    "apps.Material_Warehouse_Log.tasks.celery_tasks",
-    "apps.TransactionsLog.tasks.celery_tasks",
-    "apps.Suppliers.tasks.celery_tasks",
-    "apps.Mixtures.tasks.celery_tasks",
-    "apps.Clients.Tasks.celery_tasks",
+#     "apps.TransactionsLog.tasks.celery_tasks",
+#     "apps.Suppliers.tasks.celery_tasks",
+#     "apps.Mixtures.tasks.celery_tasks",
+#     "apps.Clients.Tasks.celery_tasks",
 )
