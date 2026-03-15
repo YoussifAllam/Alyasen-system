@@ -33,7 +33,7 @@ class ApiFetcherWorker(QObject):
 
     @pyqtSlot()
     def run(self):
-        # return  # todo  remove
+        return  # todo  remove
         try:
             response = request("GET", self.url, timeout=15)
             if response.status_code == 200:
@@ -93,49 +93,6 @@ class DashboardUI(QWidget):
         header_layout.addStretch()
         content_layout.addLayout(header_layout)
 
-        # --- KPI Cards ---
-        kpi_layout = QGridLayout()
-        kpi_layout.setSpacing(20)
-
-        self.salary_value_label = QLabel("0.00 ج.م")
-        self.salary_subtitle_label = QLabel("0 موظف")
-        self.sales_value_label = QLabel("0.00 ج.م")
-        self.sales_subtitle_label = QLabel("0 عملية بيع")
-        self.expenses_value_label = QLabel("0.00 ج.م")
-        self.expenses_subtitle_label = QLabel("0 عملية صرف")
-        self.inventory_value_label = QLabel("0.00 ج.م")
-        self.inventory_subtitle_label = QLabel("0 خامة")
-
-        kpi_layout.addWidget(
-            self.create_kpi_card(
-                "المرتبات (الشهر)", self.salary_value_label, self.salary_subtitle_label, "green"
-            ),
-            0,
-            0,
-        )
-        kpi_layout.addWidget(
-            self.create_kpi_card(
-                "إجمالي المبيعات القطاعي و للشركات (الشهر)", self.sales_value_label, self.sales_subtitle_label
-            ),
-            0,
-            1,
-        )
-        kpi_layout.addWidget(
-            self.create_kpi_card(
-                "إجمالي المصروفات (الشهر)", self.expenses_value_label, self.expenses_subtitle_label, "red"
-            ),
-            0,
-            2,
-        )
-        kpi_layout.addWidget(
-            self.create_kpi_card(
-                "قيمة المخزون الحالية", self.inventory_value_label, self.inventory_subtitle_label
-            ),
-            0,
-            3,
-        )
-        content_layout.addLayout(kpi_layout)
-
         # --- Main Content Grid ---
         content_grid = QGridLayout()
         content_grid.setSpacing(20)
@@ -172,7 +129,6 @@ class DashboardUI(QWidget):
         """Fetches all initial data concurrently when the widget is first shown."""
         super().showEvent(event)
         if self.is_first_load:
-            self.handle_fetch_kpis()
             self.handle_fetch_expense_graph()
             self.handle_fetch_top_lists()
             self.handle_fetch_inventory_levels()
@@ -196,10 +152,6 @@ class DashboardUI(QWidget):
         worker.finished.connect(thread.quit)
         thread.start()
 
-    def handle_fetch_kpis(self):
-        url = f"{BACKEND_BASE_URL}/dashboard/kpi-data/"
-        self._start_api_request(url, self.update_kpi_cards, "kpi_thread", "kpi_worker")
-
     def handle_fetch_top_lists(self):
         url = f"{BACKEND_BASE_URL}/dashboard/top-lists-data/"
         self._start_api_request(url, self.update_top_lists, "top_lists_thread", "top_lists_worker")
@@ -219,21 +171,6 @@ class DashboardUI(QWidget):
     def handle_fetch_users_status(self):
         url = f"{BACKEND_BASE_URL}/dashboard/users-status/"
         self._start_api_request(url, self.update_users_status_card, "users_thread", "users_worker")
-
-    def update_kpi_cards(self, response_data):
-        data = response_data.get("data", {})
-        sales_data = data.get("selling_kpi_data", {})
-        self.sales_value_label.setText(f"{sales_data.get('total_amount', 0):,.2f} ج.م")
-        self.sales_subtitle_label.setText(f"{sales_data.get('invoice_count', 0)} عملية بيع")
-        expenses_data = data.get("expenses_kpi_data", {})
-        self.expenses_value_label.setText(f"{expenses_data.get('total_amount', 0):,.2f} ج.م")
-        self.expenses_subtitle_label.setText(f"{expenses_data.get('transaction_count', 0)} عملية صرف")
-        material_data = data.get("material_kpi_data", {})
-        self.inventory_value_label.setText(f"{material_data.get('total_buy_value', 0):,.2f} ج.م")
-        self.inventory_subtitle_label.setText(f"{material_data.get('material_count', 0)} خامة")
-        salary_data = data.get("salary_kpi_data", {})
-        self.salary_value_label.setText(f"{salary_data.get('salary_kpi_data', 0):,.2f} ج.م")
-        self.salary_subtitle_label.setText(f"{salary_data.get('number_of_employees', 0)} موظف")
 
     def update_expense_chart(self, response_data):
         data = response_data.get("data", {})
@@ -331,24 +268,6 @@ class DashboardUI(QWidget):
         sales = data.get("sales", [])
         expenses = data.get("expenses", [])
         self.performance_chart.setData(labels, sales, expenses)
-
-    def create_kpi_card(self, title, value_label, subtitle_label, color=None):
-        card = QFrame()
-        card.setObjectName("card")
-        layout = QVBoxLayout(card)
-        title_label = QLabel(title)
-        title_label.setObjectName("kpiTitle")
-        value_label.setObjectName("kpiValue")
-        if color == "green":
-            value_label.setStyleSheet("color: #00bc88;")
-        elif color == "red":
-            value_label.setStyleSheet("color: #ef4444;")
-        subtitle_label.setObjectName("kpiSubtitle")
-        layout.addWidget(title_label)
-        layout.addWidget(value_label)
-        layout.addStretch()
-        layout.addWidget(subtitle_label)
-        return card
 
     def create_performance_chart_card(self):
         card = QFrame()

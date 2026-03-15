@@ -62,7 +62,7 @@ class MainWindow(QMainWindow):
         title_bar_layout.setContentsMargins(10, 0, 5, 0)
 
         app_icon = QLabel()
-        app_icon.setFixedSize(60, 70)
+        app_icon.setFixedSize(30, 35)
         app_icon.setScaledContents(True)
         logo_path = rf"{BASE_DIR}/resources/logo1.png"
         pixmap = QPixmap(logo_path)

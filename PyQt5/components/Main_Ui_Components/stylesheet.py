@@ -393,19 +393,19 @@ def load_dark_theme():
         /*#! --- NEW: Custom Title Bar Styles --- */
         #titleBar {
             background-color: #111827;
-            height: 40px;
+            height: 30px;
             border-bottom: 1px solid #374151;
         }
         #titleBarText {
             color: #d1d5db;
-            font-size: 15px;
+            font-size: 13px;
             font-weight: bold;
         }
         QPushButton#titleBarButton {
             background-color: transparent;
             border: none;
-            width: 45px;
-            height: 40px;
+            width: 35px;
+            height: 30px;
             border-radius: 0px;
         }
         QPushButton#titleBarButton:hover {
@@ -414,8 +414,8 @@ def load_dark_theme():
         QPushButton#closeButton {
              background-color: transparent;
             border: none;
-            width: 45px;
-            height: 40px;
+            width: 35px;
+            height: 30px;
             border-radius: 0px;
         }
         QPushButton#closeButton:hover {
