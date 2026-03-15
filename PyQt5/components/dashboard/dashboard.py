@@ -99,11 +99,11 @@ class DashboardUI(QWidget):
         left_column = QVBoxLayout()
         left_column.setSpacing(20)
         left_column.addWidget(self.create_performance_chart_card())
-        left_column.addWidget(self.create_inventory_levels_card())
+        left_column.addWidget(self.create_guarantee_checks_card())
         top_lists_layout = QHBoxLayout()
         top_lists_layout.setSpacing(20)
         top_clients_card, self.top_clients_layout = self.create_top_list_card("أفضل العملاء")
-        top_products_card, self.top_products_layout = self.create_top_list_card("أفضل المنتجات مبيعاً")
+        top_products_card, self.top_products_layout = self.create_top_list_card("المشاريع النشطة الأن")
         top_lists_layout.addWidget(top_clients_card)
         top_lists_layout.addWidget(top_products_card)
         left_column.addLayout(top_lists_layout)
@@ -131,7 +131,7 @@ class DashboardUI(QWidget):
         if self.is_first_load:
             self.handle_fetch_expense_graph()
             self.handle_fetch_top_lists()
-            self.handle_fetch_inventory_levels()
+            self.handle_fetch_guarantee_checks()
             self.handle_fetch_performance_graph()
             self.handle_fetch_users_status()
             self.is_first_load = False
@@ -160,9 +160,9 @@ class DashboardUI(QWidget):
         url = f"{BACKEND_BASE_URL}/dashboard/expenses-graph-data/"
         self._start_api_request(url, self.update_expense_chart, "graph_thread", "graph_worker")
 
-    def handle_fetch_inventory_levels(self):
-        url = f"{BACKEND_BASE_URL}/dashboard/inventory-level/"
-        self._start_api_request(url, self.update_inventory_levels, "inventory_thread", "inventory_worker")
+    def handle_fetch_guarantee_checks(self):
+        url = f"{BACKEND_BASE_URL}/dashboard/guarantee-checks/"
+        self._start_api_request(url, self.update_guarantee_checks, "checks_thread", "checks_worker")
 
     def handle_fetch_performance_graph(self):
         url = f"{BACKEND_BASE_URL}/dashboard/performance-graph/"
@@ -242,10 +242,10 @@ class DashboardUI(QWidget):
             item_layout.addWidget(value_label)
             layout.addLayout(item_layout)
 
-    def update_inventory_levels(self, response_data):
-        inventory_data = response_data.get("data", [])
-        while self.inventory_bars_layout.count():
-            child = self.inventory_bars_layout.takeAt(0)
+    def update_guarantee_checks(self, response_data):
+        checks_data = response_data.get("data", [])
+        while self.guarantee_checks_layout.count():
+            child = self.guarantee_checks_layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
             elif child.layout():
@@ -253,14 +253,17 @@ class DashboardUI(QWidget):
                     nested_child = child.layout().takeAt(0)
                     if nested_child.widget():
                         nested_child.widget().deleteLater()
-        for item in inventory_data:
-            name = item.get("name", "N/A")
-            quantity = item.get("quantity_in_kilo", 0)
-            total = item.get("total", 1)
-            is_warning = (quantity / total) < 0.4 if total > 0 else False
-            progress_bar_layout = self.create_progress_bar(name, quantity, total, "كجم", is_warning)
-            self.inventory_bars_layout.addLayout(progress_bar_layout)
-        self.inventory_bars_layout.addStretch()
+        
+        for item in checks_data:
+            client_name = item.get("client_name", "غير محدد")
+            project_name = item.get("project_name", "غير محدد")
+            check_date = item.get("date", "غير محدد")
+            amount = item.get("amount", 0)
+            
+            check_item_widget = self.create_guarantee_check_item(client_name, project_name, check_date, amount)
+            self.guarantee_checks_layout.addWidget(check_item_widget)
+            
+        self.guarantee_checks_layout.addStretch()
 
     def update_performance_graph(self, response_data):
         data = response_data.get("data", {}).get("data", {})
@@ -303,16 +306,31 @@ class DashboardUI(QWidget):
         layout.addWidget(color_swatch)
         return item_widget
 
-    def create_inventory_levels_card(self):
+    def create_guarantee_checks_card(self):
         card = QFrame()
         card.setObjectName("card")
         layout = QVBoxLayout(card)
         layout.setSpacing(15)
-        title = QLabel("خامات علي وشك النفاذ")
+        title = QLabel("تذكير بشيكات الضمان")
         title.setObjectName("cardTitle")
         layout.addWidget(title)
-        self.inventory_bars_layout = QVBoxLayout()
-        layout.addLayout(self.inventory_bars_layout)
+        
+        # Add headers
+        header_layout = QHBoxLayout()
+        header_layout.addWidget(QLabel("تاريخ الشيك"), 2)
+        header_layout.addWidget(QLabel("اسم المشروع"), 3)
+        header_layout.addWidget(QLabel("اسم العميل"), 3)
+        header_layout.addWidget(QLabel("القيمة"), 2)
+        
+        # Style headers
+        for i in range(header_layout.count()):
+            widget = header_layout.itemAt(i).widget()
+            widget.setStyleSheet("color: #9ca3af; font-weight: bold; font-size: 14px;")
+            
+        layout.addLayout(header_layout)
+        
+        self.guarantee_checks_layout = QVBoxLayout()
+        layout.addLayout(self.guarantee_checks_layout)
         return card
 
     def create_top_list_card(self, title):
@@ -327,24 +345,29 @@ class DashboardUI(QWidget):
         layout.addLayout(content_layout)
         return card, content_layout
 
-    def create_progress_bar(self, name, value, total, unit, is_warning=False):
-        layout = QVBoxLayout()
-        label_layout = QHBoxLayout()
-        name_label = QLabel(name)
-        value_label = QLabel(f"{value} / {total} {unit}")
-        if is_warning:
-            value_label.setStyleSheet("color: #f59e0b;")
-        label_layout.addWidget(name_label)
-        label_layout.addStretch()
-        label_layout.addWidget(value_label)
-        progress_bar = QProgressBar()
-        progress_bar.setValue(int(value / total * 100))
-        progress_bar.setTextVisible(False)
-        if is_warning:
-            progress_bar.setObjectName("warningProgressBar")
-        layout.addLayout(label_layout)
-        layout.addWidget(progress_bar)
-        return layout
+    def create_guarantee_check_item(self, client_name, project_name, check_date, amount):
+        item = QWidget()
+        layout = QHBoxLayout(item)
+        layout.setContentsMargins(0, 5, 0, 5)
+        
+        date_lbl = QLabel(str(check_date))
+        date_lbl.setStyleSheet("color: #e5e7eb; font-weight: bold; font-size: 14px;")
+        
+        project_lbl = QLabel(str(project_name))
+        project_lbl.setStyleSheet("font-size: 14px;")
+        
+        client_lbl = QLabel(str(client_name))
+        client_lbl.setStyleSheet("font-size: 14px;")
+        
+        amount_lbl = QLabel(f"{amount:,.2f} ج.م")
+        amount_lbl.setStyleSheet("color: #f59e0b; font-weight: bold; font-size: 14px;")
+        
+        layout.addWidget(date_lbl, 2)
+        layout.addWidget(project_lbl, 3)
+        layout.addWidget(client_lbl, 3)
+        layout.addWidget(amount_lbl, 2)
+        
+        return item
 
     def create_expense_chart_card(self):
         card = QFrame()
