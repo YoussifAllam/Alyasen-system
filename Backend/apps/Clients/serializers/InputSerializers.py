@@ -67,20 +67,3 @@ class ClientUpdateSerializer(ModelSerializer):
         
         extra_kwargs = {"email": {"required": False},"phone": {"required": False},"name": {"required": False}}
 
-
-class InvoicesSerializer(ModelSerializer):
-    class Meta:
-        model = models.ClientInvoice
-        fields = "__all__"
-        extra_kwargs = {"client": {"required": False}}
-
-
-class InvoiceMaterialsSerializer(ModelSerializer):
-    class Meta:
-        model = models.InvoiceMaterials
-        fields = [
-            "invoice",
-            "material",
-            "quantity_in_unit",
-        ]
-        extra_kwargs = {"invoice": {"required": False}, "material": {"required": False}}

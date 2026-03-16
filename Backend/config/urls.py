@@ -12,11 +12,11 @@ third_party_urls = [
 urlpatterns = [
     path("api/", include("apps.Users.urls")),
     path("api/registertion/", include("apps.registertion.urls")),
-    # path("api/transactions_log/", include("apps.TransactionsLog.urls")),
+    path("api/transactions_log/", include("apps.TransactionsLog.urls")),
     # path("api/expenses/", include("apps.Expenses.urls")),
     # path("api/suppliers/", include("apps.Suppliers.urls")),
     # path("api/reports/", include("apps.Reports.urls")),
-    # path("api/clients/", include("apps.Clients.urls")),
+    path("api/clients/", include("apps.Clients.urls")),
     # path("api/dashboard/", include("apps.Dashboard.urls")),
     # path("api/machines/", include("apps.Machines.urls")),
 

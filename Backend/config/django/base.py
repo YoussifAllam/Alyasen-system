@@ -46,11 +46,11 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     "apps.Users",
     "apps.registertion",
-    # "apps.TransactionsLog",
+    "apps.Clients",
+    "apps.TransactionsLog",
     # "apps.Expenses",
     # "apps.Suppliers",
     # "apps.Reports",
-    # "apps.Clients",
     # "apps.Dashboard",
     # "apps.Machines",
 ]

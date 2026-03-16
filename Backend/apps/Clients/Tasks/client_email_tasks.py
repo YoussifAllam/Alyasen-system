@@ -8,7 +8,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from apps.Clients.models import Client, ClientInvoice, InvoicePayment
+from apps.Clients.models import Client
 
 def get_client_statement(client_id, start_date, end_date):
     client = Client.objects.get(id=client_id)

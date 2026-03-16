@@ -2,16 +2,16 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from cacheops import invalidate_obj
-from .models import ClientInvoice
+from .models import Client
 
 
-@receiver(post_save, sender=ClientInvoice)
-def invalidate_ClientInvoice_cache(sender, instance: ClientInvoice, **kwargs):
+@receiver(post_save, sender=Client)
+def invalidate_ClientInvoice_cache(sender, instance: Client, **kwargs):
     invalidate_obj(instance)
 
 
-@receiver(post_delete, sender=ClientInvoice)
-def invalidate_ClientInvoice_cache_on_delete(sender, instance: ClientInvoice, **kwargs):
+@receiver(post_delete, sender=Client)
+def invalidate_ClientInvoice_cache_on_delete(sender, instance: Client, **kwargs):
     invalidate_obj(instance)
 
 
