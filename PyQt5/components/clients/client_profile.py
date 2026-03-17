@@ -21,6 +21,7 @@ from ..Main_Ui_Components.constant import BACKEND_BASE_URL
 from .client_payment_details_dialog import ClientPaymentDetailsDialog
 from .client_payment_dialog import ClientPaymentDialog
 from .update_client_data_dialog import UpdateClientDataDialog
+from .client_projects_dialog import ClientProjectsDialog
 
 
 class ApiWorker(QObject):
@@ -143,7 +144,7 @@ class ClientProfileUI(QWidget):
         layout = QVBoxLayout(card)
         layout.setSpacing(15)
         self.btn_show_client_projects = QPushButton("عرض مشارع العميل")
-        # self.btn_show_client_projects.clicked.connect(self.handle_show_client_projects)
+        self.btn_show_client_projects.clicked.connect(self.handle_show_client_projects)
         self.btn_show_invoice_payment_details = QPushButton("عرض تفاصيل الدفعات")
         self.btn_show_invoice_payment_details.clicked.connect(
             self.handle_show_payment_details
@@ -208,6 +209,14 @@ class ClientProfileUI(QWidget):
                 self.profile_pic.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
             )
         )
+
+    def handle_show_client_projects(self):
+        if not self.client_id:
+            QMessageBox.warning(self, "خطأ", "لم يتم العثور على بيانات العميل.")
+            return
+            
+        dialog = ClientProjectsDialog(self.client_id, self)
+        dialog.exec_()
 
     def handle_show_payment_details(self):
         dialog = ClientPaymentDetailsDialog(self.client_id, self)

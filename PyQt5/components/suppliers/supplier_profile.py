@@ -23,7 +23,7 @@ from .invoice_payment_details_dialog import InvoicePaymentDetailsDialog
 from .create_invoice_dialog import CreateInvoiceDialog
 from .add_invoice_materials_dialog import AddInvoiceMaterialsDialog
 from .finalize_invoice_dialog import FinalizeInvoiceDialog
-from .invoice_materials_details_dialog import InvoiceMaterialsDetailsDialog
+# from .invoice_materials_details_dialog import InvoiceMaterialsDetailsDialog
 from .invoice_details_dialog import InvoiceDetailsDialog  # Import the new dialog
 
 
@@ -271,7 +271,7 @@ class SupplierProfileUI(QWidget):
         if not selected_rows:
             return
         invoice_num = self.table.item(selected_rows[0].row(), 0).text()
-        dialog = InvoiceMaterialsDetailsDialog(invoice_num, self)
+        # dialog = InvoiceMaterialsDetailsDialog(invoice_num, self)
         dialog.exec_()
 
     def handle_pay_invoice(self):

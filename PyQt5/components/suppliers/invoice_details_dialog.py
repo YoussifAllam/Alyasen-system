@@ -41,7 +41,9 @@ class InvoiceDetailsWorker(QObject):
             if response.status_code in [200, 201]:
                 self.success.emit(response.json())
             else:
-                self.error.emit(f"خطأ من الخادم: {response.status_code} - {response.text}")
+                self.error.emit(
+                    f"خطأ من الخادم: {response.status_code} - {response.text}"
+                )
         except exceptions.RequestException:
             self.error.emit("فشل الاتصال بالخادم.")
         finally:
@@ -131,7 +133,9 @@ class InvoiceDetailsDialog(QDialog):
         self.fetch_details()
 
     def fetch_details(self):
-        url = f"{BACKEND_BASE_URL}/suppliers/invoice/info/?invoice_num={self.invoice_num}"
+        url = (
+            f"{BACKEND_BASE_URL}/suppliers/invoice/info/?invoice_num={self.invoice_num}"
+        )
         self._start_worker("GET", url, on_success=self.populate_fields)
 
     def populate_fields(self, response):
@@ -160,7 +164,9 @@ class InvoiceDetailsDialog(QDialog):
         }
 
         url = f"{BACKEND_BASE_URL}/suppliers/invoice/info/"
-        self._start_worker("PATCH", url, payload=payload, on_success=self.on_save_success)
+        self._start_worker(
+            "PATCH", url, payload=payload, on_success=self.on_save_success
+        )
 
     def on_save_success(self, response):
         self.accept()  # Close dialog indicating success to parent
@@ -186,7 +192,11 @@ class InvoiceDetailsDialog(QDialog):
             self.old_pos = event.globalPos()
 
     def mouseMoveEvent(self, event):
-        if hasattr(self, "old_pos") and self.old_pos and event.buttons() == Qt.LeftButton:
+        if (
+            hasattr(self, "old_pos")
+            and self.old_pos
+            and event.buttons() == Qt.LeftButton
+        ):
             delta = QPoint(event.globalPos() - self.old_pos)
             self.move(self.x() + delta.x(), self.y() + delta.y())
             self.old_pos = event.globalPos()

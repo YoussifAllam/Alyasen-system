@@ -18,15 +18,18 @@ import qtawesome as qta
 from .sidebar import SidebarWidget
 from ..dashboard.dashboard import DashboardUI  # NEW
 from ..clients.ui_clients import ClientsUI
-from ..Workers.ui_workers import WorkersUI
+
+# from ..Workers.ui_workers import WorkersUI
 from ..suppliers.ui_suppliers import SuppliersUI
 from ..ui_expenses import ExpensesUI
 from ..reports import ReportsUI
-from ..Mixtures.ui_mixes import MixesUI
-from ..inventory.materials_inventory import MaterialsInventoryUI
+
+# from ..Mixtures.ui_mixes import MixesUI
+# from ..inventory.materials_inventory import MaterialsInventoryUI
 from ..program_log import ProgramLogUI
 from ..Machines.ui_machines import MachinesUI
-from ..Segmental_Selling.Segmental_invoices_page import SegmentalInvoicesUI
+
+# from ..Segmental_Selling.Segmental_invoices_page import SegmentalInvoicesUI
 
 from .stylesheet import load_dark_theme
 from .light_stylesheet import load_light_theme
@@ -44,7 +47,9 @@ class MainWindow(QMainWindow):
         screen = QApplication.primaryScreen().availableGeometry()
 
         # Set window to use available screen space with small margins
-        self.setGeometry(screen.x() + 10, screen.y() + 10, screen.width() - 20, screen.height() - 20)
+        self.setGeometry(
+            screen.x() + 10, screen.y() + 10, screen.width() - 20, screen.height() - 20
+        )
         self.showMaximized()
 
         self.setWindowFlags(Qt.FramelessWindowHint)
@@ -154,7 +159,9 @@ class MainWindow(QMainWindow):
 
     def update_theme(self):
         """Applies the current theme to the application."""
-        stylesheet = load_light_theme() if self.current_theme == "light" else load_dark_theme()
+        stylesheet = (
+            load_light_theme() if self.current_theme == "light" else load_dark_theme()
+        )
         QApplication.instance().setStyleSheet(stylesheet)
         self.sidebar.update_theme_button(self.current_theme)
 
@@ -188,7 +195,7 @@ class MainWindow(QMainWindow):
         self.suppliers_page = SuppliersUI()
         self.expenses_page = ExpensesUI()
         self.reports_page = ReportsUI()
-        self.materials_page = MaterialsInventoryUI()
+        # self.materials_page = MaterialsInventoryUI()
         self.program_log_page = ProgramLogUI()
         self.machines_page = MachinesUI()
 
@@ -200,7 +207,7 @@ class MainWindow(QMainWindow):
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.suppliers_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.expenses_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.reports_page))
-        self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.materials_page))
+        # self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.materials_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.program_log_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.machines_page))
 
