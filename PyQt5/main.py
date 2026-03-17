@@ -47,15 +47,15 @@ if __name__ == "__main__":
     english_locale = QLocale(QLocale.English, QLocale.UnitedStates)
     QLocale.setDefault(english_locale)
 
-    
-
     # --- Splash Screen Setup ---
-    pixmap = QPixmap(rf"{BASE_DIR}/resources/banner.png").scaled(
+    pixmap = QPixmap(rf"{BASE_DIR}/resources/banner.jpg").scaled(
         1000, 400, Qt.KeepAspectRatio, Qt.SmoothTransformation
     )
     splash = QSplashScreen(pixmap, Qt.WindowStaysOnTopHint)
     splash.show()
-    splash.showMessage("جاري تحميل إعدادات النظام...", Qt.AlignBottom | Qt.AlignCenter, Qt.white)
+    splash.showMessage(
+        "جاري تحميل إعدادات النظام...", Qt.AlignBottom | Qt.AlignCenter, Qt.white
+    )
 
     # Process events to ensure the splash screen is displayed immediately
     app.processEvents()
