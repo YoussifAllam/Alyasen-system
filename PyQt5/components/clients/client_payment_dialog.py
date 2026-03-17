@@ -9,8 +9,11 @@ from PyQt5.QtWidgets import (
     QWidget,
     QFormLayout,
     QTextEdit,
+    QComboBox,
+    QCheckBox,
+    QDateEdit,
 )
-from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtCore import Qt, QPoint, QDate
 import qtawesome as qta
 
 
@@ -18,7 +21,7 @@ class ClientPaymentDialog(QDialog):
     def __init__(self, client_id, parent=None):
         super().__init__(parent)
         self.setWindowTitle("تسديد مبلغ للفاتورة")
-        self.setMinimumSize(450, 350)
+        self.setMinimumSize(650, 650)
         self.setModal(True)
 
         # Frameless Window Setup
@@ -63,12 +66,38 @@ class ClientPaymentDialog(QDialog):
         form_layout.setSpacing(15)
         form_layout.setLabelAlignment(Qt.AlignRight)
 
+        self.project_combo = QComboBox()
+        self.payment_method = QComboBox()
+
+        self.deferred_cheque_checkbox = QCheckBox("شيك مأجل ؟")
+        self.deferred_cheque_checkbox.setObjectName("filterCheckbox")
+        self.deferred_cheque_checkbox.hide()
+
+        self.cheque_date_label = QLabel("تاريخ تحصيل الشيك:")
+        self.cheque_date_input = QDateEdit()
+        self.cheque_date_input.setCalendarPopup(True)
+        self.cheque_date_input.setDate(QDate.currentDate())
+        self.cheque_date_label.hide()
+        self.cheque_date_input.hide()
+
         self.amount_input = QLineEdit()
         self.notes_input = QTextEdit()
+
         self.notes_input.setMaximumHeight(80)
 
+        self.payment_method.addItems(["نقدي", "بنك", "شيك"])
+
+        form_layout.addRow("المشروع:", self.project_combo)
+        form_layout.addRow("طريقة الدفع:", self.payment_method)
+        form_layout.addRow("", self.deferred_cheque_checkbox)
+        form_layout.addRow(self.cheque_date_label, self.cheque_date_input)
         form_layout.addRow("المبلغ المدفوع:", self.amount_input)
         form_layout.addRow("ملاحظات:", self.notes_input)
+
+        self.payment_method.currentTextChanged.connect(self.on_payment_method_changed)
+        self.deferred_cheque_checkbox.stateChanged.connect(
+            self.on_deferred_cheque_changed
+        )
 
         content_layout.addLayout(form_layout)
 
@@ -95,19 +124,55 @@ class ClientPaymentDialog(QDialog):
         layout.addWidget(container)
         self.old_pos = None
 
+    def on_payment_method_changed(self, method):
+        if method == "شيك":
+            self.deferred_cheque_checkbox.show()
+            self.on_deferred_cheque_changed()
+        else:
+            self.deferred_cheque_checkbox.hide()
+            self.deferred_cheque_checkbox.setChecked(False)
+            self.cheque_date_label.hide()
+            self.cheque_date_input.hide()
+
+    def on_deferred_cheque_changed(self):
+        if self.deferred_cheque_checkbox.isChecked():
+            self.cheque_date_label.show()
+            self.cheque_date_input.show()
+        else:
+            self.cheque_date_label.hide()
+            self.cheque_date_input.hide()
+
     def get_data(self):
         """Returns the data entered in the dialog."""
-        return {
+        data = {
             "payment_amount": self.amount_input.text().strip(),
             "notes": self.notes_input.toPlainText().strip(),
+            "project_id": self.project_combo.currentData(),
+            "payment_method": self.payment_method.currentText(),
         }
+
+        if (
+            self.payment_method.currentText() == "شيك"
+            and self.deferred_cheque_checkbox.isChecked()
+        ):
+            data["is_deferred_cheque"] = True
+            data["cheque_date"] = self.cheque_date_input.date().toString("yyyy-MM-dd")
+        else:
+            data["is_deferred_cheque"] = False
+            data["cheque_date"] = None
+
+        return data
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton and self.title_bar.underMouse():
             self.old_pos = event.globalPos()
 
     def mouseMoveEvent(self, event):
-        if hasattr(self, "old_pos") and self.old_pos and event.buttons() == Qt.LeftButton:
+        if (
+            hasattr(self, "old_pos")
+            and self.old_pos
+            and event.buttons() == Qt.LeftButton
+        ):
             delta = QPoint(event.globalPos() - self.old_pos)
             self.move(self.x() + delta.x(), self.y() + delta.y())
             self.old_pos = event.globalPos()

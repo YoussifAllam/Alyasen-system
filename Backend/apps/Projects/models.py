@@ -12,6 +12,11 @@ class ProjectStatus(models.Choices):
     inactive = "inactive"
 
 
+class PaymentStatus(models.Choices):
+    pendding = "pendding"
+    paid = "paid"
+
+
 class Projects(models.Model):
     name = models.CharField(max_length=50, blank=True, null=True)
     project_type = models.CharField(max_length=50, choices=ProjectTypes.choices)
@@ -89,7 +94,7 @@ class ProjectPayments(models.Model):
     payment_date = models.DateField()
     payment_amount = models.FloatField(default=0)
     payment_method = models.CharField(max_length=50)
-    payment_status = models.CharField(max_length=50)
+    payment_status = models.CharField(max_length=50, default=PaymentStatus.pendding)
     payment_notes = models.TextField(max_length=50)
     # i will use it just if the payment_method is cheque
     checqu_clear_date = models.DateField(null=True, blank=True)

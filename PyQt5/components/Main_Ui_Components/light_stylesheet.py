@@ -81,6 +81,17 @@ def load_light_theme():
         /*#! NEW: Styles for the ComboBox dropdown list */
         QComboBox::drop-down {
             border: none;
+            width: 30px;
+        }
+        QComboBox::down-arrow {
+            width: 14px;
+            height: 14px;
+            /* Using a dark/gray dropdown arrow for light theme */
+            image: url(icons/down_arrow_dark.svg); 
+            /* Fallback style in case icon isn't present */
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid #5A5548;
         }
         QComboBox QAbstractItemView {
              background-color: #ffffff;
