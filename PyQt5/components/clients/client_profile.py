@@ -20,10 +20,6 @@ from requests import request, get, exceptions
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
 from .client_payment_details_dialog import ClientPaymentDetailsDialog
 from .client_payment_dialog import ClientPaymentDialog
-from .create_client_invoice_dialog import CreateClientInvoiceDialog
-from .add_client_mixture_dialog import AddClientMixtureDialog
-from .client_invoice_materials_dialog import ClientInvoiceMaterialsDialog
-from .finalize_client_invoice_dialog import FinalizeClientInvoiceDialog
 from .update_client_data_dialog import UpdateClientDataDialog
 
 
@@ -97,12 +93,11 @@ class ClientProfileUI(QWidget):
         top_layout.addWidget(actions_card)
         main_layout.addLayout(top_layout)
         self.table = QTableWidget()
-        self.table.setColumnCount(3)
-        headers = ["رقم الفاتورة", "التاريخ", "الإجمالي"]
+        self.table.setColumnCount(4)
+        headers = ["رقم المشروع","نوع المشروع","الإجمالي","الحالة"]
         self.table.setHorizontalHeaderLabels(headers)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.table.selectionModel().selectionChanged.connect(self.on_selection_changed)
         pagination_layout = QHBoxLayout()
         self.prev_button = QPushButton("السابق")
         self.next_button = QPushButton("التالي")
@@ -147,27 +142,17 @@ class ClientProfileUI(QWidget):
         card.setObjectName("card")
         layout = QVBoxLayout(card)
         layout.setSpacing(15)
-        self.btn_create_invoices = QPushButton("أضافة فاتورة")
-        self.btn_create_invoices.setObjectName("primaryButton")
-        self.btn_create_invoices.clicked.connect(self.handle_create_invoice_step1)
-        self.btn_show_invoices = QPushButton("عرض فواتير العميل")
-        self.btn_show_invoices.clicked.connect(self.handle_show_invoices)
+        self.btn_show_client_projects = QPushButton("عرض مشارع العميل")
+        # self.btn_show_client_projects.clicked.connect(self.handle_show_client_projects)
         self.btn_show_invoice_payment_details = QPushButton("عرض تفاصيل الدفعات")
         self.btn_show_invoice_payment_details.clicked.connect(self.handle_show_payment_details)
-        self.btn_show_invoice_materials_details = QPushButton("عرض تفاصيل منتجات الفاتورة")
-        self.btn_show_invoice_materials_details.clicked.connect(
-            self.handle_show_materials_details
-        )  # Connect button
         self.btn_pay_invoice = QPushButton("تسديد دفعه")
         self.btn_pay_invoice.clicked.connect(self.handle_pay_invoice)
         self.btn_edit_profile = QPushButton("تعديل البيانات الشخصية")
         self.btn_edit_profile.clicked.connect(self.handle_edit_profile)
         self.send_email = QPushButton("ارسال كشف حساب للعميل")
-        self.btn_show_invoice_materials_details.setEnabled(False)
-        layout.addWidget(self.btn_create_invoices)
-        layout.addWidget(self.btn_show_invoices)
+        layout.addWidget(self.btn_show_client_projects)
         layout.addWidget(self.btn_show_invoice_payment_details)
-        layout.addWidget(self.btn_show_invoice_materials_details)
         layout.addWidget(self.btn_pay_invoice)
         layout.addWidget(self.btn_edit_profile)
         layout.addWidget(self.send_email)
@@ -180,37 +165,6 @@ class ClientProfileUI(QWidget):
 
         dialog = UpdateClientDataDialog(self.current_client_data, self)
         if dialog.exec_() == QDialog.Accepted:
-            url = f"{BACKEND_BASE_URL}/clients/info/?id={self.client_id}"
-            self._start_info_fetch_request(url)
-
-    def handle_create_invoice_step1(self):
-        """Step 1: Open the dialog to get the invoice number."""
-        if not self.client_id:
-            QMessageBox.critical(self, "خطأ", "لا يمكن إنشاء فاتورة بدون عميل محدد.")
-            return
-
-        dialog = CreateClientInvoiceDialog(self.client_id, self)
-        if dialog.exec_() == QDialog.Accepted:
-            invoice_num = dialog.get_invoice_number()
-            self.handle_create_invoice_step2(invoice_num)
-
-    def handle_create_invoice_step2(self, invoice_num):
-        """Step 2: Open the dialog to add mixtures."""
-        dialog = AddClientMixtureDialog(invoice_num, self.client_id, self)
-        if dialog.exec_() == QDialog.Accepted:
-            total_amount = dialog.get_total_price()
-            self.handle_create_invoice_step3(invoice_num, total_amount)
-
-    def handle_create_invoice_step3(self, invoice_num, total_amount):
-        """Step 3: Open the final dialog to enter payment."""
-        dialog = FinalizeClientInvoiceDialog(invoice_num, total_amount, self.client_id, self)
-        dialog.invoice_finalized.connect(self.on_invoice_creation_success)
-        dialog.exec_()
-
-    def on_invoice_creation_success(self, _):
-        """Called after the entire invoice process is complete."""
-        QMessageBox.information(self, "نجاح", "تم إنشاء الفاتورة وتسجيل الدفعة بنجاح.")
-        if self.client_id:
             url = f"{BACKEND_BASE_URL}/clients/info/?id={self.client_id}"
             self._start_info_fetch_request(url)
 
@@ -249,22 +203,8 @@ class ClientProfileUI(QWidget):
             pixmap.scaled(self.profile_pic.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
         )
 
-    def handle_show_invoices(self):
-        if self.client_id:
-            url = f"{BACKEND_BASE_URL}/clients/invoice/invoices/?client_id={self.client_id}"
-            self._start_invoice_fetch(url)
-
     def handle_show_payment_details(self):
         dialog = ClientPaymentDetailsDialog(self.client_id, self)
-        dialog.exec_()
-
-    def handle_show_materials_details(self):
-        """Opens a dialog to show material details for the selected invoice."""
-        selected_rows = self.table.selectionModel().selectedRows()
-        if not selected_rows:
-            return
-        invoice_num = self.table.item(selected_rows[0].row(), 0).text()
-        dialog = ClientInvoiceMaterialsDialog(invoice_num, self)
         dialog.exec_()
 
     def handle_pay_invoice(self):
@@ -310,7 +250,9 @@ class ClientProfileUI(QWidget):
 
     def on_client_info_update(self, client_data):
         self.update_data(client_data, fetch_pic=False)
-        self.handle_show_invoices()
+        if self.client_id:
+            url = f"{BACKEND_BASE_URL}/clients/invoice/invoices/?client_id={self.client_id}"
+            self._start_invoice_fetch(url)
 
     def handle_next_page(self):
         if self.next_page_url:
@@ -330,43 +272,7 @@ class ClientProfileUI(QWidget):
         self.info_fetch_worker.finished.connect(self.info_fetch_thread.quit)
         self.info_fetch_thread.start()
 
-    def _start_invoice_fetch(self, url):
-        self._set_loading(True)
-        self.invoice_thread = QThread()
-        self.invoice_worker = ApiWorker("GET", url, response_type="json")
-        self.invoice_worker.moveToThread(self.invoice_thread)
-        self.invoice_thread.started.connect(self.invoice_worker.run)
-        self.invoice_worker.success.connect(self.handle_invoice_response)
-        self.invoice_worker.error.connect(self.show_error_message)
-        self.invoice_worker.finished.connect(self.invoice_thread.quit)
-        self.invoice_thread.start()
-
-    def handle_invoice_response(self, response_data):
-        data_obj = response_data.get("data", {})
-        results = data_obj.get("results", [])
-        self.next_page_url = data_obj.get("next")
-        self.prev_page_url = data_obj.get("previous")
-        self.total_count = data_obj.get("count", 0)
-        self.populate_invoice_table(results)
-        self.update_pagination_controls()
-        self._set_loading(False)
-
-    def populate_invoice_table(self, invoices):
-        self.table.setRowCount(0)
-        for invoice in invoices:
-            row_pos = self.table.rowCount()
-            self.table.insertRow(row_pos)
-            items = [
-                QTableWidgetItem(str(invoice.get("invoice_number", ""))),
-                QTableWidgetItem(invoice.get("invoice_date", "")),
-                QTableWidgetItem(f"{invoice.get('invoice_total_amount', 0):,.2f}"),
-                QTableWidgetItem(f"{invoice.get('total_paid_amount', 0):,.2f}"),
-                QTableWidgetItem(f"{invoice.get('total_amount_payable', 0):,.2f}"),
-            ]
-            for i, item in enumerate(items):
-                item.setTextAlignment(Qt.AlignCenter)
-                self.table.setItem(row_pos, i, item)
-
+    
     def update_pagination_controls(self):
         self.next_button.setEnabled(self.next_page_url is not None)
         self.prev_button.setEnabled(self.prev_page_url is not None)
@@ -375,14 +281,7 @@ class ClientProfileUI(QWidget):
         else:
             self.page_info_label.setText("لا توجد فواتير")
 
-    def on_selection_changed(self):
-        is_selected = bool(self.table.selectionModel().selectedRows())
-        # self.btn_show_invoice_payment_details.setEnabled(is_selected)
-        # self.btn_pay_invoice.setEnabled(is_selected)
-        self.btn_show_invoice_materials_details.setEnabled(is_selected)
-
     def _set_loading(self, is_loading):
-        self.btn_show_invoices.setDisabled(is_loading)
         self.next_button.setDisabled(is_loading)
         self.prev_button.setDisabled(is_loading)
         self.page_info_label.setText("جاري التحميل..." if is_loading else "")
