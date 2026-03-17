@@ -94,7 +94,7 @@ class ClientProfileUI(QWidget):
         main_layout.addLayout(top_layout)
         self.table = QTableWidget()
         self.table.setColumnCount(4)
-        headers = ["رقم المشروع","نوع المشروع","الإجمالي","الحالة"]
+        headers = ["رقم المشروع", "نوع المشروع", "الإجمالي", "الحالة"]
         self.table.setHorizontalHeaderLabels(headers)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
@@ -145,7 +145,9 @@ class ClientProfileUI(QWidget):
         self.btn_show_client_projects = QPushButton("عرض مشارع العميل")
         # self.btn_show_client_projects.clicked.connect(self.handle_show_client_projects)
         self.btn_show_invoice_payment_details = QPushButton("عرض تفاصيل الدفعات")
-        self.btn_show_invoice_payment_details.clicked.connect(self.handle_show_payment_details)
+        self.btn_show_invoice_payment_details.clicked.connect(
+            self.handle_show_payment_details
+        )
         self.btn_pay_invoice = QPushButton("تسديد دفعه")
         self.btn_pay_invoice.clicked.connect(self.handle_pay_invoice)
         self.btn_edit_profile = QPushButton("تعديل البيانات الشخصية")
@@ -160,7 +162,7 @@ class ClientProfileUI(QWidget):
         return card
 
     def handle_edit_profile(self):
-        if not self.client_id or not hasattr(self, 'current_client_data'):
+        if not self.client_id or not hasattr(self, "current_client_data"):
             return
 
         dialog = UpdateClientDataDialog(self.current_client_data, self)
@@ -174,7 +176,9 @@ class ClientProfileUI(QWidget):
         self.client_id = data.get("id")
         self.name_label.setText(f"ملف العميل: {data.get('name', '')}")
         self.due_display.setText(f"{data.get('total_balance_owed_to_us', 0):,.2f} ج.م")
-        self.payable_display.setText(f"{data.get('total_remaining_balance_owed_to_us', 0):,.2f} ج.م")
+        self.payable_display.setText(
+            f"{data.get('total_remaining_balance_owed_to_us', 0):,.2f} ج.م"
+        )
         self.paid_display.setText(f"{data.get('total_paid_amount', 0):,.2f} ج.م")
         if fetch_pic:
             pic_url = data.get("profile_picture")
@@ -200,7 +204,9 @@ class ClientProfileUI(QWidget):
 
     def set_image(self, pixmap):
         self.profile_pic.setPixmap(
-            pixmap.scaled(self.profile_pic.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            pixmap.scaled(
+                self.profile_pic.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
+            )
         )
 
     def handle_show_payment_details(self):
@@ -215,7 +221,9 @@ class ClientProfileUI(QWidget):
             try:
                 amount = float(amount_str)
                 if amount <= 0:
-                    QMessageBox.warning(self, "خطأ", "يجب أن يكون المبلغ المدفوع رقمًا موجبًا.")
+                    QMessageBox.warning(
+                        self, "خطأ", "يجب أن يكون المبلغ المدفوع رقمًا موجبًا."
+                    )
                     return
             except (ValueError, TypeError):
                 QMessageBox.warning(self, "خطأ", "الرجاء إدخال مبلغ صحيح.")
@@ -272,7 +280,6 @@ class ClientProfileUI(QWidget):
         self.info_fetch_worker.finished.connect(self.info_fetch_thread.quit)
         self.info_fetch_thread.start()
 
-    
     def update_pagination_controls(self):
         self.next_button.setEnabled(self.next_page_url is not None)
         self.prev_button.setEnabled(self.prev_page_url is not None)

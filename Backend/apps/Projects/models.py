@@ -7,16 +7,25 @@ class ProjectTypes(models.Choices):
     industrial = "industrial"
 
 
+class ProjectStatus(models.Choices):
+    active = "active"
+    inactive = "inactive"
+
+
 class Projects(models.Model):
     name = models.CharField(max_length=50, blank=True, null=True)
     project_type = models.CharField(max_length=50, choices=ProjectTypes.choices)
+    project_status = models.CharField(max_length=50, choices=ProjectStatus.choices)
     created_date = models.DateField(default=now)
+
     operating_costs = models.FloatField(default=0)
 
     # taxes
     value_added_tax = models.FloatField(default=0)
     insurance_tax = models.FloatField(default=0)
     profits_tax = models.FloatField(default=0)
+
+    project_total_cost = models.FloatField(default=0)
 
     class Meta:
         db_table = "Projects"
@@ -30,6 +39,11 @@ class Projects(models.Model):
 
     def __str__(self):
         return self.username
+
+
+class ProjectContracts(models.Model):
+    project = models.ForeignKey(Projects, on_delete=models.CASCADE)
+    contract = models.FileField(upload_to="contracts/", blank=True, null=True)
 
 
 class ProjectRentalAds(models.Model):
