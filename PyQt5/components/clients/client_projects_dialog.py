@@ -66,6 +66,9 @@ class ClientProjectsDialog(QDialog):
         ]
         self.table.setHorizontalHeaderLabels(headers)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        # Prevent details button column from stretching too much
+        self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.Stretch)
+
         self.table.setHorizontalScrollBarPolicy(
             Qt.ScrollBarAsNeeded
         )  # or Qt.ScrollBarAlwaysOn
@@ -92,6 +95,7 @@ class ClientProjectsDialog(QDialog):
 
     def load_projects(self):
         try:
+            return  # todo remove it
             from .client_profile import ApiWorker
             from ..Main_Ui_Components.constant import BACKEND_BASE_URL
 

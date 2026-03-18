@@ -31,6 +31,7 @@ class PaymentDetailsWorker(QObject):
 
     @pyqtSlot()
     def run(self):
+        return  # todo remove it
         try:
             response = request("GET", self.url, timeout=15)
             if response.status_code == 200:
@@ -48,7 +49,7 @@ class ClientPaymentDetailsDialog(QDialog):
         super().__init__(parent)
         self.client_id = client_id
         self.setWindowTitle(f"تفاصيل دفعات العميل: {client_id}")
-        self.setMinimumSize(700, 500)
+        self.setMinimumSize(900, 500)
         self.setModal(True)
 
         # Frameless Window Setup
@@ -86,10 +87,21 @@ class ClientPaymentDetailsDialog(QDialog):
 
         # Table
         self.table = QTableWidget()
-        self.table.setColumnCount(3)
-        self.table.setHorizontalHeaderLabels(["المبلغ المدفوع", "تاريخ الدفعة", "ملاحظات"])
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.table.setColumnCount(7)
+        self.table.setHorizontalHeaderLabels(
+            [
+                "المشروع",
+                "طريقة الدفع",
+                "المبلغ المدفوع",
+                "تاريخ الدفعة",
+                "تاريخ تحصيل الشيك",
+                "",
+                "ملاحظات",
+            ]
+        )
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.Stretch)
+        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         content_layout.addWidget(self.table)
 
         main_layout.addWidget(content_area)
@@ -135,7 +147,11 @@ class ClientPaymentDetailsDialog(QDialog):
             self.old_pos = event.globalPos()
 
     def mouseMoveEvent(self, event):
-        if hasattr(self, "old_pos") and self.old_pos and event.buttons() == Qt.LeftButton:
+        if (
+            hasattr(self, "old_pos")
+            and self.old_pos
+            and event.buttons() == Qt.LeftButton
+        ):
             delta = QPoint(event.globalPos() - self.old_pos)
             self.move(self.x() + delta.x(), self.y() + delta.y())
             self.old_pos = event.globalPos()

@@ -81,17 +81,6 @@ def load_dark_theme():
         /*#! NEW: Styles for the ComboBox dropdown list */
         QComboBox::drop-down {
             border: none;
-            width: 30px;
-        }
-        QComboBox::down-arrow {
-            width: 14px;
-            height: 14px;
-            /* Using a white/light dropdown arrow for dark theme */
-            image: url(icons/down_arrow.svg); 
-            /* Fallback style in case icon isn't present */
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            border-top: 5px solid #d1d5db;
         }
         QComboBox QAbstractItemView {
              background-color: #374151;
@@ -100,7 +89,6 @@ def load_dark_theme():
              color: #f9fafb;
              padding: 5px;
         }
-        
 
         /*#! --- NEW: Report Panel Styles --- */
         #reportItemCard {
