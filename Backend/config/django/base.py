@@ -49,6 +49,7 @@ LOCAL_APPS = [
     "apps.Clients",
     "apps.TransactionsLog",
     "apps.Projects",
+    "apps.Notifications",
     # "apps.Expenses",
     # "apps.Suppliers",
     # "apps.Reports",

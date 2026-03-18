@@ -14,13 +14,13 @@ urlpatterns = [
     path("api/registertion/", include("apps.registertion.urls")),
     path("api/transactions_log/", include("apps.TransactionsLog.urls")),
     path("api/projects/", include("apps.Projects.urls")),
+    path("api/notifications/", include("apps.Notifications.urls")),
     # path("api/expenses/", include("apps.Expenses.urls")),
     # path("api/suppliers/", include("apps.Suppliers.urls")),
     # path("api/reports/", include("apps.Reports.urls")),
     path("api/clients/", include("apps.Clients.urls")),
     # path("api/dashboard/", include("apps.Dashboard.urls")),
     # path("api/machines/", include("apps.Machines.urls")),
-
     # Health check endpoint
     path("health/", lambda request: HttpResponse("OK")),
 ] + third_party_urls  # noqa
