@@ -20,7 +20,7 @@ from urllib.parse import urlencode
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
 
-from .machien_profile import MachineProfileUI
+# from .machien_profile import MachineProfileUI
 
 
 class MachineApiWorker(QObject):
@@ -41,7 +41,13 @@ class MachineApiWorker(QObject):
     def run(self):
         try:
             if self.method == "POST" and self.files:
-                response = request(self.method, self.url, data=self.payload, files=self.files, timeout=15)
+                response = request(
+                    self.method,
+                    self.url,
+                    data=self.payload,
+                    files=self.files,
+                    timeout=15,
+                )
             else:
                 response = request(self.method, self.url, json=self.payload, timeout=15)
             if response.status_code in [200, 201]:
@@ -54,12 +60,16 @@ class MachineApiWorker(QObject):
                     elif "error" in error_data:
                         error_msg = error_data["error"]
                     else:
-                        error_msg = next(iter(error_data.values()), f"HTTP {response.status_code}")
+                        error_msg = next(
+                            iter(error_data.values()), f"HTTP {response.status_code}"
+                        )
                         if isinstance(error_msg, list):
                             error_msg = error_msg[0]
                     self.error.emit(str(error_msg))
                 except Exception:
-                    self.error.emit(response.text or f"خطأ من الخادم: {response.status_code}")
+                    self.error.emit(
+                        response.text or f"خطأ من الخادم: {response.status_code}"
+                    )
         except exceptions.RequestException as e:
             self.error.emit(f"فشل الاتصال بالخادم: {e}")
         finally:
@@ -77,12 +87,12 @@ class MachinesUI(QWidget):
         main_layout.addWidget(self.stacked_widget)
 
         self.main_page = self.create_main_page()
-        self.profile_page = MachineProfileUI()
+        # self.profile_page = MachineProfileUI()
 
         self.stacked_widget.addWidget(self.main_page)
-        self.stacked_widget.addWidget(self.profile_page)
+        # self.stacked_widget.addWidget(self.profile_page)
 
-        self.profile_page.back_to_list_requested.connect(self.show_main_page)
+        # self.profile_page.back_to_list_requested.connect(self.show_main_page)
 
     def create_main_page(self):
         main_widget = QWidget()
@@ -111,33 +121,33 @@ class MachinesUI(QWidget):
         layout.setSpacing(20)
         layout.setAlignment(Qt.AlignTop)
 
-        header = QLabel("إدارة الألات")
+        header = QLabel("إدارة أصول الشركة")
         header.setObjectName("mainHeader")
-        subheader = QLabel("إضافة أله جديده أو البحث عن أله.")
+        subheader = QLabel("إضافة أصل جديد أو البحث عن أصل.")
         subheader.setObjectName("mainSubheader")
 
         layout.addWidget(header)
         layout.addWidget(subheader)
 
-        form_groupbox = QGroupBox("اضافة أله جديد")
+        form_groupbox = QGroupBox("اضافة أصل جديد")
         form_layout = QVBoxLayout(form_groupbox)
         form_layout.setSpacing(15)
 
-        self.name_input = QLineEdit(placeholderText="اسم الأله")
+        self.name_input = QLineEdit(placeholderText="اسم ")
 
         self.profile_pic_label = QLabel("لم يتم اختيار صورة")
         self.profile_pic_label.setAlignment(Qt.AlignCenter)
         self.profile_pic_label.setMinimumHeight(150)
         self.profile_pic_label.setObjectName("imagePreview")
 
-        btn_choose_pic = QPushButton("اختيار صورة للأله")
+        btn_choose_pic = QPushButton("اختيار صورة ")
         btn_choose_pic.clicked.connect(self.choose_profile_picture)
 
         form_layout.addWidget(self.name_input)
         form_layout.addWidget(self.profile_pic_label)
         form_layout.addWidget(btn_choose_pic)
 
-        self.btn_add_machine = QPushButton("إضافة الأله")
+        self.btn_add_machine = QPushButton("إضافة ")
         self.btn_add_machine.setObjectName("primaryButton")
         self.btn_add_machine.clicked.connect(self.handle_add_machine)
         form_layout.addWidget(self.btn_add_machine)
@@ -159,21 +169,18 @@ class MachinesUI(QWidget):
         self.view_all_button.clicked.connect(self.handle_view_all)
         actions_layout.addWidget(self.view_all_button)
 
-        self.btn_show_profile = QPushButton("عرض ملف الأله")
-        self.btn_show_profile.setEnabled(False)
-        self.btn_show_profile.clicked.connect(self.handle_show_profile)
-        actions_layout.addWidget(self.btn_show_profile)
-
         layout.addLayout(actions_layout)
         self.table = QTableWidget()
         self.table.setColumnCount(2)
         headers = [
-            "كود الأله",
-            "اسم الأله",
+            "كود ",
+            "اسم ",
         ]
         self.table.setHorizontalHeaderLabels(headers)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeToContents
+        )
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.selectionModel().selectionChanged.connect(self.on_selection_changed)
         pagination_layout = QHBoxLayout()
@@ -192,28 +199,15 @@ class MachinesUI(QWidget):
 
     def on_selection_changed(self):
         """Enables buttons when a table row is selected."""
-        is_selected = bool(self.table.selectionModel().selectedRows())
-        self.btn_show_profile.setEnabled(is_selected)
+        is_selected = bool(self.table.selectionModel().selectedRows())  # noqa
 
     def show_main_page(self):
         self.stacked_widget.setCurrentIndex(0)
 
-    def handle_show_profile(self):
-        """Fetches worker data and switches to the profile page."""
-        selected_rows = self.table.selectionModel().selectedRows()
-        if not selected_rows:
-            return
-        worker_id = self.table.item(selected_rows[0].row(), 0).data(Qt.UserRole)
-        url = f"{BACKEND_BASE_URL}/machines/info/?machine_id={worker_id}"
-        self._start_api_request("GET", url, on_success=self.on_profile_fetch_success)
-
-    def on_profile_fetch_success(self, data):
-        self.profile_page.update_data(data)
-        self.stacked_widget.setCurrentIndex(1)
-        self._set_loading(False)
-
     def choose_profile_picture(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "اختر صورة", "", "Image files (*.png *.jpg *.jpeg)")
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "اختر صورة", "", "Image files (*.png *.jpg *.jpeg)"
+        )
         if file_path:
             self.profile_pic_path = file_path
             pixmap = QPixmap(file_path)
@@ -229,7 +223,7 @@ class MachinesUI(QWidget):
     def handle_add_machine(self):
         name = self.name_input.text().strip()
         if not name:
-            QMessageBox.warning(self, "خطأ", "الرجاء إدخال اسم الأله .")
+            QMessageBox.warning(self, "خطأ", "الرجاء إدخال اسم .")
             return
         settings = QSettings("FactorySystem")
         username = settings.value("user_name", "unknown_user")
@@ -237,8 +231,10 @@ class MachinesUI(QWidget):
         files = None
         if self.profile_pic_path:
             files = {"image": open(self.profile_pic_path, "rb")}
-        url = f"{BACKEND_BASE_URL}/machines/machine/"
-        self._start_api_request("POST", url, payload=payload, files=files, on_success=self.on_add_success)
+        url = f"{BACKEND_BASE_URL}/company_assets/company-assets/"
+        self._start_api_request(
+            "POST", url, payload=payload, files=files, on_success=self.on_add_success
+        )
 
     def on_add_success(self, response_data):
         QMessageBox.information(self, "نجاح", "تمت إضافة الأله بنجاح.")
@@ -248,7 +244,7 @@ class MachinesUI(QWidget):
         self.handle_view_all()
 
     def handle_view_all(self):
-        url = f"{BACKEND_BASE_URL}/machines/machine/"
+        url = f"{BACKEND_BASE_URL}/company_assets/company-assets/"
         self._start_api_request("GET", url, on_success=self.handle_api_response)
 
     def handle_search(self):
@@ -257,18 +253,24 @@ class MachinesUI(QWidget):
             QMessageBox.warning(self, "خطأ", "الرجاء إدخال نص للبحث.")
             return
         params = urlencode({"q": query})
-        url = f"{BACKEND_BASE_URL}/machines/machine/?{params}"
+        url = f"{BACKEND_BASE_URL}/company_assets/company-assets/?{params}"
         self._start_api_request("GET", url, on_success=self.handle_api_response)
 
     def handle_next_page(self):
         if self.next_page_url:
-            self._start_api_request("GET", self.next_page_url, on_success=self.handle_api_response)
+            self._start_api_request(
+                "GET", self.next_page_url, on_success=self.handle_api_response
+            )
 
     def handle_prev_page(self):
         if self.prev_page_url:
-            self._start_api_request("GET", self.prev_page_url, on_success=self.handle_api_response)
+            self._start_api_request(
+                "GET", self.prev_page_url, on_success=self.handle_api_response
+            )
 
-    def _start_api_request(self, method, url, payload=None, files=None, on_success=None):
+    def _start_api_request(
+        self, method, url, payload=None, files=None, on_success=None
+    ):
         self._set_loading(True)
         self.thread = QThread()
         self.worker = MachineApiWorker(method, url, payload, files)
@@ -316,7 +318,7 @@ class MachinesUI(QWidget):
         self.next_button.setEnabled(self.next_page_url is not None)
         self.prev_button.setEnabled(self.prev_page_url is not None)
         if self.total_count > 0:
-            self.page_info_label.setText(f"إجمالي الألات: {self.total_count}")
+            self.page_info_label.setText(f"إجمالي الأصول: {self.total_count}")
         else:
             self.page_info_label.setText("لا توجد نتائج")
 
