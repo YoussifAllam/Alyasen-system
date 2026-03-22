@@ -23,7 +23,7 @@ class SidebarWidget(QWidget):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 20, 10, 20)
-        layout.setSpacing(5)
+        layout.setSpacing(2)
 
         logo_label = QLabel()
         logo_path = rf"{BASE_DIR}/resources/logo1.png"
@@ -33,25 +33,18 @@ class SidebarWidget(QWidget):
         )
         logo_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(logo_label)
-        layout.addSpacing(5)
-
-        # title_label = QLabel("نظام المصنع")
-        # title_label.setObjectName("sidebarTitle")
-        # title_label.setAlignment(Qt.AlignCenter)
-        # layout.addWidget(title_label)
+        layout.addSpacing(2)
 
         self.buttons = []
         button_data = [
-            {"text": " لوحة التحكم", "icon": "fa5s.tachometer-alt"},  # NEW
+            {"text": " لوحة التحكم", "icon": "fa5s.tachometer-alt"},
             {"text": " العملاء", "icon": "fa5s.user-friends"},
             {"text": " الموردين", "icon": "fa5s.truck"},
             {"text": " مصروفات", "icon": "fa5s.file-invoice-dollar"},
-            # {"text": " تجارب الخلطات", "icon": "fa5s.flask"},
             {"text": " جرد", "icon": "fa5s.clipboard-list"},
             {"text": " سجل العمليات", "icon": "fa5s.history"},
             {"text": "اصول الشركة", "icon": "fa5s.tools"},
-            {"text": "الخزنة", "icon": "fa5s.boxes"},
-            # {"text": "بيع قطاعي", "icon": "fa5s.shopping-cart"},
+            {"text": "الخزنة", "icon": "fa5s.money-bill-wave"},
         ]
 
         for i, data in enumerate(button_data):
