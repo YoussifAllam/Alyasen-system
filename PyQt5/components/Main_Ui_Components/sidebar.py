@@ -16,7 +16,6 @@ from .constant import BASE_DIR
 class SidebarWidget(QWidget):
     page_changed = pyqtSignal(int)
     theme_changed = pyqtSignal()  # New signal for theme toggle
-    notifications_clicked = pyqtSignal()  # Signal for notification button
 
     def __init__(self):
         super().__init__()
@@ -66,12 +65,6 @@ class SidebarWidget(QWidget):
             self.buttons.append(button)
 
         layout.addStretch()
-
-        self.notification_button = QPushButton(" الإشعارات")
-        self.notification_button.setIcon(qta.icon("fa5s.bell", color="#d1d5db"))
-        self.notification_button.setIconSize(QSize(22, 22))
-        self.notification_button.clicked.connect(self.notifications_clicked.emit)
-        layout.addWidget(self.notification_button)
 
         self.theme_toggle_button = QPushButton(" الوضع الفاتح")
         self.theme_toggle_button.setIcon(qta.icon("fa5s.sun", color="#d1d5db"))

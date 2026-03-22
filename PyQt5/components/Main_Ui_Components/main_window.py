@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QApplication,
     QScrollArea,
 )
-from PyQt5.QtCore import pyqtSlot, Qt, QPoint, QSettings
+from PyQt5.QtCore import pyqtSlot, Qt, QPoint, QSettings, QSize
 from PyQt5.QtGui import QIcon, QPixmap
 import qtawesome as qta
 
@@ -91,9 +91,19 @@ class MainWindow(QMainWindow):
         self.close_button.setIcon(qta.icon("fa5s.times", color="#9ca3af"))
         self.close_button.clicked.connect(self.close)
 
+        self.notification_button = QPushButton()
+        self.notification_button.setObjectName("titleBarButton")
+        self.notification_button.setIcon(qta.icon("fa5s.bell", color="#9ca3af"))
+        self.notification_button.setToolTip("الإشعارات")
+        self.notification_button.setIconSize(QSize(22, 22))
+
+        # In case a signal needs to be connected later
+        # self.notification_button.clicked.connect(self.handle_notifications)
+
         title_bar_layout.addWidget(self.close_button)
         title_bar_layout.addWidget(self.maximize_button)
         title_bar_layout.addWidget(self.minimize_button)
+        title_bar_layout.addWidget(self.notification_button)
         title_bar_layout.addStretch()
         title_bar_layout.addWidget(title_text)
         title_bar_layout.addWidget(app_icon)
