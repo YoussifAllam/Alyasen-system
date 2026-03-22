@@ -16,6 +16,7 @@ import qtawesome as qta
 
 # Import other UI components
 from .sidebar import SidebarWidget
+from ..notifications_dialog import NotificationsDialog
 from ..dashboard.dashboard import DashboardUI  # NEW
 from ..clients.ui_clients import ClientsUI
 
@@ -97,8 +98,8 @@ class MainWindow(QMainWindow):
         self.notification_button.setToolTip("الإشعارات")
         self.notification_button.setIconSize(QSize(22, 22))
 
-        # In case a signal needs to be connected later
-        # self.notification_button.clicked.connect(self.handle_notifications)
+        # Connect button to show notifications dialog
+        self.notification_button.clicked.connect(self.show_notifications)
 
         title_bar_layout.addWidget(self.close_button)
         title_bar_layout.addWidget(self.maximize_button)
@@ -225,3 +226,7 @@ class MainWindow(QMainWindow):
     def change_page(self, index):
         self.stacked_widget.setCurrentIndex(index)
         self.sidebar.set_active_button(index)
+
+    def show_notifications(self):
+        dialog = NotificationsDialog(self)
+        dialog.exec_()
