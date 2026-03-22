@@ -50,7 +50,7 @@ LOCAL_APPS = [
     "apps.TransactionsLog",
     "apps.Projects",
     "apps.Notifications",
-    # "apps.Expenses",
+    "apps.Expenses",
     # "apps.Suppliers",
     # "apps.Reports",
     # "apps.Dashboard",

@@ -21,7 +21,6 @@ from ..Main_Ui_Components.constant import BACKEND_BASE_URL
 from .client_payment_details_dialog import ClientPaymentDetailsDialog
 from .client_payment_dialog import ClientPaymentDialog
 from .update_client_data_dialog import UpdateClientDataDialog
-from .client_projects_dialog import ClientProjectsDialog
 
 
 class ApiWorker(QObject):
@@ -94,15 +93,29 @@ class ClientProfileUI(QWidget):
         top_layout.addWidget(actions_card)
         main_layout.addLayout(top_layout)
         self.table = QTableWidget()
-        self.table.setColumnCount(4)
-        headers = ["رقم المشروع", "نوع المشروع", "الإجمالي", "الحالة"]
+        self.table.setColumnCount(7)
+        headers = [
+            "",
+            "كود ",
+            "اسم ",
+            "نوع ",
+            "تكلفة ",
+            "حالة ",
+            "تفاصيل ",
+        ]
         self.table.setHorizontalHeaderLabels(headers)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        # Prevent details button column from stretching too much
+        self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.Stretch)
+
+        self.table.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarAsNeeded
+        )  # or Qt.ScrollBarAlwaysOn
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         pagination_layout = QHBoxLayout()
         self.prev_button = QPushButton("السابق")
         self.next_button = QPushButton("التالي")
-        self.page_info_label = QLabel("لم يتم تحميل الفواتير")
+        self.page_info_label = QLabel("لم يتم تحميل المشاريع")
         self.prev_button.clicked.connect(self.handle_prev_page)
         self.next_button.clicked.connect(self.handle_next_page)
         pagination_layout.addWidget(self.next_button)
@@ -214,9 +227,9 @@ class ClientProfileUI(QWidget):
         if not self.client_id:
             QMessageBox.warning(self, "خطأ", "لم يتم العثور على بيانات العميل.")
             return
-            
-        dialog = ClientProjectsDialog(self.client_id, self)
-        dialog.exec_()
+
+        # dialog = ClientProjectsDialog(self.client_id, self)
+        # dialog.exec_()
 
     def handle_show_payment_details(self):
         dialog = ClientPaymentDetailsDialog(self.client_id, self)
@@ -293,9 +306,9 @@ class ClientProfileUI(QWidget):
         self.next_button.setEnabled(self.next_page_url is not None)
         self.prev_button.setEnabled(self.prev_page_url is not None)
         if self.total_count > 0:
-            self.page_info_label.setText(f"إجمالي الفواتير: {self.total_count}")
+            self.page_info_label.setText(f"إجمالي المشاريع: {self.total_count}")
         else:
-            self.page_info_label.setText("لا توجد فواتير")
+            self.page_info_label.setText("لا توجد مشاريع")
 
     def _set_loading(self, is_loading):
         self.next_button.setDisabled(is_loading)
