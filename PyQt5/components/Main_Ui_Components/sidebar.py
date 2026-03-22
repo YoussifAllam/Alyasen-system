@@ -1,5 +1,12 @@
 import qtawesome as qta
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QFrame, QHBoxLayout
+from PyQt5.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QPushButton,
+    QLabel,
+    QFrame,
+    QHBoxLayout,
+)
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import pyqtSignal, QSize, Qt
 
@@ -22,7 +29,9 @@ class SidebarWidget(QWidget):
         logo_label = QLabel()
         logo_path = rf"{BASE_DIR}/resources/logo1.png"
         pixmap = QPixmap(logo_path)
-        logo_label.setPixmap(pixmap.scaled(270, 270, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        logo_label.setPixmap(
+            pixmap.scaled(270, 270, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        )
         logo_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(logo_label)
         layout.addSpacing(5)
@@ -40,9 +49,9 @@ class SidebarWidget(QWidget):
             {"text": " مصروفات", "icon": "fa5s.file-invoice-dollar"},
             # {"text": " تجارب الخلطات", "icon": "fa5s.flask"},
             {"text": " جرد", "icon": "fa5s.clipboard-list"},
-            {"text": "الخزنة", "icon": "fa5s.boxes"},
             {"text": " سجل العمليات", "icon": "fa5s.history"},
             {"text": "اصول الشركة", "icon": "fa5s.tools"},
+            {"text": "الخزنة", "icon": "fa5s.boxes"},
             # {"text": "بيع قطاعي", "icon": "fa5s.shopping-cart"},
         ]
 
@@ -50,7 +59,9 @@ class SidebarWidget(QWidget):
             button = QPushButton(data["text"])
             button.setIcon(qta.icon(data["icon"], color="#d1d5db"))
             button.setIconSize(QSize(22, 22))
-            button.clicked.connect(lambda checked, index=i: self.page_changed.emit(index))
+            button.clicked.connect(
+                lambda checked, index=i: self.page_changed.emit(index)
+            )
             layout.addWidget(button)
             self.buttons.append(button)
 
