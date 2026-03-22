@@ -52,6 +52,7 @@ LOCAL_APPS = [
     "apps.Notifications",
     "apps.Expenses",
     "apps.CompanyAssets",
+    "apps.Safe",
     # "apps.Suppliers",
     # "apps.Reports",
     # "apps.Dashboard",
