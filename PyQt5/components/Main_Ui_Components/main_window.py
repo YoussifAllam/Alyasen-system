@@ -163,7 +163,7 @@ class MainWindow(QMainWindow):
     def animate_bell(self):
         if not self.is_ringing:
             return
-        
+
         angle = self.bell_angles[self.bell_anim_step]
         self.bell_anim_step = (self.bell_anim_step + 1) % len(self.bell_angles)
         self.notification_button.setIcon(self.get_rotated_bell_icon(angle, "#ef4444"))
@@ -171,22 +171,22 @@ class MainWindow(QMainWindow):
     def get_rotated_bell_icon(self, angle, color):
         base_icon = qta.icon("fa5s.bell", color=color)
         pixmap = base_icon.pixmap(32, 32)
-        
+
         rotated_pixmap = QPixmap(32, 32)
         rotated_pixmap.fill(Qt.transparent)
-        
+
         painter = QPainter(rotated_pixmap)
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setRenderHint(QPainter.SmoothPixmapTransform)
-        
+
         # Pivot point slightly above center for a realistic bell pivot
         painter.translate(16, 8)
         painter.rotate(angle)
         painter.translate(-16, -8)
-        
+
         painter.drawPixmap(0, 0, pixmap)
         painter.end()
-        
+
         return QIcon(rotated_pixmap)
 
     def update_notification_badge(self, response_data):
@@ -194,7 +194,7 @@ class MainWindow(QMainWindow):
         if notifications:
             self.is_ringing = True
             if not self.bell_timer.isActive():
-                self.bell_timer.start(60) # Fast ringing frame rate
+                self.bell_timer.start(60)  # Fast ringing frame rate
         else:
             self.is_ringing = False
             self.bell_timer.stop()
