@@ -10,13 +10,13 @@ from PyQt5.QtWidgets import (
     QApplication,
     QScrollArea,
 )
-from PyQt5.QtCore import pyqtSlot, Qt, QPoint, QSettings, QSize
-from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtCore import pyqtSlot, Qt, QPoint, QSettings, QSize, QTimer
+from PyQt5.QtGui import QIcon, QPixmap, QPainter
 import qtawesome as qta
 
 # Import other UI components
 from .sidebar import SidebarWidget
-from ..notifications_dialog import NotificationsDialog
+from ..notifications_dialog import NotificationsDialog, NotificationApiWorker
 from ..dashboard.dashboard import DashboardUI  # NEW
 from ..clients.ui_clients import ClientsUI
 
@@ -36,7 +36,7 @@ from .stylesheet import load_dark_theme
 from .light_stylesheet import load_light_theme
 
 
-from .constant import BASE_DIR, APP_VERSION
+from .constant import BASE_DIR, APP_VERSION, BACKEND_BASE_URL
 
 
 class MainWindow(QMainWindow):
@@ -134,6 +134,72 @@ class MainWindow(QMainWindow):
         self.change_page(0)  # Default to dashboard
         self.old_pos = None
 
+        self.setup_bell_animation()
+        # Setup Notification Polling
+        self.setup_notification_polling()
+
+    def setup_notification_polling(self):
+        self.notif_timer = QTimer(self)
+        self.notif_timer.timeout.connect(self.check_notifications)
+        # 10 minutes (10 * 60 * 1000 ms)
+        self.notif_timer.start(10 * 60 * 1000)
+        # Initial check right at startup
+        self.check_notifications()
+
+    def check_notifications(self):
+        url = f"{BACKEND_BASE_URL}/notifications/get-unreaded-notifications/"
+        self.notif_worker = NotificationApiWorker("GET", url)
+        self.notif_worker.success.connect(self.update_notification_badge)
+        self.notif_worker.start()
+
+    def setup_bell_animation(self):
+        self.bell_timer = QTimer(self)
+        self.bell_timer.timeout.connect(self.animate_bell)
+        # Angles for a fast ringing effect
+        self.bell_angles = [0, 15, 20, 15, 0, -15, -20, -15]
+        self.bell_anim_step = 0
+        self.is_ringing = False
+
+    def animate_bell(self):
+        if not self.is_ringing:
+            return
+        
+        angle = self.bell_angles[self.bell_anim_step]
+        self.bell_anim_step = (self.bell_anim_step + 1) % len(self.bell_angles)
+        self.notification_button.setIcon(self.get_rotated_bell_icon(angle, "#ef4444"))
+
+    def get_rotated_bell_icon(self, angle, color):
+        base_icon = qta.icon("fa5s.bell", color=color)
+        pixmap = base_icon.pixmap(32, 32)
+        
+        rotated_pixmap = QPixmap(32, 32)
+        rotated_pixmap.fill(Qt.transparent)
+        
+        painter = QPainter(rotated_pixmap)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.SmoothPixmapTransform)
+        
+        # Pivot point slightly above center for a realistic bell pivot
+        painter.translate(16, 8)
+        painter.rotate(angle)
+        painter.translate(-16, -8)
+        
+        painter.drawPixmap(0, 0, pixmap)
+        painter.end()
+        
+        return QIcon(rotated_pixmap)
+
+    def update_notification_badge(self, response_data):
+        notifications = response_data.get("data", [])
+        if notifications:
+            self.is_ringing = True
+            if not self.bell_timer.isActive():
+                self.bell_timer.start(60) # Fast ringing frame rate
+        else:
+            self.is_ringing = False
+            self.bell_timer.stop()
+            self.notification_button.setIcon(qta.icon("fa5s.bell", color="#9ca3af"))
+
     def wrap_in_scroll_area(self, widget):
         """
         Wraps a widget in a QScrollArea to make it scrollable.
@@ -230,3 +296,6 @@ class MainWindow(QMainWindow):
     def show_notifications(self):
         dialog = NotificationsDialog(self)
         dialog.exec_()
+        # Immediately re-check the badge after closing the dialog
+        # to clear the red dot if they read them all.
+        self.check_notifications()
