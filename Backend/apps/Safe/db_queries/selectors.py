@@ -11,5 +11,7 @@ def get_safe_balance():
     return safe_instnace.balance
 
 
-def get_safe_logs():
+def get_safe_logs(date=None):
+    if date:
+        return SafeLogs.objects.filter(date=date)
     return SafeLogs.objects.all()

@@ -28,6 +28,7 @@ class SafeView(APIView):
 
 class SafeLogsView(APIView):
     def get(self, request: Request, format=None):
-        safe_logs = selectors.get_safe_logs()
+        date = request.GET.get("date")
+        safe_logs = selectors.get_safe_logs(date=date)
         paginated_response = pagenator.pagenator(safe_logs, request)
         return Response(paginated_response, status=HTTP_200_OK)

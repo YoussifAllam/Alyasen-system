@@ -17,6 +17,6 @@ class SafeLogs(models.Model):
 
     class Meta:
         db_table = "safe_logs"
-        ordering = ["date"]
+        ordering = ["-date"]
         verbose_name = "Safe Log"
         verbose_name_plural = "Safe Logs"
