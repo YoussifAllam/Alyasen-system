@@ -88,8 +88,13 @@ class MixtureAnalysisService:
         current_year = now.year
         current_month = now.month
         mixtures_data = (
-            InvoiceMaterials.objects.only("invoice__invoice_date", "material__material_name", "quantity_in_unit") # todo: change to material
-            .filter(invoice__invoice_date__year=current_year, invoice__invoice_date__month=current_month)
+            InvoiceMaterials.objects.only(
+                "invoice__invoice_date", "material__material_name", "quantity_in_unit"
+            )  # todo: change to material
+            .filter(
+                invoice__invoice_date__year=current_year,
+                invoice__invoice_date__month=current_month,
+            )
             .values("material__material_name", "material_id")
             .annotate(
                 total_quantity=Sum("quantity_in_unit"),
@@ -109,12 +114,12 @@ class MixtureAnalysisService:
             mixtures_data = cls._fetch_current_month_mixtures_data()
 
             # todo: change this
-            # if not mixtures_data: 
+            # if not mixtures_data:
             return [
-                    {"name": "لا يوجد بيانات", "total_quantity": 0.0},
-                    {"name": "لا يوجد بيانات", "total_quantity": 0.0},
-                    {"name": "لا يوجد بيانات", "total_quantity": 0.0},
-                ]
+                {"name": "لا يوجد بيانات", "total_quantity": 0.0},
+                {"name": "لا يوجد بيانات", "total_quantity": 0.0},
+                {"name": "لا يوجد بيانات", "total_quantity": 0.0},
+            ]
 
             # top_mixtures = []
             # for item in mixtures_data[:limit]:
@@ -140,10 +145,14 @@ class MixtureAnalysisService:
         # Invalidate for both models
         invalidate_dict(
             InvoiceMaterials,
-            {"invoice__invoice_date__year": current_year, "invoice__invoice_date__month": current_month},
+            {
+                "invoice__invoice_date__year": current_year,
+                "invoice__invoice_date__month": current_month,
+            },
         )
         invalidate_dict(
-            ClientInvoice, {"invoice_date__year": current_year, "invoice_date__month": current_month}
+            ClientInvoice,
+            {"invoice_date__year": current_year, "invoice_date__month": current_month},
         )
 
         cache_keys = [
@@ -175,4 +184,7 @@ def get_top_data():
     top_client_list = ClientAnalysisService.get_top_clients_by_balance()
     top_materials_list = MixtureAnalysisService.get_top_mixtures_current_month()
 
-    return {"top_client_list": top_client_list, "top_materials_list": top_materials_list}
+    return {
+        "top_client_list": top_client_list,
+        "top_materials_list": top_materials_list,
+    }

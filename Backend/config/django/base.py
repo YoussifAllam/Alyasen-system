@@ -55,7 +55,7 @@ LOCAL_APPS = [
     "apps.Safe",
     # "apps.Suppliers",
     # "apps.Reports",
-    # "apps.Dashboard",
+    "apps.Dashboard",
     # "apps.Machines",
 ]
 

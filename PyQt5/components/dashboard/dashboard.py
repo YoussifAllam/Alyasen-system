@@ -33,7 +33,7 @@ class ApiFetcherWorker(QObject):
 
     @pyqtSlot()
     def run(self):
-        return  # todo  remove
+        # return  # todo  remove
         try:
             response = request("GET", self.url, timeout=15)
             if response.status_code == 200:
@@ -102,8 +102,12 @@ class DashboardUI(QWidget):
         left_column.addWidget(self.create_guarantee_checks_card())
         top_lists_layout = QHBoxLayout()
         top_lists_layout.setSpacing(20)
-        top_clients_card, self.top_clients_layout = self.create_top_list_card("أفضل العملاء")
-        top_products_card, self.top_products_layout = self.create_top_list_card("المشاريع النشطة الأن")
+        top_clients_card, self.top_clients_layout = self.create_top_list_card(
+            "أفضل العملاء"
+        )
+        top_products_card, self.top_products_layout = self.create_top_list_card(
+            "المشاريع النشطة الأن"
+        )
         top_lists_layout.addWidget(top_clients_card)
         top_lists_layout.addWidget(top_products_card)
         left_column.addLayout(top_lists_layout)
@@ -130,9 +134,9 @@ class DashboardUI(QWidget):
         super().showEvent(event)
         if self.is_first_load:
             self.handle_fetch_expense_graph()
-            self.handle_fetch_top_lists()
-            self.handle_fetch_guarantee_checks()
-            self.handle_fetch_performance_graph()
+            # self.handle_fetch_top_lists()
+            # self.handle_fetch_guarantee_checks()
+            # self.handle_fetch_performance_graph()
             self.handle_fetch_users_status()
             self.is_first_load = False
 
@@ -148,29 +152,41 @@ class DashboardUI(QWidget):
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
         worker.success.connect(success_slot)
-        worker.error.connect(lambda msg: QMessageBox.critical(self, "خطأ في تحميل البيانات", msg))
+        worker.error.connect(
+            lambda msg: QMessageBox.critical(self, "خطأ في تحميل البيانات", msg)
+        )
         worker.finished.connect(thread.quit)
         thread.start()
 
     def handle_fetch_top_lists(self):
         url = f"{BACKEND_BASE_URL}/dashboard/top-lists-data/"
-        self._start_api_request(url, self.update_top_lists, "top_lists_thread", "top_lists_worker")
+        self._start_api_request(
+            url, self.update_top_lists, "top_lists_thread", "top_lists_worker"
+        )
 
     def handle_fetch_expense_graph(self):
         url = f"{BACKEND_BASE_URL}/dashboard/expenses-graph-data/"
-        self._start_api_request(url, self.update_expense_chart, "graph_thread", "graph_worker")
+        self._start_api_request(
+            url, self.update_expense_chart, "graph_thread", "graph_worker"
+        )
 
     def handle_fetch_guarantee_checks(self):
         url = f"{BACKEND_BASE_URL}/dashboard/guarantee-checks/"
-        self._start_api_request(url, self.update_guarantee_checks, "checks_thread", "checks_worker")
+        self._start_api_request(
+            url, self.update_guarantee_checks, "checks_thread", "checks_worker"
+        )
 
     def handle_fetch_performance_graph(self):
         url = f"{BACKEND_BASE_URL}/dashboard/performance-graph/"
-        self._start_api_request(url, self.update_performance_graph, "perf_graph_thread", "perf_graph_worker")
+        self._start_api_request(
+            url, self.update_performance_graph, "perf_graph_thread", "perf_graph_worker"
+        )
 
     def handle_fetch_users_status(self):
         url = f"{BACKEND_BASE_URL}/dashboard/users-status/"
-        self._start_api_request(url, self.update_users_status_card, "users_thread", "users_worker")
+        self._start_api_request(
+            url, self.update_users_status_card, "users_thread", "users_worker"
+        )
 
     def update_expense_chart(self, response_data):
         data = response_data.get("data", {})
@@ -204,12 +220,16 @@ class DashboardUI(QWidget):
             )
         center_text = f"{total_amount:,.2f}"
         self.expense_chart.setData(chart_data, center_text)
-        for i, (widget, name_label, value_label) in enumerate(self.expense_legend_items):
+        for i, (widget, name_label, value_label) in enumerate(
+            self.expense_legend_items
+        ):
             if i < len(legend_data):
                 item = legend_data[i]
                 widget.show()
                 name_label.setText(item["name"])
-                value_label.setText(f"{item['amount']:,.2f} ج.م ({item['percentage']:.1f}%)")
+                value_label.setText(
+                    f"{item['amount']:,.2f} ج.م ({item['percentage']:.1f}%)"
+                )
                 widget.findChild(QFrame).setStyleSheet(
                     f"background-color: {item['color']}; border-radius: 6px;"
                 )
@@ -219,9 +239,13 @@ class DashboardUI(QWidget):
     def update_top_lists(self, response_data):
         data = response_data.get("data", {})
         top_clients = data.get("top_client_list", [])
-        self.populate_list_card(self.top_clients_layout, top_clients, "name", "amount", "ج.م")
+        self.populate_list_card(
+            self.top_clients_layout, top_clients, "name", "amount", "ج.م"
+        )
         top_products = data.get("top_materials_list", [])
-        self.populate_list_card(self.top_products_layout, top_products, "name", "total_quantity", "كجم")
+        self.populate_list_card(
+            self.top_products_layout, top_products, "name", "total_quantity", "كجم"
+        )
 
     def populate_list_card(self, layout, items, name_key, value_key, unit):
         while layout.count():
@@ -253,16 +277,18 @@ class DashboardUI(QWidget):
                     nested_child = child.layout().takeAt(0)
                     if nested_child.widget():
                         nested_child.widget().deleteLater()
-        
+
         for item in checks_data:
             client_name = item.get("client_name", "غير محدد")
             project_name = item.get("project_name", "غير محدد")
             check_date = item.get("date", "غير محدد")
             amount = item.get("amount", 0)
-            
-            check_item_widget = self.create_guarantee_check_item(client_name, project_name, check_date, amount)
+
+            check_item_widget = self.create_guarantee_check_item(
+                client_name, project_name, check_date, amount
+            )
             self.guarantee_checks_layout.addWidget(check_item_widget)
-            
+
         self.guarantee_checks_layout.addStretch()
 
     def update_performance_graph(self, response_data):
@@ -278,7 +304,9 @@ class DashboardUI(QWidget):
         layout = QVBoxLayout(card)
         layout.setSpacing(10)
         header_layout = QHBoxLayout()
-        title = QLabel("                                  ملخص الأداء الشهري المبيعات والمصروفات")
+        title = QLabel(
+            "                                  ملخص الأداء الشهري المبيعات والمصروفات"
+        )
         title.setObjectName("cardTitle")
         legend_layout = QHBoxLayout()
         legend_layout.setSpacing(20)
@@ -314,21 +342,21 @@ class DashboardUI(QWidget):
         title = QLabel("تذكير بشيكات الضمان")
         title.setObjectName("cardTitle")
         layout.addWidget(title)
-        
+
         # Add headers
         header_layout = QHBoxLayout()
         header_layout.addWidget(QLabel("تاريخ الشيك"), 2)
         header_layout.addWidget(QLabel("اسم المشروع"), 3)
         header_layout.addWidget(QLabel("اسم العميل"), 3)
         header_layout.addWidget(QLabel("القيمة"), 2)
-        
+
         # Style headers
         for i in range(header_layout.count()):
             widget = header_layout.itemAt(i).widget()
             widget.setStyleSheet("color: #9ca3af; font-weight: bold; font-size: 14px;")
-            
+
         layout.addLayout(header_layout)
-        
+
         self.guarantee_checks_layout = QVBoxLayout()
         layout.addLayout(self.guarantee_checks_layout)
         return card
@@ -345,28 +373,30 @@ class DashboardUI(QWidget):
         layout.addLayout(content_layout)
         return card, content_layout
 
-    def create_guarantee_check_item(self, client_name, project_name, check_date, amount):
+    def create_guarantee_check_item(
+        self, client_name, project_name, check_date, amount
+    ):
         item = QWidget()
         layout = QHBoxLayout(item)
         layout.setContentsMargins(0, 5, 0, 5)
-        
+
         date_lbl = QLabel(str(check_date))
         date_lbl.setStyleSheet("color: #e5e7eb; font-weight: bold; font-size: 14px;")
-        
+
         project_lbl = QLabel(str(project_name))
         project_lbl.setStyleSheet("font-size: 14px;")
-        
+
         client_lbl = QLabel(str(client_name))
         client_lbl.setStyleSheet("font-size: 14px;")
-        
+
         amount_lbl = QLabel(f"{amount:,.2f} ج.م")
         amount_lbl.setStyleSheet("color: #f59e0b; font-weight: bold; font-size: 14px;")
-        
+
         layout.addWidget(date_lbl, 2)
         layout.addWidget(project_lbl, 3)
         layout.addWidget(client_lbl, 3)
         layout.addWidget(amount_lbl, 2)
-        
+
         return item
 
     def create_expense_chart_card(self):
@@ -387,7 +417,9 @@ class DashboardUI(QWidget):
         legend_layout = QVBoxLayout()
         legend_layout.setSpacing(10)
         for _ in range(3):
-            widget, name_label, value_label = self.create_legend_item("-", "-", "#374151")
+            widget, name_label, value_label = self.create_legend_item(
+                "-", "-", "#374151"
+            )
             legend_layout.addWidget(widget)
             self.expense_legend_items.append((widget, name_label, value_label))
             widget.hide()
@@ -401,7 +433,9 @@ class DashboardUI(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         color_swatch = QFrame()
         color_swatch.setFixedSize(12, 12)
-        color_swatch.setStyleSheet(f"background-color: {color_hex}; border-radius: 6px;")
+        color_swatch.setStyleSheet(
+            f"background-color: {color_hex}; border-radius: 6px;"
+        )
         name_label = QLabel(name)
         value_label = QLabel(value)
         name_label.setStyleSheet("font-size: 16px;")
