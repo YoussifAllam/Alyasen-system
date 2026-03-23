@@ -10,7 +10,14 @@ class SupplierSerializer(ModelSerializer):
 
     class Meta:
         model = models.Supplier
-        fields = ["name", "phone", "email", "profile_picture", "total_amount_due", "total_amount_payable"]
+        fields = [
+            "name",
+            "phone",
+            "email",
+            "profile_picture",
+            "total_amount_due",
+            "total_amount_payable",
+        ]
         read_only_fields = ["total_paid_amount"]
         extra_kwargs = {"email": {"required": False}}
 
@@ -21,7 +28,9 @@ class SupplierSerializer(ModelSerializer):
         # File size validation (5MB)
         max_size = 5 * 1024 * 1024
         if value.size > max_size:
-            raise serializers.ValidationError("Image file too large. Maximum size is 5MB.")
+            raise serializers.ValidationError(
+                "Image file too large. Maximum size is 5MB."
+            )
 
         # File extension validation
         valid_extensions = [".jpg", ".jpeg", ".png", ".webp"]
@@ -39,41 +48,10 @@ class SupplierSerializer(ModelSerializer):
             "image/png",
             "image/webp",
         ]
-        if hasattr(value, "content_type") and value.content_type not in valid_content_types:
+        if (
+            hasattr(value, "content_type")
+            and value.content_type not in valid_content_types
+        ):
             raise serializers.ValidationError("Invalid image format.")
 
         return value
-
-
-class InvoicesSerializer(ModelSerializer):
-    class Meta:
-        model = models.SupplierInvoice
-        fields = "__all__"
-        extra_kwargs = {"supplier": {"required": False}}
-
-
-class InvoiceInfoUpdateSerializer(ModelSerializer):
-    class Meta:
-        model = models.SupplierInvoice
-        fields = (
-            "first_weight",
-            "second_weight",
-            "driver_name",
-            "driver_phone",
-            "car_plate_number",
-            "karta_number",
-        )
-
-
-class InvoiceMaterials(ModelSerializer):
-    class Meta:
-        model = models.InvoiceMaterial
-        fields = [
-            "id",
-            "invoice",
-            "material_name",
-            "quantity_in_unit",
-            "buy_price_per_unit",
-            "unit",
-        ]
-        extra_kwargs = {"invoice": {"required": False}}

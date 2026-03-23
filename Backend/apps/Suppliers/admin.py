@@ -3,16 +3,6 @@ from . import models
 from unfold.admin import ModelAdmin
 
 
-@admin.register(models.SupplierInvoice)
-class TransactionsLogClass(ModelAdmin):
-    list_display = ("invoice_number", "supplier", "invoice_date")
-
-
 @admin.register(models.InvoicePayment)
 class InvoicePaymentClass(ModelAdmin):
     list_display = ("payment_amount",)
-
-
-@admin.register(models.InvoiceMaterial)
-class InvoiceMaterialClass(ModelAdmin):
-    list_display = ("material_name",)

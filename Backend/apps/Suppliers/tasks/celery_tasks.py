@@ -11,5 +11,8 @@ def create_supplier_payment_record(supplier_id: str, payment_amount: int, notes:
     supplier_instance = selectors.get_supplier_instance(supplier_id)
 
     models.InvoicePayment.objects.create(
-        supplier_fk=supplier_instance, payment_amount=payment_amount, payment_date=today, notes=notes
+        supplier_fk=supplier_instance,
+        payment_amount=payment_amount,
+        payment_date=today,
+        notes=notes,
     )
