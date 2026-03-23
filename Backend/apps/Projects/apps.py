@@ -7,3 +7,4 @@ class ProjectsConfig(AppConfig):
 
     def ready(self):
         import apps.Projects.signals  # noqa
+        from . import models  # noqa
