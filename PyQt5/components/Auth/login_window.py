@@ -49,14 +49,16 @@ class LoginWidget(QFrame):
         card_layout.setSpacing(20)
 
         logo_label = QLabel()
-        pixmap = QPixmap(rf"{BASE_DIR}/resources/logo1.png")
-        logo_label.setPixmap(pixmap.scaled(300, 300, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        pixmap = QPixmap(rf"{BASE_DIR}/resources/logo3.png")
+        logo_label.setPixmap(
+            pixmap.scaled(450, 450, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        )
         logo_label.setAlignment(Qt.AlignCenter)
 
         header_container = QWidget()
         header_layout = QVBoxLayout(header_container)
         header_layout.setContentsMargins(0, 0, 0, 0)
-        header_layout.setSpacing(5)
+        header_layout.setSpacing(0)
 
         title_label = QLabel("مرحباً بعودتك")
         title_label.setObjectName("titleLabel")
@@ -69,9 +71,13 @@ class LoginWidget(QFrame):
         header_layout.addWidget(title_label)
         header_layout.addWidget(subtitle_label)
 
-        self.email_input = QLineEdit(placeholderText="البريد الإلكتروني", objectName="inputField")
+        self.email_input = QLineEdit(
+            placeholderText="البريد الإلكتروني", objectName="inputField"
+        )
         self.password_input = QLineEdit(
-            placeholderText="كلمة المرور", echoMode=QLineEdit.Password, objectName="inputField"
+            placeholderText="كلمة المرور",
+            echoMode=QLineEdit.Password,
+            objectName="inputField",
         )
 
         icon_lock_closed = qta.icon("fa5s.lock", color="#9ca3af")
@@ -161,9 +167,13 @@ class LoginWidget(QFrame):
             @pyqtSlot()
             def run(self):
                 try:
-                    resp = request("POST", self.url_value, json=self.payload_value, timeout=10)
+                    resp = request(
+                        "POST", self.url_value, json=self.payload_value, timeout=10
+                    )
                     if resp.status_code == 200:
-                        self.success.emit(resp.json())  # UPDATED: Emit the JSON response
+                        self.success.emit(
+                            resp.json()
+                        )  # UPDATED: Emit the JSON response
                     else:
                         # ... (error handling remains the same)
                         self.error.emit(f" {resp.text}")
@@ -202,7 +212,10 @@ class LoginWidget(QFrame):
 
     def handle_login(self):
         url = f"{BACKEND_BASE_URL}/registertion/user/login/"
-        payload = {"email": self.email_input.text().strip(), "password": self.password_input.text().strip()}
+        payload = {
+            "email": self.email_input.text().strip(),
+            "password": self.password_input.text().strip(),
+        }
         self._start_login_request(url, payload)
 
 
@@ -241,11 +254,14 @@ class AuthWindow(QWidget):
     def center(self):
         screen_geometry = QApplication.desktop().screenGeometry()
         self.move(
-            (screen_geometry.width() - self.width()) // 2, (screen_geometry.height() - self.height()) // 2
+            (screen_geometry.width() - self.width()) // 2,
+            (screen_geometry.height() - self.height()) // 2,
         )
 
     def start_animation(self):
-        self.animation = QPropertyAnimation(self, b"windowOpacity", duration=600, startValue=0, endValue=1)
+        self.animation = QPropertyAnimation(
+            self, b"windowOpacity", duration=600, startValue=0, endValue=1
+        )
         self.animation.setEasingCurve(QEasingCurve.InOutQuad)
         self.animation.start()
 

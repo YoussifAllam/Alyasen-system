@@ -23,17 +23,18 @@ class SidebarWidget(QWidget):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 20, 10, 20)
-        layout.setSpacing(2)
+        layout.setSpacing(0)
 
         logo_label = QLabel()
-        logo_path = rf"{BASE_DIR}/resources/logo1.png"
+        logo_path = rf"{BASE_DIR}/resources/logo3.png"
         pixmap = QPixmap(logo_path)
         logo_label.setPixmap(
-            pixmap.scaled(270, 270, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            pixmap.scaled(380, 380, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         )
         logo_label.setAlignment(Qt.AlignCenter)
+        layout.addSpacing(10)
         layout.addWidget(logo_label)
-        layout.addSpacing(2)
+        layout.addSpacing(35)
 
         self.buttons = []
         button_data = [
