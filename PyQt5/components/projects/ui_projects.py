@@ -106,6 +106,7 @@ class ProjectsUI(QWidget):
         form_layout.setSpacing(15)
 
         self.name_input = QLineEdit(placeholderText="اسم المشروع")
+        self.cost_input = QLineEdit(placeholderText="تكلفة المشروع")
 
         self.type_combobox = QComboBox()
         self.type_combobox.addItems(["تأجير", "بيع", "صناعي"])
@@ -126,6 +127,8 @@ class ProjectsUI(QWidget):
         form_layout.addWidget(self.name_input)
         form_layout.addWidget(QLabel("نوع المشروع:"))
         form_layout.addWidget(self.type_combobox)
+        form_layout.addWidget(QLabel("تكلفة المشروع:"))
+        form_layout.addWidget(self.cost_input)
 
         self.supplier_label = QLabel("المورد:")
         self.supplier_label.hide()
@@ -208,7 +211,7 @@ class ProjectsUI(QWidget):
         return container
 
     def on_project_type_changed(self, text):
-        if text in ["rent", "selling"]:
+        if text in ["تأجير", "بيع"]:
             self.supplier_label.show()
             self.supplier_combobox.show()
         else:
