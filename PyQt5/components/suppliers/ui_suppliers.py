@@ -40,7 +40,13 @@ class SupplierApiWorker(QObject):
     def run(self):
         try:
             if self.method == "POST" and self.files:
-                response = request(self.method, self.url, data=self.payload, files=self.files, timeout=15)
+                response = request(
+                    self.method,
+                    self.url,
+                    data=self.payload,
+                    files=self.files,
+                    timeout=15,
+                )
             else:
                 response = request(self.method, self.url, json=self.payload, timeout=15)
 
@@ -119,7 +125,9 @@ class SuppliersUI(QWidget):
         self.name_input = QLineEdit(placeholderText="اسم المورد")
         self.phone_input = QLineEdit(placeholderText="رقم الهاتف")
         self.email_input = QLineEdit(placeholderText="(اختياري)البريد الإلكتروني")
-        self.total_amount_due_input = QLineEdit(placeholderText="إجمالي المطلوب دفعة للمورد")
+        self.total_amount_due_input = QLineEdit(
+            placeholderText="إجمالي المطلوب دفعة للمورد"
+        )
 
         self.profile_pic_label = QLabel("لم يتم اختيار صورة")
         self.profile_pic_label.setAlignment(Qt.AlignCenter)
@@ -178,15 +186,29 @@ class SuppliersUI(QWidget):
             ]
         )
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            2, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            3, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            4, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            5, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            6, QHeaderView.ResizeToContents
+        )
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.table.selectionModel().selectionChanged.connect(lambda: self.btn_show_profile.setEnabled(True))
+        self.table.selectionModel().selectionChanged.connect(
+            lambda: self.btn_show_profile.setEnabled(True)
+        )
         pagination_layout = QHBoxLayout()
         self.prev_button = QPushButton("السابق")
         self.next_button = QPushButton("التالي")
@@ -236,18 +258,26 @@ class SuppliersUI(QWidget):
         self.fetch_worker = SupplierApiWorker("GET", url)
         self.fetch_worker.moveToThread(self.fetch_thread)
         self.fetch_thread.started.connect(self.fetch_worker.run)
-        self.fetch_worker.success.connect(lambda data: self.handle_api_response(data, is_profile_fetch))
+        self.fetch_worker.success.connect(
+            lambda data: self.handle_api_response(data, is_profile_fetch)
+        )
         self.fetch_worker.error.connect(self.show_error_message)
         self.fetch_worker.finished.connect(self.fetch_thread.quit)
         self.fetch_thread.start()
 
     def choose_profile_picture(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "اختر صورة", "", "Image files (*.png *.jpg *.jpeg)")
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "اختر صورة", "", "Image files (*.png *.jpg *.jpeg)"
+        )
         if file_path:
             self.profile_pic_path = file_path
             pixmap = QPixmap(file_path)
             self.profile_pic_label.setPixmap(
-                pixmap.scaled(self.profile_pic_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                pixmap.scaled(
+                    self.profile_pic_label.size(),
+                    Qt.KeepAspectRatio,
+                    Qt.SmoothTransformation,
+                )
             )
 
     def handle_add_supplier(self):
@@ -258,7 +288,11 @@ class SuppliersUI(QWidget):
         total_amount_payable = self.total_amount_due_input.text().strip()
 
         if not name or not phone or not total_amount_due or not total_amount_payable:
-            QMessageBox.warning(self, "خطأ", "الرجاء إدخال اسم المورد ورقم الهاتف و إجمالي المطلوب دفعه على الأقل.")
+            QMessageBox.warning(
+                self,
+                "خطأ",
+                "الرجاء إدخال اسم المورد ورقم الهاتف و إجمالي المطلوب دفعه على الأقل.",
+            )
             return
 
         settings = QSettings("FactorySystem")
