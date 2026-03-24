@@ -158,9 +158,11 @@ class ProjectsUI(QWidget):
         actions_layout = QHBoxLayout()
         self.search_input = QLineEdit(placeholderText="ابحث باسم المشروع...")
         self.search_button = QPushButton("بحث")
+        self.change_status_button = QPushButton("تغير حالة المشروع")
         self.search_button.clicked.connect(self.handle_search)
         actions_layout.addWidget(self.search_input, 1)
         actions_layout.addWidget(self.search_button)
+        actions_layout.addWidget(self.change_status_button)
 
         self.view_all_button = QPushButton("عرض الكل")
         self.view_all_button.clicked.connect(self.handle_view_all)
