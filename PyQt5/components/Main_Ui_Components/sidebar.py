@@ -46,6 +46,7 @@ class SidebarWidget(QWidget):
             {"text": " سجل العمليات", "icon": "fa5s.history"},
             {"text": "اصول الشركة", "icon": "fa5s.tools"},
             {"text": "الخزنة", "icon": "fa5s.money-bill-wave"},
+            {"text": " المشاريع", "icon": "fa5s.building"},
         ]
 
         for i, data in enumerate(button_data):
@@ -106,6 +107,7 @@ class SidebarWidget(QWidget):
                 "جرد": "fa5s.clipboard-list",
                 "مخزن الخامات": "fa5s.boxes",
                 "سجل العمليات": "fa5s.history",
+                "المشاريع": "fa5s.building",
             }
 
             if icon_name in icon_map:

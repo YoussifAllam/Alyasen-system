@@ -19,14 +19,12 @@ from .sidebar import SidebarWidget
 from ..notifications_dialog import NotificationsDialog, NotificationApiWorker
 from ..dashboard.dashboard import DashboardUI  # NEW
 from ..clients.ui_clients import ClientsUI
+from ..projects.ui_projects import ProjectsUI
 
 # from ..Workers.ui_workers import WorkersUI
 from ..suppliers.ui_suppliers import SuppliersUI
 from ..ui_expenses import ExpensesUI
 from ..reports import ReportsUI
-
-# from ..Mixtures.ui_mixes import MixesUI
-# from ..inventory.materials_inventory import MaterialsInventoryUI
 from ..program_log import ProgramLogUI
 from ..Machines.ui_machines import MachinesUI
 from ..ui_company_safe import CompanySafeUI
@@ -277,6 +275,7 @@ class MainWindow(QMainWindow):
         self.program_log_page = ProgramLogUI()
         self.machines_page = MachinesUI()
         self.company_safe_page = CompanySafeUI()
+        self.projects_page = ProjectsUI()
 
         # Dashboard already has scroll implemented, so skip wrapping it
         self.stacked_widget.addWidget(self.dashboard_page)
@@ -290,6 +289,7 @@ class MainWindow(QMainWindow):
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.program_log_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.machines_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.company_safe_page))
+        self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.projects_page))
 
     @pyqtSlot(int)
     def change_page(self, index):
