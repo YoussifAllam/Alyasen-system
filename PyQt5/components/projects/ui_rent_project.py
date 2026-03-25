@@ -164,10 +164,9 @@ class RentProjectPage(QWidget):
 
         self.btn_ads = QPushButton("إعلانات المأجرة")
         self.btn_op_cost = QPushButton("تكاليف التشغيل")
-        self.btn_cheques = QPushButton("شيكات الضمان")
+        self.btn_cheques = QPushButton("شيك الضمان")
         self.update_project_data = QPushButton("تحديث بيانات المشروع")
         self.btn_show_payments = QPushButton("عرض دفعات المشروع")
-        self.btn_pay = QPushButton("تسديد دفعة للمشروع")
 
         # Connect buttons to placeholder handlers
         self.btn_ads.clicked.connect(lambda: self.show_placeholder("إعلانات المشروع"))

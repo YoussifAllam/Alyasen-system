@@ -153,7 +153,7 @@ class ClientPaymentDialog(QDialog):
 
         if (
             self.payment_method.currentText() == "شيك"
-            and self.deferred_cheque_checkbox.isChecked()
+            and self.deferred_cheque_checkbox.isChecked()  # noqa
         ):
             data["is_deferred_cheque"] = True
             data["cheque_date"] = self.cheque_date_input.date().toString("yyyy-MM-dd")
@@ -170,8 +170,8 @@ class ClientPaymentDialog(QDialog):
     def mouseMoveEvent(self, event):
         if (
             hasattr(self, "old_pos")
-            and self.old_pos
-            and event.buttons() == Qt.LeftButton
+            and self.old_pos  # noqa
+            and event.buttons() == Qt.LeftButton  # noqa
         ):
             delta = QPoint(event.globalPos() - self.old_pos)
             self.move(self.x() + delta.x(), self.y() + delta.y())
