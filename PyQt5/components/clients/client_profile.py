@@ -94,15 +94,7 @@ class ClientProfileUI(QWidget):
         main_layout.addLayout(top_layout)
         self.table = QTableWidget()
         self.table.setColumnCount(7)
-        headers = [
-            "",
-            "كود ",
-            "اسم ",
-            "نوع ",
-            "تكلفة ",
-            "حالة ",
-            "تفاصيل ",
-        ]
+        headers = ["", "كود ", "اسم ", "نوع ", "تكلفة ", "حالة ", "تفاصيل ", ""]
         self.table.setHorizontalHeaderLabels(headers)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         # Prevent details button column from stretching too much
@@ -158,7 +150,7 @@ class ClientProfileUI(QWidget):
         layout.setSpacing(15)
         self.add_project_button = QPushButton("اضافة مشروع جديد")
         self.add_project_button.setObjectName("primaryButton")
-        self.btn_show_client_projects = QPushButton("عرض مشارع العميل")
+        self.btn_show_client_projects = QPushButton("عرض مشاريع العميل")
         self.btn_show_client_projects.clicked.connect(self.handle_show_client_projects)
         self.btn_show_invoice_payment_details = QPushButton("عرض تفاصيل الدفعات")
         self.btn_show_invoice_payment_details.clicked.connect(

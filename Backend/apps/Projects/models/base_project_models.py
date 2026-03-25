@@ -17,18 +17,19 @@ class BaseProject(models.Model):
     name = models.CharField(max_length=50, blank=True, null=True)
     project_type = models.CharField(max_length=50, choices=ProjectTypes.choices)
     project_status = models.CharField(max_length=50, choices=ProjectStatus.choices)
-    supplier = models.ForeignKey("Suppliers.Supplier", on_delete=models.SET_NULL, null=True, blank=True)
+    supplier = models.ForeignKey(
+        "Suppliers.Supplier", on_delete=models.SET_NULL, null=True, blank=True
+    )
     created_date = models.DateField(default=now)
 
     class Meta:
-        db_table = "Projects"
         indexes = [
             models.Index(fields=["created_date"]),
             models.Index(fields=["project_type"]),
         ]
         ordering = ["-created_date"]
-        verbose_name = "Project"
-        verbose_name_plural = "Projects"
+        verbose_name = "BaseProject"
+        verbose_name_plural = "BaseProjects"
 
 
 class ProjectContracts(models.Model):
