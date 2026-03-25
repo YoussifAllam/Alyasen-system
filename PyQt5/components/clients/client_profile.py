@@ -21,6 +21,7 @@ from ..Main_Ui_Components.constant import BACKEND_BASE_URL
 from .client_payment_details_dialog import ClientPaymentDetailsDialog
 from .client_payment_dialog import ClientPaymentDialog
 from .update_client_data_dialog import UpdateClientDataDialog
+from .select_project_dialog import ProjectSelectionDialog
 
 
 class ApiWorker(QObject):
@@ -63,6 +64,7 @@ class ApiWorker(QObject):
 
 class ClientProfileUI(QWidget):
     back_to_list_requested = pyqtSignal()
+    show_rent_project_requested = pyqtSignal(int)
 
     def __init__(self):
         super().__init__()
@@ -148,8 +150,9 @@ class ClientProfileUI(QWidget):
         card.setObjectName("card")
         layout = QVBoxLayout(card)
         layout.setSpacing(15)
-        self.add_project_button = QPushButton("اضافة مشروع جديد")
+        self.add_project_button = QPushButton("اختيار مشروع للعمل عليه")
         self.add_project_button.setObjectName("primaryButton")
+        self.add_project_button.clicked.connect(self.handle_add_project)
         self.btn_show_client_projects = QPushButton("عرض مشاريع العميل")
         self.btn_show_client_projects.clicked.connect(self.handle_show_client_projects)
         self.btn_show_invoice_payment_details = QPushButton("عرض تفاصيل الدفعات")
@@ -170,8 +173,27 @@ class ClientProfileUI(QWidget):
         layout.addStretch()
         return card
 
+    def handle_add_project(self):
+        dialog = ProjectSelectionDialog(self)
+        dialog.project_selected.connect(self.on_project_selected)
+        dialog.exec_()
+
+    def on_project_selected(self, project_data):
+        project_type = project_data.get("project_type")
+        project_id = project_data.get("id")
+
+        if project_type == "rent":
+            self.show_rent_project_requested.emit(project_id)
+        else:
+            QMessageBox.information(
+                self,
+                "ملاحظة",
+                f"مشروع '{project_data.get('name')}' من النوع {project_type}. صفحة عرض هذا النوع غير متوفرة حالياً.",
+            )
+
     def handle_edit_profile(self):
         if not self.client_id or not hasattr(self, "current_client_data"):
+
             return
 
         dialog = UpdateClientDataDialog(self.current_client_data, self)

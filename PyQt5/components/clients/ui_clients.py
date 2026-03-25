@@ -21,6 +21,7 @@ from urllib.parse import urlencode
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
 
 from .client_profile import ClientProfileUI
+from ..projects.ui_rent_project import RentProjectPage
 
 
 class ClientApiWorker(QObject):
@@ -71,13 +72,17 @@ class ClientsUI(QWidget):
         # Create the pages
         self.main_page = self.create_main_page()
         self.profile_page = ClientProfileUI()
+        self.rent_project_page = RentProjectPage()
 
         # Add pages to the stack
         self.stacked_widget.addWidget(self.main_page)
         self.stacked_widget.addWidget(self.profile_page)
+        self.stacked_widget.addWidget(self.rent_project_page)
 
         # Connect the back signal from the profile page
         self.profile_page.back_to_list_requested.connect(self.show_main_page)
+        self.profile_page.show_rent_project_requested.connect(self.show_rent_project_page)
+        self.rent_project_page.back_to_profile_requested.connect(self.show_profile_page)
 
     def create_main_page(self):
         main_widget = QWidget()
@@ -368,6 +373,13 @@ class ClientsUI(QWidget):
     def show_main_page(self):
         """Switches the view back to the main client list."""
         self.stacked_widget.setCurrentIndex(0)
+
+    def show_profile_page(self):
+        self.stacked_widget.setCurrentIndex(1)
+        
+    def show_rent_project_page(self, project_id):
+        self.rent_project_page.load_project_data(project_id)
+        self.stacked_widget.setCurrentIndex(2)
 
     def handle_show_profile(self):
         """Fetches client data and switches to the profile page."""
