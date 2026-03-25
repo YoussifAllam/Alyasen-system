@@ -124,10 +124,10 @@ class RentProjectPage(QWidget):
         layout.addWidget(QLabel("تأمينات:"), 2, 0)
         layout.addWidget(self.lbl_insurance_tax, 2, 1)
 
-        layout.addWidget(QLabel("تاريخ التأمينات:"), 3, 0)
+        layout.addWidget(QLabel("تاريخ استرداد التأمينات:"), 3, 0)
         layout.addWidget(self.lbl_insurance_date, 3, 1)
 
-        layout.addWidget(QLabel("ضريبة الأرباح:"), 4, 0)
+        layout.addWidget(QLabel(" ضريبة الأرباح التاجرية:"), 4, 0)
         layout.addWidget(self.lbl_profits_tax, 4, 1)
 
         layout.setAlignment(Qt.AlignTop)
@@ -144,7 +144,7 @@ class RentProjectPage(QWidget):
 
         self.contracts_table = QTableWidget()
         self.contracts_table.setColumnCount(2)
-        self.contracts_table.setHorizontalHeaderLabels(["م", "رابط العقد"])
+        self.contracts_table.setHorizontalHeaderLabels(["م", "رابط العقد", "", ""])
         self.contracts_table.horizontalHeader().setSectionResizeMode(
             1, QHeaderView.Stretch
         )
@@ -162,7 +162,7 @@ class RentProjectPage(QWidget):
         title.setStyleSheet("font-weight: bold; font-size: 16px;")
         layout.addWidget(title)
 
-        self.btn_ads = QPushButton("إعلانات المشروع")
+        self.btn_ads = QPushButton("إعلانات المأجرة")
         self.btn_op_cost = QPushButton("تكاليف التشغيل")
         self.btn_cheques = QPushButton("شيكات الضمان")
         self.update_project_data = QPushButton("تحديث بيانات المشروع")
