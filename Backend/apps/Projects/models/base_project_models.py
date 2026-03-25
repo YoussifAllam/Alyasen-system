@@ -35,3 +35,10 @@ class BaseProject(models.Model):
 class ProjectContracts(models.Model):
     project = models.ForeignKey(BaseProject, on_delete=models.CASCADE)
     contract = models.FileField(upload_to="contracts/", blank=True, null=True)
+
+
+class ProjectsGuaranteeCheques(models.Model):
+    project = models.ForeignKey(BaseProject, on_delete=models.CASCADE)
+    cheque_number = models.CharField(max_length=50)
+    cheque_date = models.DateField()
+    cheque_amount = models.FloatField(default=0)
