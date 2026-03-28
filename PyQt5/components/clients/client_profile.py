@@ -65,6 +65,8 @@ class ApiWorker(QObject):
 class ClientProfileUI(QWidget):
     back_to_list_requested = pyqtSignal()
     show_rent_project_requested = pyqtSignal(int)
+    show_industrial_project_requested = pyqtSignal(int)
+    show_selling_project_requested = pyqtSignal(int)
 
     def __init__(self):
         super().__init__()
@@ -184,6 +186,12 @@ class ClientProfileUI(QWidget):
 
         if project_type == "rent":
             self.show_rent_project_requested.emit(project_id)
+
+        elif project_type == "industrial":
+            self.show_industrial_project_requested.emit(project_id)
+
+        elif project_type == "selling":
+            self.show_selling_project_requested.emit(project_id)
         else:
             QMessageBox.information(
                 self,

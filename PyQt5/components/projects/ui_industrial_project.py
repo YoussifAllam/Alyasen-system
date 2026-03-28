@@ -16,7 +16,7 @@ from ..Main_Ui_Components.constant import BACKEND_BASE_URL
 from .ui_projects import ProjectApiWorker  # Reusing API worker
 
 
-class RentProjectPage(QWidget):
+class IndustrialProjectPage(QWidget):
     back_to_profile_requested = pyqtSignal()
 
     def __init__(self):
@@ -78,6 +78,7 @@ class RentProjectPage(QWidget):
 
         self.lbl_id = QLabel("-")
         self.lbl_name = QLabel("-")
+        self.lbl_m_supplier = QLabel("-")
         self.lbl_operating_cost = QLabel("-")
         self.lbl_profit = QLabel("-")
         self.lbl_total_cost = QLabel("-")
@@ -92,14 +93,17 @@ class RentProjectPage(QWidget):
         layout.addWidget(QLabel("تكلفة التشغيل:"), 3, 0)
         layout.addWidget(self.lbl_operating_cost, 3, 1)
 
-        layout.addWidget(QLabel("الربح:"), 4, 0)
-        layout.addWidget(self.lbl_profit, 4, 1)
+        layout.addWidget(QLabel("المقوليين: "), 4, 0)
+        layout.addWidget(self.lbl_m_supplier, 4, 1)
 
-        layout.addWidget(QLabel("إجمالي التكلفة:"), 5, 0)
+        layout.addWidget(QLabel("الربح:"), 5, 0)
+        layout.addWidget(self.lbl_profit, 5, 1)
+
+        layout.addWidget(QLabel("إجمالي التكلفة:"), 6, 0)
         layout.addWidget(self.lbl_total_cost, 5, 1)
 
-        layout.addWidget(QLabel("الحالة:"), 6, 0)
-        layout.addWidget(self.lbl_status, 6, 1)
+        layout.addWidget(QLabel("الحالة:"), 7, 0)
+        layout.addWidget(self.lbl_status, 7, 1)
 
         return card
 
@@ -162,14 +166,14 @@ class RentProjectPage(QWidget):
         title.setStyleSheet("font-weight: bold; font-size: 16px;")
         layout.addWidget(title)
 
-        self.btn_ads = QPushButton("إعلانات المأجرة")
+        self.btn_m_supplier = QPushButton("المقوليين")
         self.btn_op_cost = QPushButton("تكاليف التشغيل")
         self.btn_cheques = QPushButton("شيك الضمان")
         self.update_project_data = QPushButton("تحديث بيانات المشروع")
         self.btn_show_payments = QPushButton("عرض دفعات المشروع")
 
         # Connect buttons to placeholder handlers
-        self.btn_ads.clicked.connect(lambda: self.show_placeholder("إعلانات المشروع"))
+        self.btn_m_supplier.clicked.connect(lambda: self.show_placeholder("المقوليين"))
         self.btn_op_cost.clicked.connect(
             lambda: self.show_placeholder("تكاليف التشغيل")
         )
@@ -179,7 +183,7 @@ class RentProjectPage(QWidget):
         )
 
         layout.addWidget(self.update_project_data)
-        layout.addWidget(self.btn_ads)
+        layout.addWidget(self.btn_m_supplier)
         layout.addWidget(self.btn_op_cost)
         layout.addWidget(self.btn_cheques)
         layout.addWidget(self.btn_show_payments)
@@ -190,7 +194,7 @@ class RentProjectPage(QWidget):
         QMessageBox.information(self, "تحت الإنشاء", f"نافذة {title} قيد التطوير.")
 
     def load_project_data(self, project_id):
-        self.header_label.setText(f"تفاصيل مشروع إيجار رقم : {project_id}")
+        self.header_label.setText(f"تفاصيل مشروع صناعي رقم {project_id}")
         self.project_id = project_id
         payload = {"project_id": project_id}
         url = f"{BACKEND_BASE_URL}/projects/rent/info/"  # Assuming this endpoint exists based on instructions

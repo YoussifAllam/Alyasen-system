@@ -22,6 +22,8 @@ from ..Main_Ui_Components.constant import BACKEND_BASE_URL
 
 from .client_profile import ClientProfileUI
 from ..projects.ui_rent_project import RentProjectPage
+from ..projects.ui_industrial_project import IndustrialProjectPage
+from ..projects.ui_selling_project import SellingProjectPage
 
 
 class ClientApiWorker(QObject):
@@ -42,14 +44,22 @@ class ClientApiWorker(QObject):
     def run(self):
         try:
             if self.method == "POST" and self.files:
-                response = request(self.method, self.url, data=self.payload, files=self.files, timeout=15)
+                response = request(
+                    self.method,
+                    self.url,
+                    data=self.payload,
+                    files=self.files,
+                    timeout=15,
+                )
             else:
                 response = request(self.method, self.url, json=self.payload, timeout=15)
 
             if response.status_code in [200, 201]:
                 self.success.emit(response.json())
             else:
-                self.error.emit(f"خطأ من الخادم: {response.status_code}\n{response.text}")
+                self.error.emit(
+                    f"خطأ من الخادم: {response.status_code}\n{response.text}"
+                )
         except exceptions.RequestException:
             self.error.emit("فشل الاتصال بالخادم.")
         finally:
@@ -73,16 +83,34 @@ class ClientsUI(QWidget):
         self.main_page = self.create_main_page()
         self.profile_page = ClientProfileUI()
         self.rent_project_page = RentProjectPage()
+        self.industrial_project_page = IndustrialProjectPage()
+        self.selling_project_page = SellingProjectPage()
 
         # Add pages to the stack
         self.stacked_widget.addWidget(self.main_page)
         self.stacked_widget.addWidget(self.profile_page)
         self.stacked_widget.addWidget(self.rent_project_page)
+        self.stacked_widget.addWidget(self.industrial_project_page)
+        self.stacked_widget.addWidget(self.selling_project_page)
 
         # Connect the back signal from the profile page
         self.profile_page.back_to_list_requested.connect(self.show_main_page)
-        self.profile_page.show_rent_project_requested.connect(self.show_rent_project_page)
+        self.profile_page.show_rent_project_requested.connect(
+            self.show_rent_project_page
+        )
+        self.profile_page.show_industrial_project_requested.connect(
+            self.show_industrial_project_page
+        )
+        self.profile_page.show_selling_project_requested.connect(
+            self.show_selling_project_page
+        )
         self.rent_project_page.back_to_profile_requested.connect(self.show_profile_page)
+        self.industrial_project_page.back_to_profile_requested.connect(
+            self.show_profile_page
+        )
+        self.selling_project_page.back_to_profile_requested.connect(
+            self.show_profile_page
+        )
 
     def create_main_page(self):
         main_widget = QWidget()
@@ -125,7 +153,9 @@ class ClientsUI(QWidget):
         self.name_input = QLineEdit(placeholderText="اسم العميل")
         self.phone_input = QLineEdit(placeholderText="رقم الهاتف")
         self.email_input = QLineEdit(placeholderText="(اختياري) البريد الإلكتروني")
-        self.total_balance_owed_to_us_input = QLineEdit(placeholderText=" مبلغ مدينية العميل")
+        self.total_balance_owed_to_us_input = QLineEdit(
+            placeholderText=" مبلغ مدينية العميل"
+        )
 
         self.profile_pic_label = QLabel("لم يتم اختيار صورة")
         self.profile_pic_label.setAlignment(Qt.AlignCenter)
@@ -187,15 +217,29 @@ class ClientsUI(QWidget):
         self.table.setHorizontalHeaderLabels(headers)
 
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            2, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            3, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            4, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            5, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            6, QHeaderView.ResizeToContents
+        )
 
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.table.selectionModel().selectionChanged.connect(lambda: self.btn_show_profile.setEnabled(True))
+        self.table.selectionModel().selectionChanged.connect(
+            lambda: self.btn_show_profile.setEnabled(True)
+        )
 
         pagination_layout = QHBoxLayout()
         self.prev_button = QPushButton("السابق")
@@ -213,7 +257,9 @@ class ClientsUI(QWidget):
         return container
 
     def choose_profile_picture(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "اختر صورة", "", "Image files (*.png *.jpg *.jpeg)")
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "اختر صورة", "", "Image files (*.png *.jpg *.jpeg)"
+        )
         if file_path:
             self.profile_pic_path = file_path
             pixmap = QPixmap(file_path)
@@ -235,7 +281,9 @@ class ClientsUI(QWidget):
 
         if not name or not phone or not total_balance_owed_to_us:
             QMessageBox.warning(
-                self, "خطأ", "الرجاء إدخال اسم العميل ورقم الهاتف و اجمالي المستحق لنا على الأقل."
+                self,
+                "خطأ",
+                "الرجاء إدخال اسم العميل ورقم الهاتف و اجمالي المستحق لنا على الأقل.",
             )
             return
 
@@ -341,7 +389,9 @@ class ClientsUI(QWidget):
                 QTableWidgetItem(client.get("phone", "")),
                 QTableWidgetItem(client.get("email", "")),
                 QTableWidgetItem(f"{client.get('total_balance_owed_to_us', 0):,.2f}"),
-                QTableWidgetItem(f"{client.get('total_remaining_balance_owed_to_us', 0):,.2f}"),
+                QTableWidgetItem(
+                    f"{client.get('total_remaining_balance_owed_to_us', 0):,.2f}"
+                ),
                 QTableWidgetItem(f"{client.get('total_paid_amount', 0):,.2f}"),
             ]
             for item in items:
@@ -376,10 +426,18 @@ class ClientsUI(QWidget):
 
     def show_profile_page(self):
         self.stacked_widget.setCurrentIndex(1)
-        
+
     def show_rent_project_page(self, project_id):
         self.rent_project_page.load_project_data(project_id)
         self.stacked_widget.setCurrentIndex(2)
+
+    def show_industrial_project_page(self, project_id):
+        self.industrial_project_page.load_project_data(project_id)
+        self.stacked_widget.setCurrentIndex(3)
+
+    def show_selling_project_page(self, project_id):
+        self.selling_project_page.load_project_data(project_id)
+        self.stacked_widget.setCurrentIndex(4)
 
     def handle_show_profile(self):
         """Fetches client data and switches to the profile page."""
