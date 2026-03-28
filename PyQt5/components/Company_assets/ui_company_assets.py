@@ -76,7 +76,7 @@ class MachineApiWorker(QObject):
             self.finished.emit()
 
 
-class MachinesUI(QWidget):
+class CompanyAssetsUI(QWidget):
     def __init__(self):
         super().__init__()
 
@@ -134,6 +134,8 @@ class MachinesUI(QWidget):
         form_layout.setSpacing(15)
 
         self.name_input = QLineEdit(placeholderText="اسم ")
+        self.price_input = QLineEdit(placeholderText="سعر ")
+        self.details_input = QLineEdit(placeholderText="تفاصيل إضافية ")
 
         self.profile_pic_label = QLabel("لم يتم اختيار صورة")
         self.profile_pic_label.setAlignment(Qt.AlignCenter)
@@ -144,6 +146,8 @@ class MachinesUI(QWidget):
         btn_choose_pic.clicked.connect(self.choose_profile_picture)
 
         form_layout.addWidget(self.name_input)
+        form_layout.addWidget(self.price_input)
+        form_layout.addWidget(self.details_input)
         form_layout.addWidget(self.profile_pic_label)
         form_layout.addWidget(btn_choose_pic)
 
@@ -168,14 +172,14 @@ class MachinesUI(QWidget):
         self.view_all_button = QPushButton("عرض الكل")
         self.view_all_button.clicked.connect(self.handle_view_all)
         actions_layout.addWidget(self.view_all_button)
+        self.show_attachments_button = QPushButton("عرض المرفقات")
+        self.show_attachments_button.clicked.connect(self.handle_show_attachments)
+        actions_layout.addWidget(self.show_attachments_button)
 
         layout.addLayout(actions_layout)
         self.table = QTableWidget()
-        self.table.setColumnCount(2)
-        headers = [
-            "كود ",
-            "اسم ",
-        ]
+        self.table.setColumnCount(3)
+        headers = ["اسم ", "سعر", "تفاصيل إضافية"]
         self.table.setHorizontalHeaderLabels(headers)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(

@@ -27,7 +27,7 @@ from ..suppliers.ui_suppliers import SuppliersUI
 from ..ui_expenses import ExpensesUI
 from ..reports import ReportsUI
 from ..program_log import ProgramLogUI
-from ..Machines.ui_machines import MachinesUI
+from ..Company_assets.ui_company_assets import CompanyAssetsUI
 from ..ui_company_safe import CompanySafeUI
 
 # from ..Segmental_Selling.Segmental_invoices_page import SegmentalInvoicesUI
@@ -274,7 +274,7 @@ class MainWindow(QMainWindow):
         self.reports_page = ReportsUI()
         # self.materials_page = MaterialsInventoryUI()
         self.program_log_page = ProgramLogUI()
-        self.machines_page = MachinesUI()
+        self.company_assets_page = CompanyAssetsUI()
         self.company_safe_page = CompanySafeUI()
         self.projects_page = ProjectsUI()
         self.quotations_page = QuotationsUI()
@@ -289,7 +289,9 @@ class MainWindow(QMainWindow):
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.reports_page))
         # self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.materials_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.program_log_page))
-        self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.machines_page))
+        self.stacked_widget.addWidget(
+            self.wrap_in_scroll_area(self.company_assets_page)
+        )
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.company_safe_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.projects_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.quotations_page))
