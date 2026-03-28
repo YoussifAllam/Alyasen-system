@@ -45,8 +45,9 @@ class SidebarWidget(QWidget):
             {"text": " جرد", "icon": "fa5s.clipboard-list"},
             {"text": " سجل العمليات", "icon": "fa5s.history"},
             {"text": "اصول الشركة", "icon": "fa5s.tools"},
-            {"text": "الخزنة", "icon": "fa5s.money-bill-wave"},
+            {"text": " الخزنة", "icon": "fa5s.money-bill-wave"},
             {"text": " المشاريع", "icon": "fa5s.building"},
+            {"text": " عروض الاسعار", "icon": "fa5s.file-signature"},
         ]
 
         for i, data in enumerate(button_data):
@@ -108,6 +109,7 @@ class SidebarWidget(QWidget):
                 "مخزن الخامات": "fa5s.boxes",
                 "سجل العمليات": "fa5s.history",
                 "المشاريع": "fa5s.building",
+                "عروض الاسعار": "fa5s.file-signature",
             }
 
             if icon_name in icon_map:
