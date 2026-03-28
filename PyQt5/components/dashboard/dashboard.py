@@ -102,13 +102,13 @@ class DashboardUI(QWidget):
         left_column.addWidget(self.create_guarantee_checks_card())
         top_lists_layout = QHBoxLayout()
         top_lists_layout.setSpacing(20)
-        top_clients_card, self.top_clients_layout = self.create_top_list_card(
-            "أفضل العملاء"
+        quotations_card, self.quotations_layout = self.create_top_list_card(
+            "تذكير بعروض الأسعار"
         )
         top_products_card, self.top_products_layout = self.create_top_list_card(
             "المشاريع النشطة الأن"
         )
-        top_lists_layout.addWidget(top_clients_card)
+        top_lists_layout.addWidget(quotations_card)
         top_lists_layout.addWidget(top_products_card)
         left_column.addLayout(top_lists_layout)
 
@@ -238,9 +238,9 @@ class DashboardUI(QWidget):
 
     def update_top_lists(self, response_data):
         data = response_data.get("data", {})
-        top_clients = data.get("top_client_list", [])
-        self.populate_list_card(
-            self.top_clients_layout, top_clients, "name", "amount", "ج.م"
+        quotations = data.get("quotations_reminders", data.get("quotations", data.get("top_client_list", [])))
+        self.populate_text_list_card(
+            self.quotations_layout, quotations, "client_name", "last_date"
         )
         top_products = data.get("top_materials_list", [])
         self.populate_list_card(
@@ -260,6 +260,25 @@ class DashboardUI(QWidget):
 
             if i == 0:
                 value_label.setStyleSheet("color: #00bc88; font-weight: bold;")
+
+            item_layout.addWidget(name_label)
+            item_layout.addStretch()
+            item_layout.addWidget(value_label)
+            layout.addLayout(item_layout)
+
+    def populate_text_list_card(self, layout, items, name_key, value_key):
+        while layout.count():
+            child = layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+        for i, item in enumerate(items):
+            item_layout = QHBoxLayout()
+            name_label = QLabel(f"{i + 1}. {item.get(name_key, 'غير محدد')}")
+            value_label = QLabel(f"{item.get(value_key, 'غير محدد')}")
+
+            if i == 0:
+                value_label.setStyleSheet("color: #f59e0b; font-weight: bold;")
 
             item_layout.addWidget(name_label)
             item_layout.addStretch()
