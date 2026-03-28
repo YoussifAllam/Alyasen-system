@@ -22,7 +22,7 @@ venv
 backend_venv
 
 *.log
-LOGS/*
+# LOGS/*
 !LOGS/.gitkeep
 
 build
@@ -33,4 +33,5 @@ dist
 **/migrations/**
 !**/migrations/__init__.py
 !**/migrations/
+LOGS/
 LOGS/
