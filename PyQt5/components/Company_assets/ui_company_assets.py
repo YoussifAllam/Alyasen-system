@@ -173,7 +173,7 @@ class CompanyAssetsUI(QWidget):
         self.view_all_button.clicked.connect(self.handle_view_all)
         actions_layout.addWidget(self.view_all_button)
         self.show_attachments_button = QPushButton("عرض المرفقات")
-        self.show_attachments_button.clicked.connect(self.handle_show_attachments)
+        # self.show_attachments_button.clicked.connect(self.handle_show_attachments)
         actions_layout.addWidget(self.show_attachments_button)
 
         layout.addLayout(actions_layout)

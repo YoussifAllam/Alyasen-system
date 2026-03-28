@@ -148,7 +148,9 @@ class ReportsUI(QWidget):
         layout = QFormLayout(widget)
         layout.setContentsMargins(0, 15, 0, 0)
         layout.setLabelAlignment(Qt.AlignRight)
-        self.from_date_edit = QDateEdit(calendarPopup=True, date=QDate.currentDate().addMonths(-1))
+        self.from_date_edit = QDateEdit(
+            calendarPopup=True, date=QDate.currentDate().addMonths(-1)
+        )
         self.to_date_edit = QDateEdit(calendarPopup=True, date=QDate.currentDate())
         layout.addRow("من تاريخ:", self.from_date_edit)
         layout.addRow("إلى تاريخ:", self.to_date_edit)
@@ -167,12 +169,10 @@ class ReportsUI(QWidget):
         grid_layout.setSpacing(20)
 
         field_definitions = [
-            ("suppliers_payment_report", "إجمالي الموردين:"),
-            ("sells_amount_report", " إجمالي المبيعات للشركات:"),
-            ("salaries_report", "إجمالي المرتبات:"),
-            ("sells_process_num_report", "عدد عمليات البيع للشركات:"),
+            ("suppliers_payment_report", "إجمالي عدد المشاريع:"),
+            ("sells_amount_report", " إجمالي المشاريع النشطة:"),
             ("expenses_report", "إجمالي المصروفات:"),
-            ("segmental_sells_amount_report", "إجمالي المبيعات القطاعي:"),
+            ("segmental_sells_amount_report", "إجمالي المبالغ لم تحصل بعد:"),
         ]
 
         positions = [(i, j) for i in range(3) for j in range(2)]
@@ -214,7 +214,9 @@ class ReportsUI(QWidget):
                 flags_list.append(("flags_list", flag))
 
         if not flags_list:
-            QMessageBox.warning(self, "خطأ", "الرجاء تحديد حقل واحد على الأقل لعرضه في التقرير.")
+            QMessageBox.warning(
+                self, "خطأ", "الرجاء تحديد حقل واحد على الأقل لعرضه في التقرير."
+            )
             return
 
         params = []
