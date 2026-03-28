@@ -176,7 +176,7 @@ class SuppliersUI(QWidget):
         self.table.setColumnCount(7)
         self.table.setHorizontalHeaderLabels(
             [
-                "كود المورد",
+                "كود",
                 "اسم المورد",
                 "رقم الهاتف",
                 "البريد الإلكتروني",
@@ -186,6 +186,7 @@ class SuppliersUI(QWidget):
             ]
         )
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(
             1, QHeaderView.ResizeToContents
         )
@@ -204,7 +205,6 @@ class SuppliersUI(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(
             6, QHeaderView.ResizeToContents
         )
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.selectionModel().selectionChanged.connect(
             lambda: self.btn_show_profile.setEnabled(True)
