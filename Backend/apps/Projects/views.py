@@ -37,6 +37,12 @@ class ProjectApiView(APIView):
 
         return Response({"status": "success", "id": project.id}, status=HTTP_200_OK)
 
+    def patch(self, request: Request):
+        project_id = request.data.get("project_id")
+        project = selectors.get_base_project_by_id(project_id)
+        services.update_project_status(project)
+        return Response({"status": "success"}, status=HTTP_200_OK)
+
 
 class ProjectContractsApiView(APIView):
     def get(self, request: Request, format=None):
