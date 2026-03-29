@@ -161,8 +161,10 @@ class ProjectsUI(QWidget):
         self.change_status_button = QPushButton("تغير حالة المشروع")
         self.show_project_attachments_button = QPushButton("عرض مرفقات المشروع")
         self.search_button.clicked.connect(self.handle_search)
-        self.show_project_attachments_button.clicked.connect(self.handle_show_attachments)
-        
+        self.show_project_attachments_button.clicked.connect(
+            self.handle_show_attachments
+        )
+
         actions_layout.addWidget(self.search_input, 1)
         actions_layout.addWidget(self.search_button)
         actions_layout.addWidget(self.change_status_button)
@@ -287,7 +289,7 @@ class ProjectsUI(QWidget):
         if not query:
             self.handle_view_all()
             return
-            
+
         params = urlencode({"q": query})
         url = f"{BACKEND_BASE_URL}/projects/?{params}"
         self._start_fetch_request(url)
@@ -300,10 +302,11 @@ class ProjectsUI(QWidget):
 
         selected_row = selected_rows[0].row()
         p_id_item = self.table.item(selected_row, 0)
-        
+
         if p_id_item:
             p_id = p_id_item.text().strip()
             from .project_attachments_dialog import ProjectAttachmentsDialog
+
             dialog = ProjectAttachmentsDialog(p_id, parent=self)
             dialog.exec_()
         else:
