@@ -19,6 +19,7 @@ urlpatterns = [
     path("api/company_assets/", include("apps.CompanyAssets.urls")),
     path("api/safe/", include("apps.Safe.urls")),
     path("api/suppliers/", include("apps.Suppliers.urls")),
+    path("api/quotations/", include("apps.Quotations.urls")),
     # path("api/reports/", include("apps.Reports.urls")),
     path("api/clients/", include("apps.Clients.urls")),
     path("api/dashboard/", include("apps.Dashboard.urls")),
