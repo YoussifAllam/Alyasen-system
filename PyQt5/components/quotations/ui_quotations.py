@@ -288,7 +288,22 @@ class QuotationsUI(QWidget):
         self.attachments_label.setText("لم يتم اختيار مرفقات")
 
     def handle_search(self):
-        pass  # Placeholder for search backend call
+        search_text = self.search_input.text().strip()
+        if not search_text:
+            self.handle_view_all()
+            return
+            
+        url = f"{BACKEND_BASE_URL}/quotations/?client_name={search_text}"
+        self._set_loading(True)
+        self.thread = QThread()
+        self.worker = QuotationApiWorker("GET", url)
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+
+        self.worker.success.connect(self.handle_api_response)
+        self.worker.error.connect(self.show_error_message)
+        self.worker.finished.connect(self.thread.quit)
+        self.thread.start()
 
     def handle_view_all(self):
         url = f"{BACKEND_BASE_URL}/quotations/"

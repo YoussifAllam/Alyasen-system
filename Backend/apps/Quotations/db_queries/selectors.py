@@ -15,7 +15,7 @@ def get_quotations(request: Request):
     def _get_filtered_quotations():
 
         if client_name:
-            return models.Quotations.objects.filter(client_name=client_name)
+            return models.Quotations.objects.filter(client_name__icontains=client_name)
 
         return models.Quotations.objects.all()
 
