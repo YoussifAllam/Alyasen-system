@@ -6,7 +6,7 @@ class Quotations(models.Model):
     client_name = models.CharField(max_length=50, blank=True, null=True)
     company_name = models.CharField(max_length=50, blank=True, null=True)
     price = models.FloatField()
-    details = models.TextField()
+    details = models.TextField(null=True, blank=True)
     quotation_last_date = models.DateField(default=now)
     created_date = models.DateTimeField(auto_now_add=True)
 

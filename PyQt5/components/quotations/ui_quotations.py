@@ -223,7 +223,7 @@ class QuotationsUI(QWidget):
             "company_name": self.company_name_input.text().strip(),
             "price": self.price_input.text().strip(),
             "details": self.details_input.toPlainText().strip(),
-            "quotation_last_date": self.date_input.date().toString("yyyy-MM-dd")
+            "quotation_last_date": self.date_input.date().toString("yyyy-MM-dd"),
         }
 
         url = f"{BACKEND_BASE_URL}/quotations/"
@@ -242,7 +242,7 @@ class QuotationsUI(QWidget):
 
     def on_quotation_added(self, response_data):
         q_id = response_data.get("id")
-        
+
         if not q_id:
             self.show_error_message("حدث خطأ غير متوقع: لم يتم إرجاع كود السعر.")
             return
@@ -259,7 +259,7 @@ class QuotationsUI(QWidget):
             files.append(("attachments", open(path, "rb")))
 
         url = f"{BACKEND_BASE_URL}/quotations/attachments/"
-        
+
         self.att_thread = QThread()
         self.att_worker = QuotationApiWorker("POST", url, payload, files)
         self.att_worker.moveToThread(self.att_thread)
