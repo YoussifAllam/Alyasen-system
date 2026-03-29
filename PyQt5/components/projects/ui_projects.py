@@ -159,10 +159,14 @@ class ProjectsUI(QWidget):
         self.search_input = QLineEdit(placeholderText="ابحث باسم المشروع...")
         self.search_button = QPushButton("بحث")
         self.change_status_button = QPushButton("تغير حالة المشروع")
+        self.show_project_attachments_button = QPushButton("عرض مرفقات المشروع")
         self.search_button.clicked.connect(self.handle_search)
+        self.show_project_attachments_button.clicked.connect(self.handle_show_attachments)
+        
         actions_layout.addWidget(self.search_input, 1)
         actions_layout.addWidget(self.search_button)
         actions_layout.addWidget(self.change_status_button)
+        actions_layout.addWidget(self.show_project_attachments_button)
 
         self.view_all_button = QPushButton("عرض الكل")
         self.view_all_button.clicked.connect(self.handle_view_all)
@@ -280,9 +284,30 @@ class ProjectsUI(QWidget):
 
     def handle_search(self):
         query = self.search_input.text().strip()
+        if not query:
+            self.handle_view_all()
+            return
+            
         params = urlencode({"q": query})
-        url = f"{BACKEND_BASE_URL}/projects/projects/?{params}"
+        url = f"{BACKEND_BASE_URL}/projects/?{params}"
         self._start_fetch_request(url)
+
+    def handle_show_attachments(self):
+        selected_rows = self.table.selectionModel().selectedRows()
+        if not selected_rows:
+            QMessageBox.warning(self, "تنبيه", "الرجاء اختيار مشروع من الجدول أولاً.")
+            return
+
+        selected_row = selected_rows[0].row()
+        p_id_item = self.table.item(selected_row, 0)
+        
+        if p_id_item:
+            p_id = p_id_item.text().strip()
+            from .project_attachments_dialog import ProjectAttachmentsDialog
+            dialog = ProjectAttachmentsDialog(p_id, parent=self)
+            dialog.exec_()
+        else:
+            QMessageBox.warning(self, "خطأ", "لم يتم العثور على كود المشروع المختار.")
 
     def on_add_success(self):
         self._set_loading(False)
@@ -293,7 +318,7 @@ class ProjectsUI(QWidget):
         self.handle_view_all()
 
     def handle_view_all(self):
-        url = f"{BACKEND_BASE_URL}/projects/projects/"
+        url = f"{BACKEND_BASE_URL}/projects/"
         self._start_fetch_request(url)
 
     def handle_next_page(self):

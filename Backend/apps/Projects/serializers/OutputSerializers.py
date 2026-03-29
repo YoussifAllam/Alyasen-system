@@ -17,4 +17,6 @@ class BaseProjectsNamesSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "project_type",
+            "project_status",
+            "created_date",
         ]
