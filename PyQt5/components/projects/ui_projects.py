@@ -162,6 +162,7 @@ class ProjectsUI(QWidget):
         self.change_status_button = QPushButton("تغير حالة المشروع")
         self.show_project_attachments_button = QPushButton("عرض مرفقات المشروع")
         self.search_button.clicked.connect(self.handle_search)
+        self.change_status_button.clicked.connect(self.handle_change_status)
         self.show_project_attachments_button.clicked.connect(
             self.handle_show_attachments
         )
@@ -366,6 +367,49 @@ class ProjectsUI(QWidget):
             dialog.exec_()
         else:
             QMessageBox.warning(self, "خطأ", "لم يتم العثور على كود المشروع المختار.")
+
+    def handle_change_status(self):
+        selected_rows = self.table.selectionModel().selectedRows()
+        if not selected_rows:
+            QMessageBox.warning(self, "تنبيه", "الرجاء اختيار مشروع من الجدول أولاً.")
+            return
+
+        selected_row = selected_rows[0].row()
+        p_id_item = self.table.item(selected_row, 0)
+        
+        if p_id_item:
+            p_id = p_id_item.text().strip()
+            
+            # Optional confirmation alert
+            reply = QMessageBox.question(
+                self, 
+                "تأكيد", 
+                "هل أنت متأكد من تغيير حالة هذا المشروع؟", 
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.No:
+                return
+
+            url = f"{BACKEND_BASE_URL}/projects/"
+            payload = {"project_id": p_id}
+            self._set_loading(True)
+
+            self.patch_thread = QThread()
+            self.patch_worker = ProjectApiWorker("PATCH", url, payload=payload)
+            self.patch_worker.moveToThread(self.patch_thread)
+            self.patch_thread.started.connect(self.patch_worker.run)
+
+            self.patch_worker.success.connect(self.on_status_changed)
+            self.patch_worker.error.connect(self.show_error_message)
+            self.patch_worker.finished.connect(self.patch_thread.quit)
+            self.patch_thread.start()
+        else:
+            QMessageBox.warning(self, "خطأ", "لم يتم العثور على كود المشروع المختار.")
+
+    def on_status_changed(self, response_data):
+        self._set_loading(False)
+        QMessageBox.information(self, "نجاح", "تم تغيير حالة المشروع بنجاح.")
+        self.handle_view_all()
 
     def on_add_success(self):
         self._set_loading(False)
