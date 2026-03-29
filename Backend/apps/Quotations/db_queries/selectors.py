@@ -28,3 +28,10 @@ def get_specific_quotation(id: int):
         return models.Quotations.objects.get(id=id)
     except models.Quotations.DoesNotExist:
         raise NotFound({"الخطأ": "لا يوجد عرض سعر بهذا الكود"})
+
+
+def get_quotation_attachments(q_id):
+    try:
+        return models.QuotationsAttachments.objects.filter(quotation_id=q_id)
+    except models.QuotationsAttachments.DoesNotExist:
+        raise NotFound({"الخطأ": "لا يوجد مرفقات لهذا العرض"})
