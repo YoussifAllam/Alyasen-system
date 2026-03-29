@@ -193,9 +193,7 @@ class QuotationsUI(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(
             6, QHeaderView.ResizeToContents
         )
-        self.table.horizontalHeader().setSectionResizeMode(
-            7, QHeaderView.Fixed
-        )
+        self.table.horizontalHeader().setSectionResizeMode(7, QHeaderView.Fixed)
         self.table.setColumnWidth(7, 100)
 
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
@@ -215,35 +213,69 @@ class QuotationsUI(QWidget):
             )
 
     def handle_add_quotation(self):
-        # Placeholder for adding functionality
         client_name = self.client_name_input.text().strip()
         if not client_name:
             QMessageBox.warning(self, "خطأ", "الرجاء إدخال اسم العميل.")
             return
 
-        QMessageBox.information(self, "نجاح", "تم إضافة عرض السعر بنجاح المبدئي.")
+        payload = {
+            "client_name": client_name,
+            "company_name": self.company_name_input.text().strip(),
+            "price": self.price_input.text().strip(),
+            "details": self.details_input.toPlainText().strip(),
+            "quotation_last_date": self.date_input.date().toString("yyyy-MM-dd")
+        }
 
-        # Add to table for demo purposes
-        row_pos = self.table.rowCount()
-        self.table.insertRow(row_pos)
-        self.table.setItem(row_pos, 0, QTableWidgetItem(str(row_pos + 1)))
-        self.table.setItem(row_pos, 1, QTableWidgetItem(self.client_name_input.text()))
-        self.table.setItem(row_pos, 2, QTableWidgetItem(self.company_name_input.text()))
-        self.table.setItem(row_pos, 3, QTableWidgetItem(self.price_input.text()))
-        self.table.setItem(
-            row_pos, 4, QTableWidgetItem(self.date_input.date().toString("yyyy-MM-dd"))
-        )
-        self.table.setItem(
-            row_pos, 5, QTableWidgetItem(self.details_input.toPlainText())
-        )
+        url = f"{BACKEND_BASE_URL}/quotations/"
+        self._set_loading(True)
+        self.btn_add_quotation.setText("جاري التحميل...")
 
-        delete_btn = QPushButton("حذف")
-        delete_btn.setObjectName("deleteBtn")
-        delete_btn.setStyleSheet("background-color: #ef4444; color: white;")
-        delete_btn.clicked.connect(lambda _, r=row_pos: self.delete_row(r))
-        self.table.setCellWidget(row_pos, 6, delete_btn)
+        self.post_thread = QThread()
+        self.post_worker = QuotationApiWorker("POST", url, payload, None)
+        self.post_worker.moveToThread(self.post_thread)
+        self.post_thread.started.connect(self.post_worker.run)
 
+        self.post_worker.success.connect(self.on_quotation_added)
+        self.post_worker.error.connect(self.show_error_message)
+        self.post_worker.finished.connect(self.post_thread.quit)
+        self.post_thread.start()
+
+    def on_quotation_added(self, response_data):
+        q_id = response_data.get("id")
+        
+        if not q_id:
+            self.show_error_message("حدث خطأ غير متوقع: لم يتم إرجاع كود السعر.")
+            return
+
+        if self.attachments_paths:
+            self._upload_attachments(q_id)
+        else:
+            self.finalize_add_quotation()
+
+    def _upload_attachments(self, q_id):
+        payload = {"q_id": str(q_id)}
+        files = []
+        for path in self.attachments_paths:
+            files.append(("attachments", open(path, "rb")))
+
+        url = f"{BACKEND_BASE_URL}/quotations/attachments/"
+        
+        self.att_thread = QThread()
+        self.att_worker = QuotationApiWorker("POST", url, payload, files)
+        self.att_worker.moveToThread(self.att_thread)
+        self.att_thread.started.connect(self.att_worker.run)
+
+        self.att_worker.success.connect(lambda _: self.finalize_add_quotation())
+        self.att_worker.error.connect(self.show_error_message)
+        self.att_worker.finished.connect(self.att_thread.quit)
+        self.att_thread.start()
+
+    def finalize_add_quotation(self):
+        self._set_loading(False)
+        self.btn_add_quotation.setText("إضافة عرض السعر")
+        QMessageBox.information(self, "نجاح", "تم إضافة عرض السعر بنجاح.")
         self.clear_form()
+        self.handle_view_all()  # Refresh the table
 
     def clear_form(self):
         self.client_name_input.clear()
@@ -290,7 +322,7 @@ class QuotationsUI(QWidget):
                 QTableWidgetItem(quote.get("quotation_last_date", "")),
                 QTableWidgetItem(
                     quote.get("details", "")[:50]
-                    + ("..." if len(quote.get("details", "")) > 50 else "")
+                    + ("..." if len(quote.get("details", "")) > 50 else "")  # noqa
                 ),
             ]
             for item in items:
@@ -307,10 +339,12 @@ class QuotationsUI(QWidget):
     def _set_loading(self, is_loading):
         self.view_all_button.setEnabled(not is_loading)
         self.search_button.setEnabled(not is_loading)
+        self.btn_add_quotation.setEnabled(not is_loading)
         if is_loading:
             self.view_all_button.setText("جاري التحميل...")
         else:
             self.view_all_button.setText("عرض الكل")
+            self.btn_add_quotation.setText("إضافة عرض السعر")
 
     def show_error_message(self, message):
         self._set_loading(False)
