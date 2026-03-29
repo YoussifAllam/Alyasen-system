@@ -256,7 +256,12 @@ class ProjectsUI(QWidget):
     def handle_add_project(self):
         name = self.name_input.text().strip()
         pt_text = self.type_combobox.currentText()
-        project_type = "rent" if pt_text == "تأجير" else "selling" if pt_text == "بيع" else "industrial"
+        project_type = (
+            "rent"
+            if pt_text == "تأجير"
+            else "selling" if pt_text == "بيع" else "industrial"
+        )
+        cost = float(self.cost_input.text().strip())
         project_status = "active"
 
         if not name:
@@ -267,6 +272,7 @@ class ProjectsUI(QWidget):
             "name": name,
             "project_type": project_type,
             "project_status": project_status,
+            "cost": cost,
         }
 
         if project_type in ["rent", "selling"]:
@@ -295,7 +301,7 @@ class ProjectsUI(QWidget):
 
     def on_project_added(self, response_data):
         p_id = response_data.get("id")
-        
+
         if not p_id:
             self.show_error_message("حدث خطأ غير متوقع: لم يتم إرجاع كود المشروع.")
             return
@@ -312,7 +318,7 @@ class ProjectsUI(QWidget):
             files.append(("attachments", open(path, "rb")))
 
         url = f"{BACKEND_BASE_URL}/projects/contracts/"
-        
+
         self.att_thread = QThread()
         self.att_worker = ProjectApiWorker("POST", url, payload, files)
         self.att_worker.moveToThread(self.att_thread)
@@ -420,10 +426,14 @@ class ProjectsUI(QWidget):
         for project in projects:
             row_pos = self.table.rowCount()
             self.table.insertRow(row_pos)
-            
+
             status = project.get("project_status", "")
-            status_text = "نشط" if status == "active" else "غير نشط" if status == "inactive" else status
-            
+            status_text = (
+                "نشط"
+                if status == "active"
+                else "غير نشط" if status == "inactive" else status
+            )
+
             status_item = QTableWidgetItem(status_text)
             if status == "active":
                 status_item.setForeground(QBrush(QColor("#10b981")))
