@@ -5,7 +5,7 @@ from rest_framework.request import Request
 
 from .models.base_project_models import BaseProject, ProjectContracts
 from .serializers import InputSerializers, OutputSerializers
-from .db_queries import selectors
+from .db_queries import selectors, services
 from .tasks.pagenator import pagenator
 
 from apps.TransactionsLog.tasks.celery_tasks import create_transaction_log
@@ -28,6 +28,7 @@ class ProjectApiView(APIView):
             )
         project = serializer.save()
 
+        services.update_supplier_balance(request)
         username = request.data.get("username", "Unknown")
         transaction_msg = f"تم أضافة مشروع جديد للنظام '{project.name}'"
         create_transaction_log.delay(

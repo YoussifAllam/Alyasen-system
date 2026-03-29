@@ -19,6 +19,7 @@ class BaseProject(models.Model):
     project_status = models.CharField(
         max_length=50, choices=ProjectStatus.choices, default="active"
     )
+    cost = models.FloatField()
     supplier = models.ForeignKey(
         "Suppliers.Supplier", on_delete=models.SET_NULL, null=True, blank=True
     )
