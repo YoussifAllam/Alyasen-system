@@ -16,7 +16,9 @@ class ProjectStatus(models.Choices):
 class BaseProject(models.Model):
     name = models.CharField(max_length=50, blank=True, null=True)
     project_type = models.CharField(max_length=50, choices=ProjectTypes.choices)
-    project_status = models.CharField(max_length=50, choices=ProjectStatus.choices)
+    project_status = models.CharField(
+        max_length=50, choices=ProjectStatus.choices, default=ProjectStatus.active
+    )
     supplier = models.ForeignKey(
         "Suppliers.Supplier", on_delete=models.SET_NULL, null=True, blank=True
     )

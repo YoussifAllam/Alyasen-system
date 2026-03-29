@@ -5,18 +5,9 @@ from cacheops import cached_as
 
 def get_projects(request: Request):
     q = request.GET.get("q")
+    if q:
+        return models.BaseProject.objects.filter(
+            name__icontains=q, project_status="active"
+        )
 
-    cache_key = f"project_{q}_"
-
-    # @cached_as(models.BaseProject, extra=cache_key, timeout=3600)
-    def _get_filtered_projects():
-
-        if q:
-            return models.BaseProject.objects.filter(
-                name__icontains=q, project_status="active"
-            )
-
-        return models.BaseProject.objects.filter(project_status="active")
-
-    result = _get_filtered_projects()
-    return result
+    return models.BaseProject.objects.filter(project_status="active")

@@ -292,7 +292,7 @@ class QuotationsUI(QWidget):
         if not search_text:
             self.handle_view_all()
             return
-            
+
         url = f"{BACKEND_BASE_URL}/quotations/?client_name={search_text}"
         self._set_loading(True)
         self.thread = QThread()
@@ -374,7 +374,7 @@ class QuotationsUI(QWidget):
 
         selected_row = selected_rows[0].row()
         q_id_item = self.table.item(selected_row, 0)
-        
+
         if q_id_item:
             q_id = q_id_item.text().strip()
             dialog = QuotationAttachmentsDialog(q_id, parent=self)

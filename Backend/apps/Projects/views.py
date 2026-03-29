@@ -2,10 +2,12 @@ from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.request import Request
+
 from .models.base_project_models import BaseProject, ProjectContracts
 from .serializers import InputSerializers, OutputSerializers
 from .db_queries import selectors
 from .tasks.pagenator import pagenator
+
 from apps.TransactionsLog.tasks.celery_tasks import create_transaction_log
 
 
@@ -15,27 +17,46 @@ class ProjectApiView(APIView):
         response_data = pagenator(
             projects, request, OutputSerializers.BaseProjectsNamesSerializer
         )
-
         return Response(response_data, status=HTTP_200_OK)
 
-    # def post(self, request: Request, format=None):
-    #     serializer = InputSerializers.ProjectCreateSerializer(data=request.data)
-    #     if not serializer.is_valid():
-    #         return Response(
-    #             {"status": "failed", "errors": serializer.errors},
-    #             status=HTTP_400_BAD_REQUEST,
-    #         )
+    def post(self, request: Request, format=None):
+        serializer = InputSerializers.ProjectCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"status": "failed", "errors": serializer.errors},
+                status=HTTP_400_BAD_REQUEST,
+            )
+        project = serializer.save()
 
-    #     project = serializer.save()
+        username = request.data.get("username", "Unknown")
+        transaction_msg = f"تم أضافة مشروع جديد للنظام '{project.name}'"
+        create_transaction_log.delay(
+            transaction_data=transaction_msg, username=username
+        )
 
-    #     contracts = request.FILES.getlist("contracts")
-    #     for contract_file in contracts:
-    #         ProjectContracts.objects.create(project=project, contract=contract_file)
+        return Response({"status": "success"}, status=HTTP_200_OK)
 
-    #     username = request.data.get("username", "Unknown")
-    #     transaction_msg = f"تم أضافة مشروع جديد للنظام '{project.name}'"
-    #     create_transaction_log.delay(
-    #         transaction_data=transaction_msg, username=username
-    #     )
 
-    #     return Response({"status": "success"}, status=HTTP_200_OK)
+class ProjectContractsApiView(APIView):
+    def get(self, request: Request, format=None):
+        project_id = request.GET.get("project_id")
+        contracts = ProjectContracts.objects.filter(project_id=project_id)
+        response_data = pagenator(
+            contracts, request, OutputSerializers.ProjectContractSerializer
+        )
+        return Response(response_data, status=HTTP_200_OK)
+
+    def post(self, request: Request, format=None):
+        project_id = request.data.get("project_id")
+        attachments = request.FILES.getlist("attachments")
+
+        objs_to_create = []
+
+        for file in attachments:
+            objs_to_create.append(
+                ProjectContracts(project_id=project_id, contract=file)
+            )
+
+        ProjectContracts.objects.bulk_create(objs_to_create)
+
+        return Response({"status": "success"}, status=HTTP_200_OK)
