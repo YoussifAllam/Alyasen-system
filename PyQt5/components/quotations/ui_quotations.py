@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QDate, QObject, QThread, pyqtSignal, pyqtSlot
 from requests import request, exceptions
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from .quotation_attachments_dialog import QuotationAttachmentsDialog
 
 
 class QuotationApiWorker(QObject):
@@ -351,7 +352,20 @@ class QuotationsUI(QWidget):
         QMessageBox.critical(self, "خطأ", message)
 
     def handle_show_attachments(self):
-        pass  # Placeholder for showing attachments
+        selected_rows = self.table.selectionModel().selectedRows()
+        if not selected_rows:
+            QMessageBox.warning(self, "تنبيه", "الرجاء اختيار عرض سعر من الجدول أولاً.")
+            return
+
+        selected_row = selected_rows[0].row()
+        q_id_item = self.table.item(selected_row, 0)
+        
+        if q_id_item:
+            q_id = q_id_item.text().strip()
+            dialog = QuotationAttachmentsDialog(q_id, parent=self)
+            dialog.exec_()
+        else:
+            QMessageBox.warning(self, "خطأ", "لم يتم العثور على كود العرض المختار.")
 
     def delete_row(self, row):
         reply = QMessageBox.question(
