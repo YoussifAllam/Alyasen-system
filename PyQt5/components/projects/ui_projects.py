@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
     QComboBox,
 )
 from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal, pyqtSlot, QSettings
+from PyQt5.QtGui import QBrush, QColor
 from requests import request, exceptions
 from urllib.parse import urlencode
 
@@ -71,7 +72,7 @@ class ProjectsUI(QWidget):
         self.total_count = 0
 
         self.setup_ui()
-        # self.load_suppliers() # TODO: load suppliers
+        self.load_suppliers()
 
     def setup_ui(self):
         main_layout = QVBoxLayout(self)
@@ -254,7 +255,8 @@ class ProjectsUI(QWidget):
 
     def handle_add_project(self):
         name = self.name_input.text().strip()
-        project_type = self.type_combobox.currentText()
+        pt_text = self.type_combobox.currentText()
+        project_type = "rent" if pt_text == "تأجير" else "selling" if pt_text == "بيع" else "industrial"
         project_status = "active"
 
         if not name:
@@ -277,12 +279,59 @@ class ProjectsUI(QWidget):
         username = self.settings.value("user_name", "unknown_user")
         payload["username"] = username
 
+        url = f"{BACKEND_BASE_URL}/projects/"
+        self._set_loading(True)
+        self.btn_add_project.setText("جاري التحميل...")
+
+        self.post_thread = QThread()
+        self.post_worker = ProjectApiWorker("POST", url, payload, None)
+        self.post_worker.moveToThread(self.post_thread)
+        self.post_thread.started.connect(self.post_worker.run)
+
+        self.post_worker.success.connect(self.on_project_added)
+        self.post_worker.error.connect(self.show_error_message)
+        self.post_worker.finished.connect(self.post_thread.quit)
+        self.post_thread.start()
+
+    def on_project_added(self, response_data):
+        p_id = response_data.get("id")
+        
+        if not p_id:
+            self.show_error_message("حدث خطأ غير متوقع: لم يتم إرجاع كود المشروع.")
+            return
+
+        if self.contract_files_paths:
+            self._upload_contracts(p_id)
+        else:
+            self.finalize_add_project()
+
+    def _upload_contracts(self, p_id):
+        payload = {"project_id": str(p_id)}
         files = []
         for path in self.contract_files_paths:
-            files.append(("contracts", open(path, "rb")))
+            files.append(("attachments", open(path, "rb")))
 
-        url = f"{BACKEND_BASE_URL}/projects/projects/"
-        self._start_post_request(url, payload, files)
+        url = f"{BACKEND_BASE_URL}/projects/contracts/"
+        
+        self.att_thread = QThread()
+        self.att_worker = ProjectApiWorker("POST", url, payload, files)
+        self.att_worker.moveToThread(self.att_thread)
+        self.att_thread.started.connect(self.att_worker.run)
+
+        self.att_worker.success.connect(lambda _: self.finalize_add_project())
+        self.att_worker.error.connect(self.show_error_message)
+        self.att_worker.finished.connect(self.att_thread.quit)
+        self.att_thread.start()
+
+    def finalize_add_project(self):
+        self._set_loading(False)
+        self.btn_add_project.setText("إضافة المشروع")
+        QMessageBox.information(self, "نجاح", "تمت إضافة المشروع بنجاح.")
+        self.name_input.clear()
+        self.cost_input.clear()
+        self.contract_files_paths = []
+        self.contracts_label.setText("لم يتم اختيار عقود")
+        self.handle_view_all()
 
     def handle_search(self):
         query = self.search_input.text().strip()
@@ -371,16 +420,25 @@ class ProjectsUI(QWidget):
         for project in projects:
             row_pos = self.table.rowCount()
             self.table.insertRow(row_pos)
+            
+            status = project.get("project_status", "")
+            status_text = "نشط" if status == "active" else "غير نشط" if status == "inactive" else status
+            
+            status_item = QTableWidgetItem(status_text)
+            if status == "active":
+                status_item.setForeground(QBrush(QColor("#10b981")))
+            elif status == "inactive":
+                status_item.setForeground(QBrush(QColor("#ef4444")))
+
             items = [
                 QTableWidgetItem(str(project.get("id", ""))),
                 QTableWidgetItem(project.get("name", "")),
                 QTableWidgetItem(project.get("project_type", "")),
-                QTableWidgetItem(project.get("project_status", "")),
+                status_item,
                 QTableWidgetItem(project.get("created_date", "")),
             ]
-            for item in items:
-                item.setTextAlignment(Qt.AlignCenter)
             for i, item in enumerate(items):
+                item.setTextAlignment(Qt.AlignCenter)
                 self.table.setItem(row_pos, i, item)
 
     def update_pagination_controls(self):

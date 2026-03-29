@@ -34,7 +34,7 @@ class ProjectApiView(APIView):
             transaction_data=transaction_msg, username=username
         )
 
-        return Response({"status": "success"}, status=HTTP_200_OK)
+        return Response({"status": "success", "id": project.id}, status=HTTP_200_OK)
 
 
 class ProjectContractsApiView(APIView):
