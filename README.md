@@ -104,9 +104,24 @@ git clone https://github.com/YoussifAllam/Alyasen-system.git
 cd Alyasen-system
 ```
 
-### 3. Create a Virtual Environment
+### 3. run the backend
+  ```bash
+cd Backend
+docker compose -f Docker/docker-compose.local.yml up --build
+  ```
+
+### 4.apply migration and create superuser for login
+  ```bash
+docker exec -it local_Alyasen_app /bin/bash                  
+make make 
+make mi
+make superuser
+  ```
+
+### 5. Create a Virtual Environment for PyQt5
 It is highly recommended to isolate dependencies utilizing a Python virtual environment.
 ```bash
+cd ..
 python3 -m venv venv
 ```
 
