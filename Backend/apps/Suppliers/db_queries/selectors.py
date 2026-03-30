@@ -3,7 +3,7 @@ from cacheops import cached_as
 from django.db.models import Q
 from rest_framework.exceptions import NotFound
 
-from ..models import Supplier, InvoicePayment
+from ..models import Supplier, InvoicePayment, SupplierProjectBalance
 
 
 def get_suppliers(request: Request):
@@ -36,3 +36,7 @@ def get_supplier_instance(supplier_id: int) -> Supplier:
 
 def get_supplier_payments_instances(supplier_id: int):
     return InvoicePayment.objects.filter(supplier_fk=supplier_id)
+
+
+def get_supplier_projects(supplier_id: int):
+    return SupplierProjectBalance.objects.filter(supplier_fk=supplier_id)

@@ -29,6 +29,7 @@ class ProjectApiView(APIView):
         project = serializer.save()
 
         services.update_supplier_balance(request)
+        services.create_supplier_project_balance_instance(project.supplier, project)
         username = request.data.get("username", "Unknown")
         transaction_msg = f"تم أضافة مشروع جديد للنظام '{project.name}'"
         create_transaction_log.delay(

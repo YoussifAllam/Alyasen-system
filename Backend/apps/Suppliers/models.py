@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils.timezone import now
 
+from apps.Projects.models import BaseProject
+
 
 class Supplier(models.Model):
     name = models.CharField(max_length=50)
@@ -23,6 +25,23 @@ class Supplier(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class SupplierProjectBalance(models.Model):
+    supplier_fk = models.ForeignKey(Supplier, on_delete=models.CASCADE)
+    project_fk = models.ForeignKey(BaseProject, on_delete=models.CASCADE)
+    total = models.FloatField()
+    paid = models.FloatField(default=0)
+    remining = models.FloatField(default=0)
+
+    class Meta:
+        db_table = "supplier_project_balance"
+        indexes = [
+            models.Index(fields=["supplier_fk"]),
+            models.Index(fields=["project_fk"]),
+        ]
+        verbose_name = "Supplier Project Balance"
+        verbose_name_plural = "Supplier Project Balance"
 
 
 class InvoicePayment(models.Model):

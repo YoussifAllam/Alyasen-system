@@ -4,6 +4,8 @@ from ..models.base_project_models import BaseProject
 
 from django.db.models import F
 
+from apps.Suppliers.models import SupplierProjectBalance
+
 
 def update_supplier_balance(request):
     supplier_id = request.data.get("supplier", None)
@@ -21,3 +23,9 @@ def update_project_status(project: BaseProject):
     else:
         project.project_status = "active"
     project.save()
+
+
+def create_supplier_project_balance_instance(supplier_id: int, project: BaseProject):
+    SupplierProjectBalance.objects.create(
+        supplier_fk=supplier_id, project_fk=project, total=project.cost
+    )

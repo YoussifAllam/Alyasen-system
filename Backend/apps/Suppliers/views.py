@@ -48,6 +48,16 @@ class SupplierInfoApiView(APIView):
         return Response({"status": "succes", "data": serializer.data}, 200)
 
 
+class SupplierProjectsApiView(APIView):
+    def get(self, request: Request, format=None):
+        supplier_id = request.GET.get("supplier_id")
+        supplier_projects = selectors.get_supplier_projects(supplier_id)
+        serializer = OutputSerializers.SupplierProjectsSerializer(
+            supplier_projects, many=True, context={"request": request}
+        )
+        return Response({"status": "succes", "data": serializer.data}, 200)
+
+
 class InovicePaymentApiView(APIView):
     def post(self, request: Request, format=None):
         ParamsSerializers.validate_serializer(
