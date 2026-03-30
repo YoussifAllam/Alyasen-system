@@ -9,8 +9,6 @@ from .models import Quotations
 def invalidate_quotation_cache(sender, instance, **kwargs):
     """Invalidate cache when a quotation is saved"""
     invalidate_obj(instance)
-    # Also invalidate any filtered caches that might include this transaction
-    # Example: invalidate_dict(f'transactions_{instance.username}_{instance.created_date}')
 
 
 @receiver(post_delete, sender=Quotations)

@@ -1,50 +1,67 @@
 from django.core.cache import cache
 from cacheops import cached_as
 from django.utils import timezone
-from django.db.models import Sum
+from django.db.models import F, Func, Value, Sum
+from django.db.models.functions import Abs
+from datetime import date
 
-from apps.Clients.models import Client, InvoiceMaterials, ClientInvoice
+from apps.Quotations.models import Quotations
+from apps.Projects.models import BaseProject
 
 
-class ClientAnalysisService:
+class QuotationsReminderService:
     """Service class for client analysis and insights"""
 
     @classmethod
-    def _fetch_clients_balance_data(cls):
+    def _fetch_pending_quotations_data(cls):
         """
-        Fetch clients data sorted by total balance owed
+        Fetch quotations data sorted by total balance owed
         """
-        clients_data = Client.objects.only("name", "total_balance_owed_to_us").order_by(
-            "-total_balance_owed_to_us"
-        )
-        return list(clients_data)
+        reference_date = date.today()
+        nearest_quotations = Quotations.objects.filter(
+            quotation_last_date__gte=reference_date
+        ).order_by("quotation_last_date")[:3]
+        return list(nearest_quotations)
 
     @classmethod
-    def get_top_clients_by_balance(cls, limit=3):
-        # @cached_as(Client, extra=("top_balance", limit))
-        def _get_cached_top_clients():
-            clients_data = cls._fetch_clients_balance_data()
+    def get_most_nearest_quotations(cls, limit=3):
+        @cached_as(Quotations, extra=("top_3_nearst_quotations", limit))
+        def _get_cached_top_3_nearst_quotations():
+            quotations_data = cls._fetch_pending_quotations_data()
 
-            if not clients_data:
+            if not quotations_data:
                 return [
-                    {"name": "لا يوجد بيانات", "amount": 0.0},
-                    {"name": "لا يوجد بيانات", "amount": 0.0},
-                    {"name": "لا يوجد بيانات", "amount": 0.0},
+                    {
+                        "name": "لا يوجد بيانات",
+                        "amount": 0.0,
+                        "last_date": "لا يوجد بيانات",
+                    },
+                    {
+                        "name": "لا يوجد بيانات",
+                        "amount": 0.0,
+                        "last_date": "لا يوجد بيانات",
+                    },
+                    {
+                        "name": "لا يوجد بيانات",
+                        "amount": 0.0,
+                        "last_date": "لا يوجد بيانات",
+                    },
                 ]
 
-            top_clients = []
-            for client in clients_data[:limit]:
+            top_3_nearst_quotations = []
+            for quotation in quotations_data[:limit]:
 
-                top_clients.append(
+                top_3_nearst_quotations.append(
                     {
-                        "name": client.name,
-                        "amount": float(client.total_balance_owed_to_us),
+                        "name": quotation.company_name,
+                        "amount": quotation.price,
+                        "last_date": quotation.quotation_last_date,
                     }
                 )
 
-            return top_clients
+            return top_3_nearst_quotations
 
-        return _get_cached_top_clients()
+        return _get_cached_top_3_nearst_quotations()
 
     @classmethod
     def invalidate_cache(cls):
@@ -53,19 +70,16 @@ class ClientAnalysisService:
         """
         from cacheops import invalidate_model
 
-        invalidate_model(Client)
+        invalidate_model(Quotations)
 
         cache_keys = [
-            "clients_top_balance",
-            "clients_top_balance_with_others",
-            "clients_balance_stats",
-            "clients_overdue_insights",
+            "top_3_nearst_quotations",
         ]
 
         for cache_key in cache_keys:
             cache.delete(cache_key)
 
-        print("Client analysis cache invalidated")
+        print("Quotations cache invalidated")
 
     @classmethod
     def force_refresh_analysis(cls):
@@ -76,96 +90,79 @@ class ClientAnalysisService:
         return cls.get_top_clients_by_balance(3)
 
 
-class MixtureAnalysisService:
-    """Service class for mixture analysis from invoices"""
+class ProjectsReminderService:
+    """Service class for projects analysis and insights"""
 
     @classmethod
-    def _fetch_current_month_mixtures_data(cls):
+    def _fetch_top_active_projects_data(cls):
         """
-        Fetch mixtures data from current month invoices
+        Fetch active projects data sorted by highest cost
         """
-        now = timezone.now()
-        current_year = now.year
-        current_month = now.month
-        mixtures_data = (
-            InvoiceMaterials.objects.only(
-                "invoice__invoice_date", "material__material_name", "quantity_in_unit"
-            )  # todo: change to material
-            .filter(
-                invoice__invoice_date__year=current_year,
-                invoice__invoice_date__month=current_month,
-            )
-            .values("material__material_name", "material_id")
-            .annotate(
-                total_quantity=Sum("quantity_in_unit"),
-            )
-            .order_by("-total_quantity")
-        )
-        return list(mixtures_data)
+        top_projects = BaseProject.objects.filter(project_status="active").order_by(
+            "-cost"
+        )[:3]
+        return list(top_projects)
 
     @classmethod
-    def get_top_mixtures_current_month(cls, limit=3):
-        now = timezone.now()
-        current_year = now.year
-        current_month = now.month
+    def get_top_active_projects(cls, limit=3):
+        @cached_as(BaseProject, extra=("top_3_active_projects", limit))
+        def _get_cached_top_active_projects():
+            projects_data = cls._fetch_top_active_projects_data()
 
-        # @cached_as(InvoiceMaterials, ClientInvoice, extra=(current_year, current_month, "top_mixtures", limit))
-        def _get_cached_top_mixtures():
-            mixtures_data = cls._fetch_current_month_mixtures_data()
+            if not projects_data:
+                return [
+                    {
+                        "name": "لا يوجد بيانات",
+                        "cost": 0.0,
+                        "supplier": "لا يوجد بيانات",
+                    },
+                    {
+                        "name": "لا يوجد بيانات",
+                        "cost": 0.0,
+                        "supplier": "لا يوجد بيانات",
+                    },
+                    {
+                        "name": "لا يوجد بيانات",
+                        "cost": 0.0,
+                        "supplier": "لا يوجد بيانات",
+                    },
+                ]
 
-            # todo: change this
-            # if not mixtures_data:
-            return [
-                {"name": "لا يوجد بيانات", "total_quantity": 0.0},
-                {"name": "لا يوجد بيانات", "total_quantity": 0.0},
-                {"name": "لا يوجد بيانات", "total_quantity": 0.0},
-            ]
+            top_active_projects = []
+            for project in projects_data[:limit]:
+                top_active_projects.append(
+                    {
+                        "name": project.name,
+                        "cost": project.cost,
+                        "supplier": (
+                            project.supplier.name
+                            if project.supplier
+                            else "لا يوجد مورد"
+                        ),
+                    }
+                )
 
-            # top_mixtures = []
-            # for item in mixtures_data[:limit]:
-            #     top_mixtures.append(
-            #         {"name": item["mixture__name"], "total_quantity": float(item["total_quantity"])}
-            #     )
+            return top_active_projects
 
-            # return top_mixtures
-
-        return _get_cached_top_mixtures()
+        return _get_cached_top_active_projects()
 
     @classmethod
     def invalidate_cache(cls):
         """
-        Invalidate mixture analysis cache
+        Invalidate projects analysis cache
         """
-        now = timezone.now()
-        current_year = now.year
-        current_month = now.month
+        from cacheops import invalidate_model
 
-        from cacheops import invalidate_dict
-
-        # Invalidate for both models
-        invalidate_dict(
-            InvoiceMaterials,
-            {
-                "invoice__invoice_date__year": current_year,
-                "invoice__invoice_date__month": current_month,
-            },
-        )
-        invalidate_dict(
-            ClientInvoice,
-            {"invoice_date__year": current_year, "invoice_date__month": current_month},
-        )
+        invalidate_model(BaseProject)
 
         cache_keys = [
-            f"mixtures_top_{current_year}_{current_month}",
-            f"mixtures_top_with_others_{current_year}_{current_month}",
-            f"mixtures_monthly_stats_{current_year}_{current_month}",
-            f"mixtures_profitable_{current_year}_{current_month}",
+            "top_3_active_projects",
         ]
 
         for cache_key in cache_keys:
             cache.delete(cache_key)
 
-        print(f"Mixture analysis cache invalidated for {current_year}-{current_month}")
+        print("Projects cache invalidated")
 
     @classmethod
     def force_refresh_analysis(cls):
@@ -173,7 +170,7 @@ class MixtureAnalysisService:
         Force refresh analysis data
         """
         cls.invalidate_cache()
-        return cls.get_top_mixtures_current_month(3)
+        return cls.get_top_active_projects(3)
 
 
 def get_top_data():
@@ -181,10 +178,10 @@ def get_top_data():
     This function aggregates the data from different services into the final
     dictionary that will be nested under the 'data' key in the API response.
     """
-    top_client_list = ClientAnalysisService.get_top_clients_by_balance()
-    top_materials_list = MixtureAnalysisService.get_top_mixtures_current_month()
+    top_3_nearst_quotations = QuotationsReminderService.get_most_nearest_quotations()
+    projects = ProjectsReminderService.get_top_active_projects()
 
     return {
-        "top_client_list": top_client_list,
-        "top_materials_list": top_materials_list,
+        "top_3_nearst_quotations": top_3_nearst_quotations,
+        "top_active_projects": projects,
     }

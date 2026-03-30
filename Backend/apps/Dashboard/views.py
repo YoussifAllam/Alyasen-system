@@ -8,7 +8,7 @@ from .db_queries import selectors
 
 from .tasks import (
     expenses_graph_tasks,
-    # top_lists_tasks,
+    top_lists_tasks,
     # inventory_levels_tasks,
     # performance_graph_tasks,
     users_tasks,
@@ -24,6 +24,12 @@ class ExpensesGraphApiView(APIView):
         return Response(
             {"status": "success", "data": expenses_analysis}, status=HTTP_200_OK
         )
+
+
+class TopListsDataApiView(APIView):
+    def get(self, request: Request):
+        top_lists = top_lists_tasks.get_top_data()
+        return Response({"status": "success", "data": top_lists}, status=HTTP_200_OK)
 
 
 # class TopListsDataApiView(APIView):
