@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from .tasks import pagenator
 from .db_queries import selectors
 from .serializers import InputSerializers, OutputSerializers
+from .models import CompanyAssetsAttachments
 
 
 class CompanyAssetsView(APIView):
@@ -33,3 +34,28 @@ class CompanyAssetsView(APIView):
         machine_instance = selectors.get_specific_company_asset_instance(machine_id)
         machine_instance.delete()
         return Response({"status": "success"}, status=204)
+
+
+class CompanyAssetsAttachmentsApiView(APIView):
+    def get(self, request: Request, format=None):
+        asset_id = request.GET.get("asset_id")
+        attachments = selectors.get_CompanyAssetsAttachments_instances(asset_id)
+        response_data = pagenator.pagenator(
+            attachments, request, OutputSerializers.CompanyAssetsAttachmentsSerializer
+        )
+        return Response(response_data, status=HTTP_200_OK)
+
+    def post(self, request: Request, format=None):
+        asset_id = request.data.get("asset_id")
+        attachments = request.FILES.getlist("attachments")
+
+        objs_to_create = []
+
+        for file in attachments:
+            objs_to_create.append(
+                CompanyAssetsAttachments(asset_id=asset_id, file=file)
+            )
+
+        CompanyAssetsAttachments.objects.bulk_create(objs_to_create)
+
+        return Response({"status": "success"}, status=HTTP_200_OK)

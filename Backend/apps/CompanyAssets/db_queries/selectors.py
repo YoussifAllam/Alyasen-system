@@ -3,7 +3,7 @@ from cacheops import cached_as
 from django.db.models import Q
 from rest_framework.exceptions import NotFound
 
-from ..models import CompanyAssets
+from ..models import CompanyAssets, CompanyAssetsAttachments
 
 
 def get_CompanyAssets_instances(request: Request):
@@ -32,3 +32,7 @@ def get_specific_company_asset_instance(company_asset_id: int):
         return CompanyAssets.objects.get(id=company_asset_id)
     except CompanyAssets.DoesNotExist:
         raise NotFound("Company asset not found")
+
+
+def get_CompanyAssetsAttachments_instances(asset_id: int):
+    return CompanyAssetsAttachments.objects.filter(asset_id=asset_id)
