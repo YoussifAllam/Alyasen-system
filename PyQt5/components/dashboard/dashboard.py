@@ -112,13 +112,20 @@ class DashboardUI(QWidget):
         top_lists_layout.addWidget(top_products_card)
         left_column.addLayout(top_lists_layout)
 
+        # Push all left column cards up to prevent empty space stretching inside them
+        left_column.addStretch()
+
         right_column = QVBoxLayout()
         right_column.setSpacing(20)
-        right_column.addWidget(self.create_expense_chart_card(), 1)
+        right_column.addWidget(self.create_expense_chart_card())
         right_column.addWidget(self.create_user_management_card())
+
+        # Push all right column cards up
+        right_column.addStretch()
+
         content_grid.addLayout(left_column, 0, 0, 1, 2)
         content_grid.addLayout(right_column, 0, 2, 1, 1)
-        content_layout.addLayout(content_grid, 1)
+        content_layout.addLayout(content_grid)
 
         # Add bottom spacing to ensure all content is visible when scrolled
         content_layout.addSpacing(40)
@@ -134,7 +141,7 @@ class DashboardUI(QWidget):
         super().showEvent(event)
         if self.is_first_load:
             self.handle_fetch_expense_graph()
-            # self.handle_fetch_top_lists()
+            self.handle_fetch_top_lists()
             # self.handle_fetch_guarantee_checks()
             # self.handle_fetch_performance_graph()
             self.handle_fetch_users_status()
@@ -238,13 +245,21 @@ class DashboardUI(QWidget):
 
     def update_top_lists(self, response_data):
         data = response_data.get("data", {})
-        quotations = data.get("quotations_reminders", data.get("quotations", data.get("top_client_list", [])))
+
+        quotations = list(data.get("top_3_nearst_quotations", []))
+        while len(quotations) < 3:
+            quotations.append({"name": "لا يوجد", "amount": 0.0, "last_date": "----"})
+
         self.populate_text_list_card(
-            self.quotations_layout, quotations, "client_name", "last_date"
+            self.quotations_layout, quotations, "name", "last_date"
         )
-        top_products = data.get("top_materials_list", [])
+
+        top_projects = list(data.get("top_active_projects", []))
+        while len(top_projects) < 3:
+            top_projects.append({"name": "لا يوجد", "cost": 0.0, "supplier": "----"})
+
         self.populate_list_card(
-            self.top_products_layout, top_products, "name", "total_quantity", "كجم"
+            self.top_products_layout, top_projects, "name", "cost", "ج.م"
         )
 
     def populate_list_card(self, layout, items, name_key, value_key, unit):
@@ -252,6 +267,12 @@ class DashboardUI(QWidget):
             child = layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
+            elif child.layout():
+                while child.layout().count():
+                    sub = child.layout().takeAt(0)
+                    if sub.widget():
+                        sub.widget().deleteLater()
+                child.layout().deleteLater()
 
         for i, item in enumerate(items):
             item_layout = QHBoxLayout()
@@ -266,11 +287,19 @@ class DashboardUI(QWidget):
             item_layout.addWidget(value_label)
             layout.addLayout(item_layout)
 
+        layout.addStretch()
+
     def populate_text_list_card(self, layout, items, name_key, value_key):
         while layout.count():
             child = layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
+            elif child.layout():
+                while child.layout().count():
+                    sub = child.layout().takeAt(0)
+                    if sub.widget():
+                        sub.widget().deleteLater()
+                child.layout().deleteLater()
 
         for i, item in enumerate(items):
             item_layout = QHBoxLayout()
@@ -284,6 +313,8 @@ class DashboardUI(QWidget):
             item_layout.addStretch()
             item_layout.addWidget(value_label)
             layout.addLayout(item_layout)
+
+        layout.addStretch()
 
     def update_guarantee_checks(self, response_data):
         checks_data = response_data.get("data", [])
