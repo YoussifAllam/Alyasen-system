@@ -137,19 +137,18 @@ class CompanyAssetsUI(QWidget):
         self.price_input = QLineEdit(placeholderText="سعر ")
         self.details_input = QLineEdit(placeholderText="تفاصيل إضافية ")
 
-        self.profile_pic_label = QLabel("لم يتم اختيار صورة")
-        self.profile_pic_label.setAlignment(Qt.AlignCenter)
-        self.profile_pic_label.setMinimumHeight(150)
-        self.profile_pic_label.setObjectName("imagePreview")
+        self.attachments_label = QLabel("لم يتم اختيار مرفقات")
+        self.attachments_label.setAlignment(Qt.AlignCenter)
+        self.attachments_label.setMinimumHeight(40)
 
-        btn_choose_pic = QPushButton("اختيار صورة ")
-        btn_choose_pic.clicked.connect(self.choose_profile_picture)
+        btn_choose_att = QPushButton("اختيار مرفقات")
+        btn_choose_att.clicked.connect(self.choose_attachments)
 
         form_layout.addWidget(self.name_input)
         form_layout.addWidget(self.price_input)
         form_layout.addWidget(self.details_input)
-        form_layout.addWidget(self.profile_pic_label)
-        form_layout.addWidget(btn_choose_pic)
+        form_layout.addWidget(self.attachments_label)
+        form_layout.addWidget(btn_choose_att)
 
         self.btn_add_machine = QPushButton("إضافة ")
         self.btn_add_machine.setObjectName("primaryButton")
@@ -173,7 +172,7 @@ class CompanyAssetsUI(QWidget):
         self.view_all_button.clicked.connect(self.handle_view_all)
         actions_layout.addWidget(self.view_all_button)
         self.show_attachments_button = QPushButton("عرض المرفقات")
-        # self.show_attachments_button.clicked.connect(self.handle_show_attachments)
+        self.show_attachments_button.clicked.connect(self.handle_show_attachments)
         actions_layout.addWidget(self.show_attachments_button)
 
         layout.addLayout(actions_layout)
@@ -208,57 +207,120 @@ class CompanyAssetsUI(QWidget):
     def show_main_page(self):
         self.stacked_widget.setCurrentIndex(0)
 
-    def choose_profile_picture(self):
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "اختر صورة", "", "Image files (*.png *.jpg *.jpeg)"
+    def choose_attachments(self):
+        file_paths, _ = QFileDialog.getOpenFileNames(
+            self, "اختر المرفقات", "", "All Files (*)"
         )
-        if file_path:
-            self.profile_pic_path = file_path
-            pixmap = QPixmap(file_path)
-            self.profile_pic_label.setPixmap(
-                pixmap.scaled(
-                    self.profile_pic_label.width(),
-                    self.profile_pic_label.height(),
-                    Qt.KeepAspectRatio,
-                    Qt.SmoothTransformation,
-                )
+        if file_paths:
+            self.attachments_paths = file_paths
+            self.attachments_label.setText(
+                f"تم اختيار {len(self.attachments_paths)} ملفات/صور"
             )
 
     def handle_add_machine(self):
         name = self.name_input.text().strip()
+        price = self.price_input.text().strip()
+        details = self.details_input.text().strip()
+        
         if not name:
             QMessageBox.warning(self, "خطأ", "الرجاء إدخال اسم .")
             return
+            
         settings = QSettings("FactorySystem")
         username = settings.value("user_name", "unknown_user")
+        
         payload = {"name": name, "username": username}
-        files = None
-        if self.profile_pic_path:
-            files = {"image": open(self.profile_pic_path, "rb")}
-        url = f"{BACKEND_BASE_URL}/company_assets/company-assets/"
-        self._start_api_request(
-            "POST", url, payload=payload, files=files, on_success=self.on_add_success
-        )
+        if price:
+            payload["price"] = price
+        if details:
+            payload["details"] = details
 
-    def on_add_success(self, response_data):
-        QMessageBox.information(self, "نجاح", "تمت إضافة الأله بنجاح.")
+        url = f"{BACKEND_BASE_URL}/company_assets/"
+        self._set_loading(True)
+
+        self.post_thread = QThread()
+        self.post_worker = MachineApiWorker("POST", url, payload=payload)
+        self.post_worker.moveToThread(self.post_thread)
+        self.post_thread.started.connect(self.post_worker.run)
+
+        self.post_worker.success.connect(self.on_asset_added)
+        self.post_worker.error.connect(self.show_error_message)
+        self.post_worker.finished.connect(self.post_thread.quit)
+        self.post_thread.start()
+
+    def on_asset_added(self, response_data):
+        asset_id = response_data.get("id")
+        
+        if not asset_id:
+            self.show_error_message("حدث خطأ غير متوقع: لم يتم إرجاع كود الأصل.")
+            return
+
+        if hasattr(self, 'attachments_paths') and self.attachments_paths:
+            self._upload_attachments(asset_id)
+        else:
+            self.finalize_add_machine()
+
+    def _upload_attachments(self, asset_id):
+        payload = {"asset_id": str(asset_id)}
+        files = []
+        for path in self.attachments_paths:
+            files.append(("attachments", open(path, "rb")))
+
+        url = f"{BACKEND_BASE_URL}/company_assets/attachments/"
+        
+        self.att_thread = QThread()
+        self.att_worker = MachineApiWorker("POST", url, payload, files)
+        self.att_worker.moveToThread(self.att_thread)
+        self.att_thread.started.connect(self.att_worker.run)
+
+        self.att_worker.success.connect(lambda _: self.finalize_add_machine())
+        self.att_worker.error.connect(self.show_error_message)
+        self.att_worker.finished.connect(self.att_thread.quit)
+        self.att_thread.start()
+
+    def finalize_add_machine(self):
+        self._set_loading(False)
+        QMessageBox.information(self, "نجاح", "تمت إضافة الأصل بنجاح.")
         self.name_input.clear()
-        self.profile_pic_label.setText("لم يتم اختيار صورة")
-        self.profile_pic_path = None
+        self.price_input.clear()
+        self.details_input.clear()
+        self.attachments_paths = []
+        if hasattr(self, 'attachments_label'):
+            self.attachments_label.setText("لم يتم اختيار مرفقات")
         self.handle_view_all()
 
     def handle_view_all(self):
-        url = f"{BACKEND_BASE_URL}/company_assets/company-assets/"
+        url = f"{BACKEND_BASE_URL}/company_assets/"
         self._start_api_request("GET", url, on_success=self.handle_api_response)
 
     def handle_search(self):
         query = self.search_input.text().strip()
         if not query:
-            QMessageBox.warning(self, "خطأ", "الرجاء إدخال نص للبحث.")
+            self.handle_view_all()
             return
         params = urlencode({"q": query})
-        url = f"{BACKEND_BASE_URL}/company_assets/company-assets/?{params}"
+        url = f"{BACKEND_BASE_URL}/company_assets/?{params}"
         self._start_api_request("GET", url, on_success=self.handle_api_response)
+
+    def handle_show_attachments(self):
+        selected_rows = self.table.selectionModel().selectedRows()
+        if not selected_rows:
+            QMessageBox.warning(self, "تنبيه", "الرجاء اختيار أصل من الجدول أولاً.")
+            return
+
+        selected_row = selected_rows[0].row()
+        item = self.table.item(selected_row, 0)
+        
+        if item:
+            asset_id = item.data(Qt.UserRole)
+            if not asset_id:
+                asset_id = item.text().strip()
+                
+            from .asset_attachments_dialog import AssetAttachmentsDialog
+            dialog = AssetAttachmentsDialog(asset_id, parent=self)
+            dialog.exec_()
+        else:
+            QMessageBox.warning(self, "خطأ", "لم يتم العثور على كود للأصل المختار.")
 
     def handle_next_page(self):
         if self.next_page_url:

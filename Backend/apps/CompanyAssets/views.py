@@ -27,7 +27,7 @@ class CompanyAssetsView(APIView):
                 {"status": "faild", "errors": serializer.errors}, status=400
             )
         serializer.save()
-        return Response({"status": "success"}, status=201)
+        return Response({"status": "success", "id": serializer.instance.id}, status=201)
 
     def delete(self, request: Request, format=None):
         machine_id = request.data["machine_id"]
