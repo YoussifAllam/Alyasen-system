@@ -154,8 +154,8 @@ class SupplierProfileUI(QWidget):
         )
         self.btn_pay_invoice = QPushButton("تسديد دفعه")
         self.btn_pay_invoice.clicked.connect(self.handle_pay_invoice)
-        self.btn_show_contracts = QPushButton("عرض عقد المشروع")
-        # self.btn_show_contracts.clicked.connect(self.handle_show_contracts)
+        self.btn_show_contracts = QPushButton("عرض عقود المشروع")
+        self.btn_show_contracts.clicked.connect(self.handle_show_attachments)
         self.send_email = QPushButton("ارسال كشف حساب للمورد")
         layout.addWidget(self.btn_show_invoices)
         layout.addWidget(self.btn_show_invoice_payment_details)
@@ -204,6 +204,24 @@ class SupplierProfileUI(QWidget):
                 Qt.SmoothTransformation,
             )
         )
+
+    def handle_show_attachments(self):
+        selected_rows = self.table.selectionModel().selectedRows()
+        if not selected_rows:
+            QMessageBox.warning(self, "تنبيه", "الرجاء اختيار مشروع من الجدول أولاً.")
+            return
+
+        selected_row = selected_rows[0].row()
+        p_id_item = self.table.item(selected_row, 0)
+
+        if p_id_item:
+            p_id = p_id_item.text().strip()
+            from .project_attachments_dialog import ProjectAttachmentsDialog
+
+            dialog = ProjectAttachmentsDialog(p_id, parent=self)
+            dialog.exec_()
+        else:
+            QMessageBox.warning(self, "خطأ", "لم يتم العثور على كود المشروع المختار.")
 
     def handle_show_invoices(self):
         if self.supplier_id:
@@ -339,9 +357,8 @@ class SupplierProfileUI(QWidget):
 
     def on_selection_changed(self):
         is_selected = bool(self.table.selectionModel().selectedRows())
-        # self.btn_show_invoice_payment_details.setEnabled(is_selected)
-        # self.btn_pay_invoice.setEnabled(is_selected)
-        # self.btn_show_invoice_materials_details.setEnabled(is_selected)
+        self.btn_show_invoice_payment_details.setEnabled(is_selected)
+        self.btn_pay_invoice.setEnabled(is_selected)
 
     def _set_loading(self, is_loading):
         self.btn_show_invoices.setDisabled(is_loading)

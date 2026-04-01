@@ -376,16 +376,16 @@ class ProjectsUI(QWidget):
 
         selected_row = selected_rows[0].row()
         p_id_item = self.table.item(selected_row, 0)
-        
+
         if p_id_item:
             p_id = p_id_item.text().strip()
-            
+
             # Optional confirmation alert
             reply = QMessageBox.question(
-                self, 
-                "تأكيد", 
-                "هل أنت متأكد من تغيير حالة هذا المشروع؟", 
-                QMessageBox.Yes | QMessageBox.No
+                self,
+                "تأكيد",
+                "هل أنت متأكد من تغيير حالة هذا المشروع؟",
+                QMessageBox.Yes | QMessageBox.No,
             )
             if reply == QMessageBox.No:
                 return
