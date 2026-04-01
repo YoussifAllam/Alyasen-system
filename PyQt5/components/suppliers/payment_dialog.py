@@ -9,8 +9,10 @@ from PyQt5.QtWidgets import (
     QFormLayout,
     QWidget,
     QTextEdit,
+    QDateEdit,
+    QFileDialog,
 )
-from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtCore import Qt, QPoint, QDate
 import qtawesome as qta
 
 
@@ -18,7 +20,7 @@ class PaymentDialog(QDialog):
     def __init__(self, supplier_id, parent=None):
         super().__init__(parent)
         self.setWindowTitle("تسديد مبلغ للفاتورة")
-        self.setMinimumSize(450, 350)
+        self.setMinimumSize(500, 500)
         self.setModal(True)
 
         # Frameless Window Setup
@@ -67,7 +69,27 @@ class PaymentDialog(QDialog):
         self.notes_input = QTextEdit()
         self.notes_input.setMaximumHeight(80)
 
+        self.date_input = QDateEdit()
+        self.date_input.setCalendarPopup(True)
+        self.date_input.setDate(QDate.currentDate())
+        self.date_input.setDisplayFormat("yyyy-MM-dd")
+        
+        self.invoice_number_input = QLineEdit()
+        
+        self.file_path = ""
+        self.file_label = QLabel("لم يتم اختيار ملف")
+        self.file_button = QPushButton("اختيار ملف الفاتورة")
+        self.file_button.clicked.connect(self.select_file)
+        
+        file_layout = QHBoxLayout()
+        file_layout.addWidget(self.file_button)
+        file_layout.addWidget(self.file_label)
+        file_layout.addStretch()
+
         form_layout.addRow("المبلغ المدفوع:", self.amount_input)
+        form_layout.addRow("تاريخ الدفع:", self.date_input)
+        form_layout.addRow("رقم فاتورة البوابة:", self.invoice_number_input)
+        form_layout.addRow("ملف الفاتورة:", file_layout)
         form_layout.addRow("ملاحظات:", self.notes_input)
 
         content_layout.addLayout(form_layout)
@@ -100,7 +122,16 @@ class PaymentDialog(QDialog):
         return {
             "payment_amount": self.amount_input.text().strip(),
             "notes": self.notes_input.toPlainText().strip(),
+            "payment_date": self.date_input.date().toString("yyyy-MM-dd"),
+            "portal_invoice_number": self.invoice_number_input.text().strip(),
+            "portal_invoice_file": self.file_path,
         }
+
+    def select_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "اختيار ملف الفاتورة", "", "All Files (*)")
+        if file_path:
+            self.file_path = file_path
+            self.file_label.setText(file_path.split("/")[-1])
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton and self.title_bar.underMouse():

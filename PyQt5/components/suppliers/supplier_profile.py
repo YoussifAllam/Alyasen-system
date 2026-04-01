@@ -30,11 +30,13 @@ class ApiWorker(QObject):
     image_success = pyqtSignal(QPixmap)
     error = pyqtSignal(str)
 
-    def __init__(self, method, url, payload=None, response_type="json"):
+    def __init__(self, method, url, payload=None, data=None, files=None, response_type="json"):
         super().__init__()
         self.method = method
         self.url = url
         self.payload = payload
+        self.data = data
+        self.files = files
         self.response_type = response_type
 
     @pyqtSlot()
@@ -43,7 +45,19 @@ class ApiWorker(QObject):
             if self.method == "GET":
                 response = get(self.url, timeout=15)
             else:
-                response = request(self.method, self.url, json=self.payload, timeout=15)
+                if self.files or self.data:
+                    opened_files = {}
+                    if self.files:
+                        for key, filepath in self.files.items():
+                            if filepath:
+                                opened_files[key] = open(filepath, "rb")
+                    try:
+                        response = request(self.method, self.url, data=self.data, files=opened_files if opened_files else None, timeout=15)
+                    finally:
+                        for f in opened_files.values():
+                            f.close()
+                else:
+                    response = request(self.method, self.url, json=self.payload, timeout=15)
 
             if response.status_code in [200, 201]:
                 if self.response_type == "json":
@@ -264,20 +278,26 @@ class SupplierProfileUI(QWidget):
                 QMessageBox.warning(self, "خطأ", "الرجاء إدخال مبلغ صحيح.")
                 return
             settings = QSettings("FactorySystem")
-            username = settings.value("user_name", "unknown_user")
-            payload = {
-                "project_id": p_id,
+            username = settings.value("user_name", "system")
+            form_data = {
+                "supplier_id": str(self.supplier_id) if self.supplier_id else "",
+                "project_id": str(p_id),
                 "payment_amount": amount_str,
+                "note": data.get("notes", ""),
+                "payment_date": data.get("payment_date", ""),
+                "portal_invoice_number": data.get("portal_invoice_number", ""),
                 "username": username,
-                "notes": data.get("notes"),
             }
+            files = {}
+            if data.get("portal_invoice_file"):
+                files["portal_invoice_file"] = data.get("portal_invoice_file")
             url = f"{BACKEND_BASE_URL}/suppliers/projects/payment/"
-            self._start_post_request(url, payload)
+            self._start_post_request(url, data=form_data, files=files)
 
-    def _start_post_request(self, url, payload):
+    def _start_post_request(self, url, payload=None, data=None, files=None):
         self._set_loading(True)
         self.post_thread = QThread()
-        self.post_worker = ApiWorker("POST", url, payload=payload)
+        self.post_worker = ApiWorker("POST", url, payload=payload, data=data, files=files)
         self.post_worker.moveToThread(self.post_thread)
         self.post_thread.started.connect(self.post_worker.run)
         self.post_worker.success.connect(self.on_payment_success)
