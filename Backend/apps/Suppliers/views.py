@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.request import Request
 from django.db import transaction
 
-from .tasks.pagenator import pagenator
+from .tasks.Pagenator import pagenator
 from .db_queries import selectors, services
 from .serializers import InputSerializers, OutputSerializers, ParamsSerializers
 from .tasks import celery_tasks
@@ -52,10 +52,13 @@ class SupplierProjectsApiView(APIView):
     def get(self, request: Request, format=None):
         supplier_id = request.GET.get("supplier_id")
         supplier_projects = selectors.get_supplier_projects(supplier_id)
-        serializer = OutputSerializers.SupplierProjectsSerializer(
-            supplier_projects, many=True, context={"request": request}
+        response_data = pagenator(
+            supplier_projects,
+            request,
+            OutputSerializers.SupplierProjectsSerializer,
+            page_size=10,
         )
-        return Response({"status": "succes", "data": serializer.data}, 200)
+        return Response(response_data, 200)
 
 
 class InovicePaymentApiView(APIView):

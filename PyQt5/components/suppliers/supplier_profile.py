@@ -207,7 +207,9 @@ class SupplierProfileUI(QWidget):
 
     def handle_show_invoices(self):
         if self.supplier_id:
-            url = f"{BACKEND_BASE_URL}/suppliers/invoice/invoices/?supplier_id={self.supplier_id}"
+            url = (
+                f"{BACKEND_BASE_URL}/suppliers/projects/?supplier_id={self.supplier_id}"
+            )
             self._start_invoice_fetch_request(url)
 
     def handle_show_payment_details(self):
@@ -305,29 +307,23 @@ class SupplierProfileUI(QWidget):
         self.update_pagination_controls()
         self._set_loading(False)
 
-    def populate_invoice_table(self, invoices):
+    def populate_invoice_table(self, projects):
         self.table.setRowCount(0)
-        for invoice in invoices:
+        for project in projects:
             row_pos = self.table.rowCount()
             self.table.insertRow(row_pos)
-
-            driver_name = invoice.get("driver_name") or "---"
-            driver_phone = invoice.get("driver_phone") or "---"
-            car_plate = invoice.get("car_plate_number") or "---"
-            karta_number = invoice.get("karta_number") or "---"
+            project_id = project.get("project_fk_id") or "---"
+            project_name = project.get("project_name") or "---"
+            total = project.get("total") or 0
+            paid = project.get("paid") or 0
+            remining = project.get("remining") or 0
 
             items = [
-                QTableWidgetItem(str(invoice.get("invoice_number", ""))),
-                QTableWidgetItem(invoice.get("invoice_date", "")),
-                QTableWidgetItem(f"{invoice.get('invoice_total_amount', 0):,.2f}"),
-                QTableWidgetItem(f"{invoice.get('total_paid_amount', 0):,.2f}"),
-                QTableWidgetItem(f"{invoice.get('total_amount_payable', 0):,.2f}"),
-                QTableWidgetItem(f"{invoice.get('first_weight', 0):,.2f}"),
-                QTableWidgetItem(f"{invoice.get('second_weight', 0):,.2f}"),
-                QTableWidgetItem(str(driver_name)),
-                QTableWidgetItem(str(driver_phone)),
-                QTableWidgetItem(str(car_plate)),
-                QTableWidgetItem(str(karta_number)),
+                QTableWidgetItem(str(project_id)),
+                QTableWidgetItem(str(project_name)),
+                QTableWidgetItem(str(total)),
+                QTableWidgetItem(str(paid)),
+                QTableWidgetItem(str(remining)),
             ]
             for i, item in enumerate(items):
                 item.setTextAlignment(Qt.AlignCenter)
@@ -345,7 +341,7 @@ class SupplierProfileUI(QWidget):
         is_selected = bool(self.table.selectionModel().selectedRows())
         # self.btn_show_invoice_payment_details.setEnabled(is_selected)
         # self.btn_pay_invoice.setEnabled(is_selected)
-        self.btn_show_invoice_materials_details.setEnabled(is_selected)
+        # self.btn_show_invoice_materials_details.setEnabled(is_selected)
 
     def _set_loading(self, is_loading):
         self.btn_show_invoices.setDisabled(is_loading)
