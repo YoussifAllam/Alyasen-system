@@ -13,6 +13,7 @@ def update_supplier_balance(request):
     if supplier_id:
         supplier = Supplier.objects.get(id=supplier_id)
         supplier.total_amount_due += cost
+        supplier.total_amount_payable += cost
         supplier.save()
 
 
@@ -27,5 +28,8 @@ def update_project_status(project: BaseProject):
 
 def create_supplier_project_balance_instance(supplier_id: int, project: BaseProject):
     SupplierProjectBalance.objects.create(
-        supplier_fk=supplier_id, project_fk=project, total=project.cost
+        supplier_fk=supplier_id,
+        project_fk=project,
+        total=project.cost,
+        remining=project.cost,
     )

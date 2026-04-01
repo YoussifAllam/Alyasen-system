@@ -67,22 +67,30 @@ class InovicePaymentApiView(APIView):
             ParamsSerializers.InvoicePaymentSerializer, data=request.data
         )
         supplier_id = request.data["supplier_id"]
+        project_id = request.data["project_id"]
         payment_amount = float(request.data["payment_amount"])
-        notes = request.data.get("notes", "None")
-        username = request.data["username"]
 
         supplier_instance = selectors.get_supplier_instance(supplier_id)
+        project_instance = selectors.get_project_balance_instance(project_id)
 
-        if payment_amount > supplier_instance.total_amount_payable:
+        if (
+            payment_amount > supplier_instance.total_amount_payable
+            or payment_amount > project_instance.remining  # noqa
+        ):
             return Response({"حطأ": "المبلغ المدفوع اكبر من المتبقي "}, 400)
 
         services.pay_for_supplier(supplier_instance, payment_amount)
+        services.pay_for_project(project_instance, payment_amount)
 
-        celery_tasks.create_supplier_payment_record.delay(
-            supplier_id, payment_amount, notes
-        )
+        serializer = InputSerializers.InvoicePaymentSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"status": "faild", "errors": serializer.errors}, status=400
+            )
+        serializer.save(supplier_fk=supplier_instance, project_fk=project_instance)
+
         create_transaction_log.delay(
-            username=username,
+            username=request.data["username"],
             transaction_data=f"تم تسديد دفعه للمورد {supplier_instance.name} بمبلغ {payment_amount}",
         )
 
@@ -90,7 +98,10 @@ class InovicePaymentApiView(APIView):
 
     def get(Self, request: Request, format=None):
         supplier_id = request.GET.get("supplier_id")
-        payments_instances = selectors.get_supplier_payments_instances(supplier_id)
+        project_balance_id = request.GET.get("project_id")
+        payments_instances = selectors.get_supplier_payments_instances(
+            supplier_id, project_balance_id
+        )
 
         response_data = pagenator(
             payments_instances, request, OutputSerializers.InvoicePaymentsSerializer

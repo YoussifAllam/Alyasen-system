@@ -3,7 +3,7 @@ from cacheops import cached_as
 from django.db.models import Q
 from rest_framework.exceptions import NotFound
 
-from ..models import Supplier, InvoicePayment, SupplierProjectBalance
+from ..models import Supplier, ProjectPayment, SupplierProjectBalance
 
 
 def get_suppliers(request: Request):
@@ -34,9 +34,18 @@ def get_supplier_instance(supplier_id: int) -> Supplier:
         raise NotFound({"الخطأ": "لا يوجد مورد بهذا الكود"})
 
 
-def get_supplier_payments_instances(supplier_id: int):
-    return InvoicePayment.objects.filter(supplier_fk=supplier_id)
+def get_supplier_payments_instances(supplier_id: int, project_balance_id: int):
+    return ProjectPayment.objects.filter(
+        supplier_fk=supplier_id, project_fk=project_balance_id
+    )
 
 
 def get_supplier_projects(supplier_id: int):
     return SupplierProjectBalance.objects.filter(supplier_fk=supplier_id)
+
+
+def get_project_balance_instance(project_id: int) -> SupplierProjectBalance:
+    try:
+        return SupplierProjectBalance.objects.get(project_fk=project_id)
+    except SupplierProjectBalance.DoesNotExist:
+        raise NotFound({"الخطأ": "لا يوجد مشروع بهذا الكود"})

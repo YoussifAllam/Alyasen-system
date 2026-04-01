@@ -55,3 +55,13 @@ class SupplierSerializer(ModelSerializer):
             raise serializers.ValidationError("Invalid image format.")
 
         return value
+
+
+class InvoicePaymentSerializer(ModelSerializer):
+    class Meta:
+        model = models.ProjectPayment
+        fields = "__all__"
+        extra_kwargs = {
+            "supplier_fk": {"required": False},
+            "project_fk": {"required": False},
+        }

@@ -1,4 +1,4 @@
-from ..models import Supplier, InvoicePayment
+from ..models import Supplier, ProjectPayment, SupplierProjectBalance
 from ..tasks import celery_tasks
 
 
@@ -19,3 +19,9 @@ def pay_for_supplier(SupplierInstance: Supplier, payment_amount: float):
     SupplierInstance.total_paid_amount += payment_amount
     SupplierInstance.total_amount_payable -= payment_amount
     SupplierInstance.save()
+
+
+def pay_for_project(project_instance: SupplierProjectBalance, payment_amount: float):
+    project_instance.paid += payment_amount
+    project_instance.remining -= payment_amount
+    project_instance.save()

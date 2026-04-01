@@ -44,14 +44,16 @@ class SupplierProjectBalance(models.Model):
         verbose_name_plural = "Supplier Project Balance"
 
 
-class InvoicePayment(models.Model):
+class ProjectPayment(models.Model):
     supplier_fk = models.ForeignKey(Supplier, on_delete=models.CASCADE)
+    project_fk = models.ForeignKey(SupplierProjectBalance, on_delete=models.CASCADE)
+    portal_invoice_number = models.CharField(max_length=50)
+    portal_invoice_file = models.FileField(upload_to="suppliers/invoices/", null=True)
     payment_amount = models.FloatField()
     payment_date = models.DateField(default=now)
     notes = models.TextField(blank=True, null=True)
 
     class Meta:
-        db_table = "supplier_payments"
         indexes = [
             models.Index(fields=["supplier_fk"]),
             models.Index(fields=["payment_date"]),

@@ -237,8 +237,19 @@ class SupplierProfileUI(QWidget):
 
     def handle_pay_invoice(self):
 
-        supplier_id = self.supplier_id
-        dialog = PaymentDialog(supplier_id, self)
+        selected_rows = self.table.selectionModel().selectedRows()
+        if not selected_rows:
+            QMessageBox.warning(self, "تنبيه", "الرجاء اختيار مشروع من الجدول أولاً.")
+            return
+
+        selected_row = selected_rows[0].row()
+        p_id_item = self.table.item(selected_row, 0)
+        if p_id_item:
+            p_id = p_id_item.text().strip()
+        else:
+            QMessageBox.warning(self, "خطأ", "لم يتم العثور على كود المشروع المختار.")
+            return
+        dialog = PaymentDialog(p_id, self)
         if dialog.exec_() == QDialog.Accepted:
             data = dialog.get_data()
             amount_str = data.get("payment_amount")
@@ -255,12 +266,12 @@ class SupplierProfileUI(QWidget):
             settings = QSettings("FactorySystem")
             username = settings.value("user_name", "unknown_user")
             payload = {
-                "supplier_id": supplier_id,
+                "project_id": p_id,
                 "payment_amount": amount_str,
                 "username": username,
                 "notes": data.get("notes"),
             }
-            url = f"{BACKEND_BASE_URL}/suppliers/invoice/payment/"
+            url = f"{BACKEND_BASE_URL}/suppliers/projects/payment/"
             self._start_post_request(url, payload)
 
     def _start_post_request(self, url, payload):
