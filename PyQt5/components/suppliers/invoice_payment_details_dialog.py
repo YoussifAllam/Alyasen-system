@@ -11,7 +11,8 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QWidget,
 )
-from PyQt5.QtCore import Qt, QPoint, QObject, QThread, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import Qt, QPoint, QObject, QThread, pyqtSignal, pyqtSlot, QUrl
+from PyQt5.QtGui import QDesktopServices
 import qtawesome as qta
 from requests import request, exceptions
 
@@ -44,11 +45,12 @@ class PaymentDetailsWorker(QObject):
 
 
 class InvoicePaymentDetailsDialog(QDialog):
-    def __init__(self, supplier_id, parent=None):
+    def __init__(self, supplier_id, project_id, parent=None):
         super().__init__(parent)
         self.supplier_id = supplier_id
-        self.setWindowTitle(f"تفاصيل دفعات المورد رقم: {supplier_id}")
-        self.setMinimumSize(700, 500)
+        self.project_id = project_id
+        self.setWindowTitle("تفاصيل دفعات المشروع")
+        self.setMinimumSize(850, 500)
         self.setModal(True)
 
         # Frameless Window Setup
@@ -67,7 +69,7 @@ class InvoicePaymentDetailsDialog(QDialog):
         self.title_bar.setObjectName("dialogTitleBar")
         title_bar_layout = QHBoxLayout(self.title_bar)
         title_bar_layout.setContentsMargins(15, 0, 5, 0)
-        title_text = QLabel(f"تفاصيل دفعات المورد رقم: {supplier_id}")
+        title_text = QLabel(f"تفاصيل دفعات المشروع رقم: {project_id}")
         title_text.setObjectName("titleBarText")
         close_button = QPushButton()
         close_button.setObjectName("closeButton")
@@ -86,11 +88,32 @@ class InvoicePaymentDetailsDialog(QDialog):
 
         # Table
         self.table = QTableWidget()
-        self.table.setColumnCount(3)
-        self.table.setHorizontalHeaderLabels(["المبلغ المدفوع", "تاريخ الدفعة", "ملاحظات"])
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        content_layout.addWidget(self.table)
+        self.table.setColumnCount(5)
+        headers = [
+            "رقم الفاتورة",
+            "المبلغ المدفوع",
+            "تاريخ الدفعة",
+            "ملاحظات",
+            # "ملف الفاتورة",
+            "",
+        ]
+        self.table.setHorizontalHeaderLabels(headers)
+        self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            2, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            3, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeToContents
+        )
+        self.table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.table.verticalHeader().setDefaultSectionSize(80)
+        content_layout.addWidget(self.table, 1)
 
         main_layout.addWidget(content_area)
 
@@ -100,8 +123,10 @@ class InvoicePaymentDetailsDialog(QDialog):
         self.fetch_payment_details()
 
     def fetch_payment_details(self):
-        """Fetches the payment history for the given invoice number."""
-        url = f"{BACKEND_BASE_URL}/suppliers/invoice/payment/?supplier_id={self.supplier_id}"
+        """Fetches the payment history for the given project_id and supplier_id."""
+        url = f"""
+        {BACKEND_BASE_URL}/suppliers/projects/payment/?supplier_id={self.supplier_id}&project_id={self.project_id}
+        """
         self.thread = QThread()
         self.worker = PaymentDetailsWorker(url)
         self.worker.moveToThread(self.thread)
@@ -112,20 +137,52 @@ class InvoicePaymentDetailsDialog(QDialog):
         self.thread.start()
 
     def populate_table(self, response_data):
-        data_obj = response_data.get("data", {}).get("data", {})
+        data_obj = response_data.get("data", {})
         results = data_obj.get("results", [])
         self.table.setRowCount(0)
         for payment in results:
             row_pos = self.table.rowCount()
             self.table.insertRow(row_pos)
+
+            invoice_num = payment.get("portal_invoice_number", "")
+            amount = payment.get("payment_amount", 0)
+            date = payment.get("payment_date", "")
+            notes = payment.get("notes") or ""
+            # file = payment.get("portal_invoice_file", "")
+
             items = [
-                QTableWidgetItem(f"{payment.get('payment_amount', 0):,.2f}"),
-                QTableWidgetItem(payment.get("payment_date", "")),
-                QTableWidgetItem(str(payment.get("notes", ""))),
+                QTableWidgetItem(invoice_num),
+                QTableWidgetItem(str(amount)),
+                QTableWidgetItem(date),
+                QTableWidgetItem(notes),
+                # QTableWidgetItem(file),
             ]
+
             for i, item in enumerate(items):
                 item.setTextAlignment(Qt.AlignCenter)
                 self.table.setItem(row_pos, i, item)
+
+            # self.table.setItem(row_pos, 0, QTableWidgetItem(invoice_num))
+            # self.table.setItem(row_pos, 1, QTableWidgetItem(str(amount)))
+            # self.table.setItem(row_pos, 2, QTableWidgetItem(date))
+            # self.table.setItem(row_pos, 3, QTableWidgetItem(notes))
+            # self.table.setItem(row_pos, 4, QTableWidgetItem(file))
+
+            file_url = payment.get("portal_invoice_file")
+            if file_url:
+                btn_view = QPushButton("عرض الملف")
+                btn_view.setCursor(Qt.PointingHandCursor)
+                btn_view.clicked.connect(
+                    lambda checked, url=file_url: self.open_file_url(url)
+                )
+                self.table.setCellWidget(row_pos, 4, btn_view)
+            else:
+                empty_item = QTableWidgetItem("لا يوجد ملف")
+                empty_item.setTextAlignment(Qt.AlignCenter)
+                self.table.setItem(row_pos, 4, empty_item)
+
+    def open_file_url(self, url):
+        QDesktopServices.openUrl(QUrl(url))
 
     def show_error(self, message):
         QMessageBox.critical(self, "خطأ", message)
@@ -135,7 +192,11 @@ class InvoicePaymentDetailsDialog(QDialog):
             self.old_pos = event.globalPos()
 
     def mouseMoveEvent(self, event):
-        if hasattr(self, "old_pos") and self.old_pos and event.buttons() == Qt.LeftButton:
+        if (
+            hasattr(self, "old_pos")
+            and self.old_pos
+            and event.buttons() == Qt.LeftButton
+        ):
             delta = QPoint(event.globalPos() - self.old_pos)
             self.move(self.x() + delta.x(), self.y() + delta.y())
             self.old_pos = event.globalPos()

@@ -87,7 +87,9 @@ class InovicePaymentApiView(APIView):
             return Response(
                 {"status": "faild", "errors": serializer.errors}, status=400
             )
-        serializer.save(supplier_fk=supplier_instance, project_fk=project_instance)
+        serializer.save(
+            supplier_fk=supplier_instance, project_fk=project_instance.project_fk
+        )
 
         create_transaction_log.delay(
             username=request.data["username"],
@@ -106,4 +108,4 @@ class InovicePaymentApiView(APIView):
         response_data = pagenator(
             payments_instances, request, OutputSerializers.InvoicePaymentsSerializer
         )
-        return Response({"status": "sucess", "data": response_data}, 200)
+        return Response(response_data, 200)

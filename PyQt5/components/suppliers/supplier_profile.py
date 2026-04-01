@@ -30,7 +30,9 @@ class ApiWorker(QObject):
     image_success = pyqtSignal(QPixmap)
     error = pyqtSignal(str)
 
-    def __init__(self, method, url, payload=None, data=None, files=None, response_type="json"):
+    def __init__(
+        self, method, url, payload=None, data=None, files=None, response_type="json"
+    ):
         super().__init__()
         self.method = method
         self.url = url
@@ -52,12 +54,20 @@ class ApiWorker(QObject):
                             if filepath:
                                 opened_files[key] = open(filepath, "rb")
                     try:
-                        response = request(self.method, self.url, data=self.data, files=opened_files if opened_files else None, timeout=15)
+                        response = request(
+                            self.method,
+                            self.url,
+                            data=self.data,
+                            files=opened_files if opened_files else None,
+                            timeout=15,
+                        )
                     finally:
                         for f in opened_files.values():
                             f.close()
                 else:
-                    response = request(self.method, self.url, json=self.payload, timeout=15)
+                    response = request(
+                        self.method, self.url, json=self.payload, timeout=15
+                    )
 
             if response.status_code in [200, 201]:
                 if self.response_type == "json":
@@ -245,9 +255,20 @@ class SupplierProfileUI(QWidget):
             self._start_invoice_fetch_request(url)
 
     def handle_show_payment_details(self):
-        supplier_id = self.supplier_id
-        dialog = InvoicePaymentDetailsDialog(supplier_id, self)
-        dialog.exec_()
+        selected_rows = self.table.selectionModel().selectedRows()
+        if not selected_rows:
+            QMessageBox.warning(self, "تنبيه", "الرجاء اختيار مشروع من الجدول أولاً.")
+            return
+
+        selected_row = selected_rows[0].row()
+        p_id_item = self.table.item(selected_row, 0)
+
+        if p_id_item:
+            p_id = p_id_item.text().strip()
+            dialog = InvoicePaymentDetailsDialog(self.supplier_id, p_id, self)
+            dialog.exec_()
+        else:
+            QMessageBox.warning(self, "خطأ", "لم يتم العثور على كود المشروع المختار.")
 
     def handle_pay_invoice(self):
 
@@ -297,7 +318,9 @@ class SupplierProfileUI(QWidget):
     def _start_post_request(self, url, payload=None, data=None, files=None):
         self._set_loading(True)
         self.post_thread = QThread()
-        self.post_worker = ApiWorker("POST", url, payload=payload, data=data, files=files)
+        self.post_worker = ApiWorker(
+            "POST", url, payload=payload, data=data, files=files
+        )
         self.post_worker.moveToThread(self.post_thread)
         self.post_thread.started.connect(self.post_worker.run)
         self.post_worker.success.connect(self.on_payment_success)
@@ -361,7 +384,7 @@ class SupplierProfileUI(QWidget):
         for project in projects:
             row_pos = self.table.rowCount()
             self.table.insertRow(row_pos)
-            project_id = project.get("project_fk_id") or "---"
+            project_id = project.get("project_id") or "---"
             project_name = project.get("project_name") or "---"
             total = project.get("total") or 0
             paid = project.get("paid") or 0

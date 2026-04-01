@@ -14,7 +14,7 @@ class SupplierSerializer(serializers.ModelSerializer):
 class InvoicePaymentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectPayment
-        exclude = ["id", "supplier_fk", "project_fk", "portal_invoice_file"]
+        exclude = ["id", "supplier_fk", "project_fk"]
 
 
 class SupplierInfoSerializer(serializers.ModelSerializer):
@@ -25,7 +25,8 @@ class SupplierInfoSerializer(serializers.ModelSerializer):
 
 class SupplierProjectsSerializer(serializers.ModelSerializer):
     project_name = serializers.CharField(source="project_fk.name", read_only=True)
+    project_id = serializers.IntegerField(source="project_fk.id", read_only=True)
 
     class Meta:
         model = SupplierProjectBalance
-        fields = ("project_fk_id", "project_name", "total", "paid", "remining")
+        fields = ("project_id", "project_name", "total", "paid", "remining")

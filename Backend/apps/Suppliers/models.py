@@ -46,7 +46,7 @@ class SupplierProjectBalance(models.Model):
 
 class ProjectPayment(models.Model):
     supplier_fk = models.ForeignKey(Supplier, on_delete=models.CASCADE)
-    project_fk = models.ForeignKey(SupplierProjectBalance, on_delete=models.CASCADE)
+    project_fk = models.ForeignKey(BaseProject, on_delete=models.CASCADE)
     portal_invoice_number = models.CharField(max_length=50)
     portal_invoice_file = models.FileField(upload_to="suppliers/invoices/", null=True)
     payment_amount = models.FloatField()
