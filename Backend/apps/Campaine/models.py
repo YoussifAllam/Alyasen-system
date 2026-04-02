@@ -32,7 +32,6 @@ class CampaineItem(models.Model):
     project = models.ForeignKey(
         BaseProject, on_delete=models.CASCADE, related_name="campaign_items"
     )
-    amount = models.FloatField()
 
     class Meta:
         db_table = "campaine_item"
