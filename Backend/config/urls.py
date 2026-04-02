@@ -23,6 +23,7 @@ urlpatterns = [
     # path("api/reports/", include("apps.Reports.urls")),
     path("api/clients/", include("apps.Clients.urls")),
     path("api/dashboard/", include("apps.Dashboard.urls")),
+    path("api/campaine/", include("apps.Campaine.urls")),
     # Health check endpoint
     path("health/", lambda request: HttpResponse("OK")),
 ] + third_party_urls  # noqa
