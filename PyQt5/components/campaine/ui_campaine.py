@@ -47,8 +47,15 @@ class CampaignsUI(QWidget):
         super().__init__()
         self.setObjectName("mainContent")
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(40, 30, 40, 30)
-        layout.setSpacing(25)
+        layout.setContentsMargins(0, 0, 0, 0)
+        # layout.setSpacing(15)
+
+        # Ensure the widget can be shrunk/expanded without forcing the window's minimum/maximum size
+        import PyQt5.QtWidgets as QtWidgets
+
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
 
         # Header Section
         header_frame = QFrame()
@@ -151,7 +158,7 @@ class CampaignsUI(QWidget):
 
         self.next_url = data.get("next")
         self.previous_url = data.get("previous")
-        
+
         self.btn_next.setEnabled(bool(self.next_url))
         self.btn_prev.setEnabled(bool(self.previous_url))
         self.page_info.setText(f"الصفحة {self.current_page}")

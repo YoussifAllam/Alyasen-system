@@ -28,13 +28,14 @@ class SidebarWidget(QWidget):
         logo_label = QLabel()
         logo_path = rf"{BASE_DIR}/resources/logo3.png"
         pixmap = QPixmap(logo_path)
+        # Scaled down to prevent the sidebar's minimum height from exceeding typical laptop screen heights
         logo_label.setPixmap(
-            pixmap.scaled(380, 380, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            pixmap.scaled(300, 300, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         )
         logo_label.setAlignment(Qt.AlignCenter)
-        layout.addSpacing(10)
+        layout.addSpacing(5)
         layout.addWidget(logo_label)
-        layout.addSpacing(35)
+        layout.addSpacing(15)
 
         self.buttons = []
         button_data = [

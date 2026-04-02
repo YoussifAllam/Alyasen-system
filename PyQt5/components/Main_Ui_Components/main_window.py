@@ -52,7 +52,7 @@ class MainWindow(QMainWindow):
         self.setGeometry(
             screen.x() + 10, screen.y() + 10, screen.width() - 20, screen.height() - 20
         )
-        # self.showMaximized()
+        self.showMaximized()
 
         self.setWindowFlags(Qt.FramelessWindowHint)
 
@@ -273,7 +273,6 @@ class MainWindow(QMainWindow):
         self.suppliers_page = SuppliersUI()
         self.expenses_page = ExpensesUI()
         self.reports_page = ReportsUI()
-        # self.materials_page = MaterialsInventoryUI()
         self.program_log_page = ProgramLogUI()
         self.company_assets_page = CompanyAssetsUI()
         self.company_safe_page = CompanySafeUI()
@@ -289,7 +288,6 @@ class MainWindow(QMainWindow):
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.suppliers_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.expenses_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.reports_page))
-        # self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.materials_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.program_log_page))
         self.stacked_widget.addWidget(
             self.wrap_in_scroll_area(self.company_assets_page)
