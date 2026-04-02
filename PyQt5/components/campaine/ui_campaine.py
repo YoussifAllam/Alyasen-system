@@ -87,13 +87,55 @@ class CampaignsUI(QWidget):
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         layout.addWidget(self.table)
 
+        # Pagination controls
+        self.pagination_layout = QHBoxLayout()
+        self.btn_prev = QPushButton("السابق")
+        self.btn_prev.setObjectName("secondaryButton")
+        self.btn_prev.clicked.connect(self.load_previous)
+        self.btn_prev.setEnabled(False)
+
+        self.page_info = QLabel("الصفحة 1")
+        self.page_info.setAlignment(Qt.AlignCenter)
+        self.page_info.setStyleSheet("color: #9ca3af; font-size: 14px;")
+
+        self.btn_next = QPushButton("التالي")
+        self.btn_next.setObjectName("secondaryButton")
+        self.btn_next.clicked.connect(self.load_next)
+        self.btn_next.setEnabled(False)
+
+        self.pagination_layout.addWidget(self.btn_prev)
+        self.pagination_layout.addStretch()
+        self.pagination_layout.addWidget(self.page_info)
+        self.pagination_layout.addStretch()
+        self.pagination_layout.addWidget(self.btn_next)
+
+        layout.addLayout(self.pagination_layout)
+
+        self.current_page = 1
+        self.next_url = None
+        self.previous_url = None
+
     def show_add_dialog(self):
         dialog = AddCampaignDialog(self)
         dialog.campaign_added.connect(self.load_campaigns)
         dialog.exec_()
 
     def load_campaigns(self):
-        url = f"{BACKEND_BASE_URL}/campaine/"  # Hypothetical endpoint
+        url = f"{BACKEND_BASE_URL}/campaine/"
+        self.current_page = 1
+        self.fetch_data(url)
+
+    def load_next(self):
+        if self.next_url:
+            self.current_page += 1
+            self.fetch_data(self.next_url)
+
+    def load_previous(self):
+        if self.previous_url:
+            self.current_page -= 1
+            self.fetch_data(self.previous_url)
+
+    def fetch_data(self, url):
         self.worker_thread = QThread()
         self.worker = CampaignApiWorker("GET", url)
         self.worker.moveToThread(self.worker_thread)
@@ -104,7 +146,16 @@ class CampaignsUI(QWidget):
         self.worker_thread.start()
 
     def populate_table(self, response_data):
-        campaigns = response_data.get("data", {}).get("results", [])
+        data = response_data.get("data", {})
+        campaigns = data.get("results", [])
+
+        self.next_url = data.get("next")
+        self.previous_url = data.get("previous")
+        
+        self.btn_next.setEnabled(bool(self.next_url))
+        self.btn_prev.setEnabled(bool(self.previous_url))
+        self.page_info.setText(f"الصفحة {self.current_page}")
+
         self.table.setRowCount(0)
         for camp in campaigns:
             row = self.table.rowCount()

@@ -52,7 +52,7 @@ class MainWindow(QMainWindow):
         self.setGeometry(
             screen.x() + 10, screen.y() + 10, screen.width() - 20, screen.height() - 20
         )
-        self.showMaximized()
+        # self.showMaximized()
 
         self.setWindowFlags(Qt.FramelessWindowHint)
 
