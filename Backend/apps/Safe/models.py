@@ -3,7 +3,7 @@ from django.utils.timezone import now
 
 
 class Safe(models.Model):
-    balance = models.DecimalField(max_digits=20, decimal_places=3, default=0)
+    balance = models.FloatField(default=0)
 
     class Meta:
         db_table = "safe"
