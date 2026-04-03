@@ -10,6 +10,16 @@ from .serializers import InputSerializers, OutputSerializers, ParamsSerializers
 from .tasks import celery_tasks
 
 from apps.TransactionsLog.tasks.celery_tasks import create_transaction_log
+from django.core.mail import EmailMultiAlternatives
+from django.http import HttpResponse, Http404
+from django.shortcuts import get_object_or_404
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.conf import settings
+from .models import Supplier, SupplierProjectBalance  # adjust import path
+import os
+from django.templatetags.static import static
+from email.mime.image import MIMEImage
 
 
 class SupplierApiView(APIView):
@@ -109,3 +119,54 @@ class InovicePaymentApiView(APIView):
             payments_instances, request, OutputSerializers.InvoicePaymentsSerializer
         )
         return Response(response_data, 200)
+
+
+def send_supplier_report(request, supplier_id):
+    supplier = get_object_or_404(Supplier, pk=supplier_id)
+
+    # 1. Validate email
+    if not supplier.email:
+        return HttpResponse(
+            f"Supplier '{supplier.name}' has no email address.", status=400
+        )
+
+    # 2. Gather project balances
+    project_balances = SupplierProjectBalance.objects.filter(
+        supplier_fk=supplier
+    ).select_related("project_fk")
+
+    # 3. Prepare context for the HTML template
+    logo_path = os.path.join(settings.BASE_DIR, "static", "logo.png")  # adjust path
+
+    context = {
+        "supplier": supplier,
+        "project_balances": project_balances,
+    }
+
+    print("_-----------", request.build_absolute_uri(settings.STATIC_URL + "logo.png"))
+
+    # 4. Render HTML email content
+    html_content = render_to_string("report_email.html", context)
+    text_content = strip_tags(html_content)  # plain text fallback
+
+    # 5. Build and send email
+    subject = f"Supplier Report – {supplier.name}"
+    from_email = settings.DEFAULT_FROM_EMAIL
+    to_email = [supplier.email]
+
+    msg = EmailMultiAlternatives(subject, text_content, from_email, to_email)
+    msg.attach_alternative(html_content, "text/html")
+    msg.mixed_subtype = "related"  # important!
+
+    # Attach logo with a Content-ID
+    logo_path = os.path.join(settings.BASE_DIR, "static", "logo.png")
+    if os.path.exists(logo_path):
+        with open(logo_path, "rb") as f:
+            img = MIMEImage(f.read())
+            img.add_header("Content-ID", "<logo>")
+            img.add_header("Content-Disposition", "inline", filename="logo.png")
+            msg.attach(img)
+
+    msg.send()
+
+    return HttpResponse(f"Report sent successfully to {supplier.email}")

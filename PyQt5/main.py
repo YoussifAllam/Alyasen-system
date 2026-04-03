@@ -48,7 +48,7 @@ if __name__ == "__main__":
     QLocale.setDefault(english_locale)
 
     # --- Splash Screen Setup ---
-    pixmap = QPixmap(rf"{BASE_DIR}/resources/banner.jpg").scaled(
+    pixmap = QPixmap(rf"{BASE_DIR}/resources/banner2.jpg").scaled(
         1000, 400, Qt.KeepAspectRatio, Qt.SmoothTransformation
     )
     splash = QSplashScreen(pixmap, Qt.WindowStaysOnTopHint)
@@ -74,7 +74,7 @@ if __name__ == "__main__":
         app.setStyleSheet(load_dark_theme())
 
     # Simulate some loading time
-    time.sleep(2)
+    time.sleep(3)
 
     controller = AppController()
     controller.start()

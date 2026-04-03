@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Supplier Report</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            max-width: 150px;
+            height: auto;
+        }
+
+        h2 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+
+        .summary {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 25px;
+        }
+
+        .summary p {
+            margin: 8px 0;
+        }
+
+        .summary strong {
+            color: #2c3e50;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .footer {
+            font-size: 12px;
+            text-align: center;
+            margin-top: 30px;
+            color: #777;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="cid:logo" alt="Company Logo" class="logo">
+            <h2>Supplier Financial Report</h2>
+        </div>
+
+        <h3>{{ supplier.name }}</h3>
+        <p>Phone: {{ supplier.phone }} | Email: {{ supplier.email }}</p>
+
+        <div class="summary">
+            <p><strong>Total Amount Due:</strong> {{ supplier.total_amount_due|floatformat:2 }}</p>
+            <p><strong>Total Amount Payable (remaining):</strong> {{ supplier.total_amount_payable|floatformat:2 }}</p>
+            <p><strong>Total Paid Amount:</strong> {{ supplier.total_paid_amount|floatformat:2 }}</p>
+        </div>
+
+        {% if project_balances %}
+        <h4>Per‑Project Breakdown</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Project</th>
+                    <th>Total</th>
+                    <th>Paid</th>
+                    <th>Remaining</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pb in project_balances %}
+                <tr>
+                    <td>{{ pb.project_fk.name|default:"N/A" }}</td>
+                    <td>{{ pb.total|floatformat:2 }}</td>
+                    <td>{{ pb.paid|floatformat:2 }}</td>
+                    <td>{{ pb.remining|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No project‑level balances available.</p>
+        {% endif %}
+
+        <div class="footer">
+            Report generated on {% now "jS F Y H:i" %}<br>
+            This is an automatically generated message – please do not reply.
+        </div>
+    </div>
+</body>
+
+</html>
