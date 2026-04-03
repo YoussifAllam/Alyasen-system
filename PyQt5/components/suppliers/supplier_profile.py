@@ -27,6 +27,7 @@ class ApiWorker(QObject):
 
     finished = pyqtSignal()
     success = pyqtSignal(dict)
+    text_success = pyqtSignal(str)
     image_success = pyqtSignal(QPixmap)
     error = pyqtSignal(str)
 
@@ -72,6 +73,8 @@ class ApiWorker(QObject):
             if response.status_code in [200, 201]:
                 if self.response_type == "json":
                     self.success.emit(response.json())
+                elif self.response_type == "text":
+                    self.text_success.emit(response.text)
                 else:  # Image
                     image = QImage()
                     image.loadFromData(response.content)
@@ -181,6 +184,7 @@ class SupplierProfileUI(QWidget):
         self.btn_show_contracts = QPushButton("عرض عقود المشروع")
         self.btn_show_contracts.clicked.connect(self.handle_show_attachments)
         self.send_email = QPushButton("ارسال كشف حساب للمورد")
+        self.send_email.clicked.connect(self.handle_send_email)
         layout.addWidget(self.btn_show_invoices)
         layout.addWidget(self.btn_show_invoice_payment_details)
         layout.addWidget(self.btn_show_contracts)
@@ -338,6 +342,26 @@ class SupplierProfileUI(QWidget):
     def on_supplier_info_update(self, supplier_data):
         self.update_data(supplier_data, fetch_pic=False)
         self.handle_show_invoices()
+
+    def handle_send_email(self):
+        if not self.supplier_id:
+            QMessageBox.warning(self, "خطأ", "لا يوجد مورد محدد.")
+            return
+
+        url = f"{BACKEND_BASE_URL}/suppliers/send-report/{self.supplier_id}/"
+        self._set_loading(True)
+        self.email_thread = QThread()
+        self.email_worker = ApiWorker("GET", url, response_type="text")
+        self.email_worker.moveToThread(self.email_thread)
+        self.email_thread.started.connect(self.email_worker.run)
+        self.email_worker.text_success.connect(self.on_email_success)
+        self.email_worker.error.connect(self.show_error_message)
+        self.email_worker.finished.connect(self.email_thread.quit)
+        self.email_thread.start()
+
+    def on_email_success(self, message):
+        self._set_loading(False)
+        QMessageBox.information(self, "نجاح", message)
 
     def handle_next_page(self):
         if self.next_page_url:
