@@ -10,7 +10,6 @@ from PyQt5.QtWidgets import (
     QWidget,
     QFrame,
     QMessageBox,
-    QDoubleSpinBox,
 )
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QObject, pyqtSlot, QSettings, QPoint
 from requests import request, exceptions
@@ -48,10 +47,9 @@ class CampaignItemRow(QFrame):
     removed = pyqtSignal(object)
     value_changed = pyqtSignal()
 
-    def __init__(self, suppliers, projects_by_supplier):
+    def __init__(self, suppliers):
         super().__init__()
         self.suppliers = suppliers
-        self.projects_by_supplier = projects_by_supplier
         self.setObjectName("formRow")
         self.setFrameShape(QFrame.StyledPanel)
 
@@ -65,11 +63,9 @@ class CampaignItemRow(QFrame):
         self.project_combo = QComboBox()
         self.project_combo.addItem("اختر المشروع", None)
         self.project_combo.setEnabled(False)
-
-        self.amount_input = QDoubleSpinBox()
-        self.amount_input.setRange(0, 9999999.99)
-        self.amount_input.setPrefix("SAR ")
-        self.amount_input.valueChanged.connect(lambda: self.value_changed.emit())
+        self.project_combo.currentIndexChanged.connect(
+            lambda: self.value_changed.emit()
+        )
 
         self.remove_btn = QPushButton("حذف")
         self.remove_btn.setObjectName("dangerButton")
@@ -79,8 +75,6 @@ class CampaignItemRow(QFrame):
         layout.addWidget(self.supplier_combo, 1)
         layout.addWidget(QLabel("المشروع:"))
         layout.addWidget(self.project_combo, 1)
-        layout.addWidget(QLabel("المبلغ:"))
-        layout.addWidget(self.amount_input, 1)
         layout.addWidget(self.remove_btn)
 
         self.supplier_combo.currentIndexChanged.connect(self.on_supplier_changed)
@@ -89,21 +83,43 @@ class CampaignItemRow(QFrame):
         supplier_id = self.supplier_combo.currentData()
         self.project_combo.clear()
         self.project_combo.addItem("اختر المشروع", None)
+        self.project_combo.setEnabled(False)
 
-        if supplier_id and str(supplier_id) in self.projects_by_supplier:
-            projects = self.projects_by_supplier[str(supplier_id)]
-            for p in projects:
-                self.project_combo.addItem(p["name"] or f"مشروع {p['id']}", p["id"])
-            self.project_combo.setEnabled(True)
+        if supplier_id:
+            url = f"{BACKEND_BASE_URL}/suppliers/projects/?supplier_id={supplier_id}"
+            self.thread = QThread()
+            self.worker = ApiWorker("GET", url)
+            self.worker.moveToThread(self.thread)
+            self.thread.started.connect(self.worker.run)
+            self.worker.success.connect(self.on_projects_fetched)
+            self.worker.finished.connect(self.thread.quit)
+            self.thread.start()
+
+            # Keep a reference to prevent garbage collection
+            self._fetch_thread = self.thread
+            self._fetch_worker = self.worker
         else:
-            self.project_combo.setEnabled(False)
+            self.value_changed.emit()
+
+    def on_projects_fetched(self, data_response):
+        results = data_response.get("data", {}).get("results", [])
+        for p in results:
+            project_id = p.get("project_id")
+            project_name = p.get("project_name", f"مشروع {project_id}")
+            total_cost = p.get("total", 0)
+            self.project_combo.addItem(project_name, (project_id, total_cost))
+
+        self.project_combo.setEnabled(True)
         self.value_changed.emit()
 
     def get_data(self):
+        proj_data = self.project_combo.currentData()
+        proj_id = proj_data[0] if isinstance(proj_data, tuple) else None
+        amount = proj_data[1] if isinstance(proj_data, tuple) else 0
         return {
             "supplier_id": self.supplier_combo.currentData(),
-            "project_id": self.project_combo.currentData(),
-            "amount": self.amount_input.value(),
+            "project_id": proj_id,
+            "amount": amount,
         }
 
 
@@ -118,7 +134,6 @@ class AddCampaignDialog(QDialog):
 
         self.suppliers = []
         self.clients = []
-        self.projects_by_supplier = {}
         self.rows = []
 
         # Frameless Window Setup
@@ -216,11 +231,8 @@ class AddCampaignDialog(QDialog):
         self.fetch_initial_data()
 
     def fetch_initial_data(self):
-        # In a real app, we'd fetch clients, suppliers, and projects.
-        # For now, we'll use the existing API endpoints.
         self._start_get_request(f"{BACKEND_BASE_URL}/clients/clients/", "clients")
         self._start_get_request(f"{BACKEND_BASE_URL}/suppliers/suppliers/", "suppliers")
-        self._start_get_request(f"{BACKEND_BASE_URL}/projects/projects/", "projects")
 
     def _start_get_request(self, url, target):
         thread = QThread()
@@ -243,15 +255,9 @@ class AddCampaignDialog(QDialog):
                 self.client_combo.addItem(c["name"], c["id"])
         elif target == "suppliers":
             self.suppliers = results
-        elif target == "projects":
-            for p in results:
-                sid = str(p.get("supplier"))
-                if sid not in self.projects_by_supplier:
-                    self.projects_by_supplier[sid] = []
-                self.projects_by_supplier[sid].append(p)
 
     def add_row(self):
-        row = CampaignItemRow(self.suppliers, self.projects_by_supplier)
+        row = CampaignItemRow(self.suppliers)
         row.removed.connect(self.remove_row)
         row.value_changed.connect(self.update_total)
         self.items_vbox.insertWidget(len(self.rows), row)
@@ -265,7 +271,7 @@ class AddCampaignDialog(QDialog):
         self.update_total()
 
     def update_total(self):
-        total = sum(row.get_data()["amount"] for row in self.rows)
+        total = sum(row.get_data().get("amount", 0) for row in self.rows)
         self.total_label.setText(f"إجمالي التكلفة: {total:,.2f} SAR")
 
     def handle_save(self):
@@ -275,33 +281,36 @@ class AddCampaignDialog(QDialog):
         if not name or not client_id or not self.rows:
             QMessageBox.warning(self, "خطأ", "يرجى تعبئة جميع البيانات.")
             return
-
         items_data = []
         for row in self.rows:
             data = row.get_data()
-            if not data["supplier_id"] or not data["project_id"] or data["amount"] <= 0:
+            if not data["supplier_id"] or not data["project_id"]:
                 QMessageBox.warning(
                     self, "خطأ", "يرجى التحقق من بيانات الموردين والمشاريع."
                 )
                 return
-            items_data.append(data)
+            items_data.append(
+                {"supplier_id": data["supplier_id"], "project_id": data["project_id"]}
+            )
 
-        payload = {"name": name, "client_id": client_id, "items": items_data}
+        payload = {"name": name, "client": client_id, "items": items_data}
 
-        url = f"{BACKEND_BASE_URL}/campaine/campaine/"  # Hypothetical endpoint
+        url = f"{BACKEND_BASE_URL}/campaine/"
         self._start_post_request(url, payload)
 
     def _start_post_request(self, url, payload):
         self.save_btn.setEnabled(False)
-        thread = QThread()
-        worker = ApiWorker("POST", url, payload)
-        worker.moveToThread(thread)
-        thread.started.connect(worker.run)
-        worker.success.connect(self.on_save_success)
-        worker.error.connect(lambda msg: QMessageBox.critical(self, "خطأ", msg))
-        worker.finished.connect(lambda: self.save_btn.setEnabled(True))
-        worker.finished.connect(thread.quit)
-        thread.start()
+        self._post_thread = QThread()
+        self._post_worker = ApiWorker("POST", url, payload)
+        self._post_worker.moveToThread(self._post_thread)
+        self._post_thread.started.connect(self._post_worker.run)
+        self._post_worker.success.connect(self.on_save_success)
+        self._post_worker.error.connect(
+            lambda msg: QMessageBox.critical(self, "خطأ", msg)
+        )
+        self._post_worker.finished.connect(lambda: self.save_btn.setEnabled(True))
+        self._post_worker.finished.connect(self._post_thread.quit)
+        self._post_thread.start()
 
     def on_save_success(self, data):
         QMessageBox.information(self, "نجاح", "تمت إضافة الحملة بنجاح.")
