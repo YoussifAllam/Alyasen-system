@@ -15,14 +15,18 @@ class ClientsApiView(APIView):
     def get(self, request: Request, format=None):
         filtred_transactions = selectors.get_clients(request)
 
-        response_data = pagenator(filtred_transactions, request, OutputSerializers.ClientsSerializer)
+        response_data = pagenator(
+            filtred_transactions, request, OutputSerializers.ClientsSerializer
+        )
 
         return Response(response_data, status=HTTP_200_OK)
 
     def post(self, request: Request, format=None):
         serializer = InputSerializers.ClientsSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response({"status": "faild", "errors": serializer.errors}, status=400)
+            return Response(
+                {"status": "faild", "errors": serializer.errors}, status=400
+            )
         serializer.save()
 
         tranaction = "تم أضافة عميل جديد للنظام"
@@ -34,9 +38,13 @@ class ClientsApiView(APIView):
     def patch(self, request: Request, format=None):
         client_id = request.data["client_id"]
         client_instance = selectors.get_client_instance(client_id)
-        serializer = InputSerializers.ClientUpdateSerializer(client_instance, data=request.data, partial=True)
+        serializer = InputSerializers.ClientUpdateSerializer(
+            client_instance, data=request.data, partial=True
+        )
         if not serializer.is_valid():
-            return Response({"status": "faild", "errors": serializer.errors}, status=400)
+            return Response(
+                {"status": "faild", "errors": serializer.errors}, status=400
+            )
         serializer.save()
 
         tranaction = "تم تحديث بيانات العميل"
@@ -44,7 +52,8 @@ class ClientsApiView(APIView):
         create_transaction_log.delay(transaction_data=tranaction, username=username)
 
         return Response({"status": "success"}, status=200)
-        
+
+
 class ClientInfoApiView(APIView):
     def get(self, request: Request, format=None):
         client_id = request.GET.get("id")
@@ -53,6 +62,26 @@ class ClientInfoApiView(APIView):
             supplier_instance, many=False, context={"request": request}
         )
         return Response({"status": "succes", "data": serializer.data}, 200)
+
+
+class ClientProjectAndCampaingsApiView(APIView):
+    def get(self, request: Request):
+        client_id = request.GET.get("client_id")
+        projects, campaigns = selectors.get_client_project_and_campaings(client_id)
+
+        projects_serializer = OutputSerializers.BaseProjectSerializer(
+            projects, many=True
+        )
+        campaigns_serializer = OutputSerializers.CampaineSerializer(
+            campaigns, many=True
+        )
+
+        response_data = {
+            "campaigns": campaigns_serializer.data,
+            "projects": projects_serializer.data,
+        }
+        return Response(response_data, status=HTTP_200_OK)
+
 
 # class ClientPaymentsApiView(APIView):
 #     def post(self, request: Request, format=None):
@@ -94,6 +123,6 @@ class ClientInfoApiView(APIView):
 
 #         from .Tasks.client_email_tasks import send_client_statement_email
 #         result = send_client_statement_email(client_id, start_date, end_date)
-        
+
 #         status_code = 200 if result["status"] == "success" else 400
 #         return Response(result, status=status_code)

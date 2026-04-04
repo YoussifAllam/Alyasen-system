@@ -16,6 +16,9 @@ class ProjectStatus(models.Choices):
 class BaseProject(models.Model):
     name = models.CharField(max_length=50, blank=True, null=True)
     project_type = models.CharField(max_length=50, choices=ProjectTypes.choices)
+    client = models.ForeignKey(
+        "Clients.Client", on_delete=models.SET_NULL, null=True, blank=True
+    )
     project_status = models.CharField(
         max_length=50, choices=ProjectStatus.choices, default="active"
     )
