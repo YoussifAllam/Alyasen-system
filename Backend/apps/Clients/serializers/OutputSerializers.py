@@ -37,6 +37,7 @@ class BaseProjectSerializer(serializers.ModelSerializer):
             "client",
             "cost",
             "project_status",
+            "created_date",
         ]
 
 
@@ -46,7 +47,14 @@ class CampaineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Campaine
-        fields = ["id", "name", "project_type", "total_cost", "project_status"]
+        fields = [
+            "id",
+            "name",
+            "project_type",
+            "total_cost",
+            "project_status",
+            "created_date",
+        ]
 
     def get_project_status(self, obj: Campaine):
         return obj.items.first().project.project_status

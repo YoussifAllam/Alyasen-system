@@ -97,12 +97,11 @@ class ClientProfileUI(QWidget):
         top_layout.addWidget(actions_card)
         main_layout.addLayout(top_layout)
         self.table = QTableWidget()
-        self.table.setColumnCount(7)
-        headers = ["", "كود ", "اسم ", "نوع ", "تكلفة ", "حالة ", "تفاصيل ", ""]
+        self.table.setColumnCount(6)
+        headers = ["كود ", "اسم ", "نوع ", "تكلفة ", "حالة ", ""]
         self.table.setHorizontalHeaderLabels(headers)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        # Prevent details button column from stretching too much
-        self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table.verticalHeader().setDefaultSectionSize(70)
 
         self.table.setHorizontalScrollBarPolicy(
             Qt.ScrollBarAsNeeded
@@ -253,8 +252,89 @@ class ClientProfileUI(QWidget):
             QMessageBox.warning(self, "خطأ", "لم يتم العثور على بيانات العميل.")
             return
 
-        # dialog = ClientProjectsDialog(self.client_id, self)
-        # dialog.exec_()
+        url = f"{BACKEND_BASE_URL}/clients/projects/?client_id={self.client_id}"
+        self._start_projects_fetch(url)
+
+    def _start_projects_fetch(self, url):
+        self._set_loading(True)
+        self.projects_fetch_thread = QThread()
+        self.projects_fetch_worker = ApiWorker("GET", url, response_type="json")
+        self.projects_fetch_worker.moveToThread(self.projects_fetch_thread)
+        self.projects_fetch_thread.started.connect(self.projects_fetch_worker.run)
+        self.projects_fetch_worker.success.connect(self.on_projects_fetch_success)
+        self.projects_fetch_worker.error.connect(self.show_error_message)
+        self.projects_fetch_worker.finished.connect(self.projects_fetch_thread.quit)
+        self.projects_fetch_thread.start()
+
+    def on_projects_fetch_success(self, response_data):
+        self._set_loading(False)
+        self.populate_projects_table(response_data)
+
+    def populate_projects_table(self, data):
+        campaigns = data.get("campaigns", [])
+        projects = data.get("projects", [])
+
+        all_items = campaigns + projects
+        all_items.sort(key=lambda x: x.get("created_date", ""), reverse=True)
+
+        self.table.setRowCount(0)
+        self.total_count = len(all_items)
+
+        self.next_page_url = data.get("next")
+        self.prev_page_url = data.get("previous")
+
+        for row_idx, item in enumerate(all_items):
+            self.table.insertRow(row_idx)
+            is_campaign = "total_cost" in item
+
+            item_id = str(item.get("id", ""))
+            name = str(item.get("name", ""))
+            item_type = str(item.get("project_type", ""))
+            cost = item.get("total_cost") if is_campaign else item.get("cost")
+            status = str(item.get("project_status", ""))
+
+            idx_item = QTableWidgetItem(str(row_idx + 1))
+            idx_item.setTextAlignment(Qt.AlignCenter)
+
+            id_item = QTableWidgetItem(item_id)
+            id_item.setTextAlignment(Qt.AlignCenter)
+
+            name_item = QTableWidgetItem(name)
+            name_item.setTextAlignment(Qt.AlignCenter)
+
+            type_item = QTableWidgetItem(item_type)
+            type_item.setTextAlignment(Qt.AlignCenter)
+
+            cost_value = "0.00"
+            if cost is not None:
+                try:
+                    cost_value = f"{float(cost):,.2f}"
+                except (ValueError, TypeError):
+                    cost_value = str(cost)
+            cost_item = QTableWidgetItem(cost_value)
+            cost_item.setTextAlignment(Qt.AlignCenter)
+
+            status_item = QTableWidgetItem(status)
+            status_item.setTextAlignment(Qt.AlignCenter)
+
+            btn_details = QPushButton("عرض التفاصيل")
+            btn_details.setObjectName("detailsButton")
+            btn_details.clicked.connect(
+                lambda checked, p={
+                    "id": item.get("id"),
+                    "project_type": item.get("project_type"),
+                    "name": item.get("name"),
+                }: self.on_project_selected(p)
+            )
+
+            self.table.setItem(row_idx, 0, id_item)
+            self.table.setItem(row_idx, 1, name_item)
+            self.table.setItem(row_idx, 2, type_item)
+            self.table.setItem(row_idx, 3, cost_item)
+            self.table.setItem(row_idx, 4, status_item)
+            self.table.setCellWidget(row_idx, 5, btn_details)
+
+        self.update_pagination_controls()
 
     def handle_show_payment_details(self):
         dialog = ClientPaymentDetailsDialog(self.client_id, self)
@@ -306,16 +386,16 @@ class ClientProfileUI(QWidget):
     def on_client_info_update(self, client_data):
         self.update_data(client_data, fetch_pic=False)
         if self.client_id:
-            url = f"{BACKEND_BASE_URL}/clients/invoice/invoices/?client_id={self.client_id}"
-            self._start_invoice_fetch(url)
+            url = f"{BACKEND_BASE_URL}/clients/projects/?client_id={self.client_id}"
+            self._start_projects_fetch(url)
 
     def handle_next_page(self):
         if self.next_page_url:
-            self._start_invoice_fetch(self.next_page_url)
+            self._start_projects_fetch(self.next_page_url)
 
     def handle_prev_page(self):
         if self.prev_page_url:
-            self._start_invoice_fetch(self.prev_page_url)
+            self._start_projects_fetch(self.prev_page_url)
 
     def _start_info_fetch_request(self, url):
         self.info_fetch_thread = QThread()

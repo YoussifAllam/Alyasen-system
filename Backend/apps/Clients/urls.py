@@ -2,7 +2,7 @@ from django.urls import path, include
 from . import views
 
 projcets_urls = [
-    path("d/", views.ClientProjectAndCampaingsApiView.as_view()),
+    path("", views.ClientProjectAndCampaingsApiView.as_view()),
 ]
 
 
