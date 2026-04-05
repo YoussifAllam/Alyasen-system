@@ -5,4 +5,7 @@ from unfold.admin import ModelAdmin
 
 @admin.register(base_project_models.BaseProject)
 class ProjectsClass(ModelAdmin):
-    list_display = ("name",)
+    list_display = (
+        "id",
+        "name",
+    )

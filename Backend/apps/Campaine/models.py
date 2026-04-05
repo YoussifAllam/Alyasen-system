@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils.timezone import now
-from apps.Clients.models import Client
+
+
+# from apps.Clients.models import Client
 from apps.Suppliers.models import Supplier
 from apps.Projects.models import BaseProject
 
@@ -8,7 +10,7 @@ from apps.Projects.models import BaseProject
 class Campaine(models.Model):
     name = models.CharField(max_length=150)
     client = models.ForeignKey(
-        Client, on_delete=models.CASCADE, related_name="campaigns", null=True
+        "Clients.Client", on_delete=models.CASCADE, related_name="campaigns", null=True
     )
     total_cost = models.FloatField(default=0)
     created_date = models.DateField(default=now)

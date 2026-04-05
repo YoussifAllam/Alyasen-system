@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ..models import Client
+from ..models import Client, ProjectPayment
 
 from apps.Projects.models import BaseProject
 from apps.Campaine.models import Campaine
@@ -11,10 +11,10 @@ class ClientsSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-# class ClientPaymentsSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = InvoicePayment
-#         exclude = ["id", "client_fk"]
+class InvoicePaymentsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectPayment
+        exclude = ["id", "client_project_balance_fk"]
 
 
 class ClientInfoSerializer(serializers.ModelSerializer):

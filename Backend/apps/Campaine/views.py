@@ -24,7 +24,10 @@ class CampaineListCreateView(APIView):
         serializer = InputSerializers.CampaineSerializer(data=request.data)
 
         if serializer.is_valid():
-            serializer.save()
+            campaine_instance = serializer.save()
+            services.create_client_project_balance_profile.delay(
+                campaine_id=campaine_instance.id, client_id=request.data["client"]
+            )
             return Response(
                 {"status": "success"},
                 status=status.HTTP_201_CREATED,

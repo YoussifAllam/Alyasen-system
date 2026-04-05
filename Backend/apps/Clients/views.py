@@ -83,34 +83,56 @@ class ClientProjectAndCampaingsApiView(APIView):
         return Response(response_data, status=HTTP_200_OK)
 
 
-# class ClientPaymentsApiView(APIView):
-#     def post(self, request: Request, format=None):
-#         ParamsSerializers.validate_serializer(ParamsSerializers.InvoicePaymentSerializer, data=request.data)
-#         client_id = request.data["client_id"]
-#         payment_amount = int(request.data["payment_amount"])
+class InovicePaymentApiView(APIView):
+    # def post(self, request: Request, format=None):
+    #     ParamsSerializers.validate_serializer(
+    #         ParamsSerializers.InvoicePaymentSerializer, data=request.data
+    #     )
+    #     supplier_id = request.data["supplier_id"]
+    #     project_id = request.data["project_id"]
+    #     payment_amount = float(request.data["payment_amount"])
 
-#         client_instance = selectors.get_client_instance(client_id)
+    #     supplier_instance = selectors.get_supplier_instance(supplier_id)
+    #     project_instance = selectors.get_project_balance_instance(project_id)
 
-#         if payment_amount > client_instance.total_remaining_balance_owed_to_us:
-#             return Response({"حطأ": "المبلغ المدفوع اكبر من المتبقي "}, 400)
+    #     if (
+    #         payment_amount > supplier_instance.total_amount_payable
+    #         or payment_amount > project_instance.remining  # noqa
+    #     ):
+    #         return Response({"حطأ": "المبلغ المدفوع اكبر من المتبقي "}, 400)
 
-#         services.update_client_balance_after_payment(client_instance, payment_amount)
-#         username = request.data["username"]
-#         notes = request.data.get("notes", "None")
-#         celery_tasks.create_client_payment_invoice_record.delay(client_instance.id, payment_amount, notes)
-#         create_transaction_log.delay(
-#             username=username,
-#             transaction_data=f"تم تسديد دفعه من العميل {client_instance.name} بمبلغ {payment_amount}",
-#         )
+    #     services.pay_for_supplier(supplier_instance, payment_amount)
+    #     services.pay_for_project(project_instance, payment_amount)
 
-#         return Response({"status": "sucess"}, 200)
+    #     serializer = InputSerializers.InvoicePaymentSerializer(data=request.data)
+    #     if not serializer.is_valid():
+    #         return Response(
+    #             {"status": "faild", "errors": serializer.errors}, status=400
+    #         )
+    #     serializer.save(
+    #         supplier_fk=supplier_instance, project_fk=project_instance.project_fk
+    #     )
 
-#     def get(Self, request: Request, format=None):
-#         client_id = request.GET.get("client_id")
-#         payments_instances = selectors.get_client_payments_instances(client_id)
+    #     create_transaction_log.delay(
+    #         username=request.data["username"],
+    #         transaction_data=f"تم تسديد دفعه للمورد {supplier_instance.name} بمبلغ {payment_amount}",
+    #     )
 
-#         response_data = pagenator(payments_instances, request, OutputSerializers.ClientPaymentsSerializer)
-#         return Response({"status": "sucess", "data": response_data}, 200)
+    #     return Response({"status": "sucess"}, 200)
+
+    def get(Self, request: Request, format=None):
+        # client_id = request.GET.get("client_id")
+        project_id = request.GET.get("project_id")
+        project_type = request.GET.get("type")
+        payments_instances = selectors.get_client_payments_instances_by_CPB(
+            project_id, project_type
+        )
+
+        response_data = pagenator(
+            payments_instances, request, OutputSerializers.InvoicePaymentsSerializer
+        )
+        return Response(response_data, 200)
+
 
 # class ClientStatementEmailView(APIView):
 #     def post(self, request: Request, format=None):

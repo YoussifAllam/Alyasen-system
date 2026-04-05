@@ -3,7 +3,7 @@ from cacheops import cached_as
 from django.db.models import Q
 from rest_framework.exceptions import NotFound
 
-from ..models import Client
+from ..models import Client, ProjectPayment, ClientProjectBalance
 
 from apps.Projects.models import BaseProject
 from apps.Campaine.models import Campaine
@@ -37,11 +37,19 @@ def get_client_instance(client_id: int) -> Client:
         raise NotFound({"الخطأ": "لا يوجد عميل بهذا الكود"})
 
 
-# def get_client_payments_instances(client_id: int):
-#     return InvoicePayment.objects.filter(client_fk__id=client_id)
-
-
 def get_client_project_and_campaings(client_id):
     projects = BaseProject.objects.filter(client=client_id)
     campaigns = Campaine.objects.filter(client=client_id)
     return projects, campaigns
+
+
+def get_client_payments_instances_by_CPB(project_id: int, project_type: str):
+    try:
+        if project_type == "campaine":
+            CPB_obj = ClientProjectBalance.objects.get(campaine_fk=project_id)
+        else:
+            CPB_obj = ClientProjectBalance.objects.get(project_fk=project_id)
+
+        return CPB_obj.payments.all()
+    except ClientProjectBalance.DoesNotExist:
+        raise NotFound({"الخطأ": "لا يوجد مشروع بهذا الكود"})

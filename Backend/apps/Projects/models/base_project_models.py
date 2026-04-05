@@ -37,6 +37,9 @@ class BaseProject(models.Model):
         verbose_name = "BaseProject"
         verbose_name_plural = "BaseProjects"
 
+    def __str__(self):
+        return f"{self.id}"
+
 
 class ProjectContracts(models.Model):
     project = models.ForeignKey(BaseProject, on_delete=models.CASCADE)
