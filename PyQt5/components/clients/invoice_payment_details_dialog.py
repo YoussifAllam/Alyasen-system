@@ -54,16 +54,8 @@ class InvoicePaymentDetailsDialog(QDialog):
         self.project_id = project_id
         self.project_type = project_type
         self.setWindowTitle("تفاصيل دفعات المشروع")
-        self.setMinimumSize(850, 500)
+        self.setMinimumSize(850, 600)
         self.setModal(True)
-
-        print(
-            "-------------------------",
-            self.client_id,
-            self.project_id,
-            self.project_type,
-        )
-
         # Frameless Window Setup
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.setAttribute(Qt.WA_TranslucentBackground)
@@ -99,17 +91,17 @@ class InvoicePaymentDetailsDialog(QDialog):
 
         # Table
         self.table = QTableWidget()
-        self.table.setColumnCount(5)
+        self.table.setColumnCount(6)
         headers = [
             "رقم الفاتورة",
             "المبلغ المدفوع",
             "تاريخ الدفعة",
             "ملاحظات",
-            # "ملف الفاتورة",
+            "طريقة الدفع",
             "",
         ]
         self.table.setHorizontalHeaderLabels(headers)
-        self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(
             1, QHeaderView.ResizeToContents
         )
@@ -120,9 +112,15 @@ class InvoicePaymentDetailsDialog(QDialog):
             3, QHeaderView.ResizeToContents
         )
         self.table.horizontalHeader().setSectionResizeMode(
+            4, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
             0, QHeaderView.ResizeToContents
         )
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.table.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarAsNeeded
+        )  # or Qt.ScrollBarAlwaysOn
         self.table.verticalHeader().setDefaultSectionSize(80)
         content_layout.addWidget(self.table, 1)
 
@@ -162,6 +160,7 @@ class InvoicePaymentDetailsDialog(QDialog):
             amount = payment.get("payment_amount", 0)
             date = payment.get("payment_date", "")
             notes = payment.get("notes") or ""
+            payment_type = payment.get("payment_type", "")
             # file = payment.get("portal_invoice_file", "")
 
             items = [
@@ -169,6 +168,7 @@ class InvoicePaymentDetailsDialog(QDialog):
                 QTableWidgetItem(str(amount)),
                 QTableWidgetItem(date),
                 QTableWidgetItem(notes),
+                QTableWidgetItem(payment_type),
                 # QTableWidgetItem(file),
             ]
 
@@ -183,11 +183,11 @@ class InvoicePaymentDetailsDialog(QDialog):
                 btn_view.clicked.connect(
                     lambda checked, url=file_url: self.open_file_url(url)
                 )
-                self.table.setCellWidget(row_pos, 4, btn_view)
+                self.table.setCellWidget(row_pos, 5, btn_view)
             else:
                 empty_item = QTableWidgetItem("لا يوجد ملف")
                 empty_item.setTextAlignment(Qt.AlignCenter)
-                self.table.setItem(row_pos, 4, empty_item)
+                self.table.setItem(row_pos, 5, empty_item)
 
     def open_file_url(self, url):
         QDesktopServices.openUrl(QUrl(url))

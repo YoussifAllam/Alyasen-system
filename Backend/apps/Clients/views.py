@@ -88,20 +88,16 @@ class InovicePaymentApiView(APIView):
     #     ParamsSerializers.validate_serializer(
     #         ParamsSerializers.InvoicePaymentSerializer, data=request.data
     #     )
-    #     supplier_id = request.data["supplier_id"]
     #     project_id = request.data["project_id"]
+    #     project_type = request.data["project_type"]
     #     payment_amount = float(request.data["payment_amount"])
 
-    #     supplier_instance = selectors.get_supplier_instance(supplier_id)
-    #     project_instance = selectors.get_project_balance_instance(project_id)
+    #     project_instance = selectors.get_client_CPB(project_id, project_type)
 
-    #     if (
-    #         payment_amount > supplier_instance.total_amount_payable
-    #         or payment_amount > project_instance.remining  # noqa
-    #     ):
+    #     if payment_amount > project_instance.remining:
     #         return Response({"حطأ": "المبلغ المدفوع اكبر من المتبقي "}, 400)
 
-    #     services.pay_for_supplier(supplier_instance, payment_amount)
+    #     services.client_payment(project_instance, payment_amount)
     #     services.pay_for_project(project_instance, payment_amount)
 
     #     serializer = InputSerializers.InvoicePaymentSerializer(data=request.data)

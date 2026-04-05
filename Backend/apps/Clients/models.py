@@ -10,6 +10,13 @@ class ProjectTypes(models.Choices):
     campaine = "campaine"
 
 
+class PaymentTypes(models.Choices):
+    cash = "cash"
+    visa = "visa"
+    bank_transfer = "bank_transfer"
+    check = "check"
+
+
 class Client(models.Model):
     name = models.CharField(max_length=50)
     phone = models.CharField(max_length=20)
@@ -67,9 +74,12 @@ class ProjectPayment(models.Model):
         ClientProjectBalance, on_delete=models.CASCADE, related_name="payments"
     )
     portal_invoice_number = models.CharField(max_length=50)
-    portal_invoice_file = models.FileField(upload_to="suppliers/invoices/", null=True)
+    portal_invoice_file = models.FileField(upload_to="clients/invoices/", null=True)
     payment_amount = models.FloatField()
     payment_date = models.DateField(default=now)
+    payment_type = models.CharField(
+        max_length=20, choices=PaymentTypes.choices, default="cash"
+    )
     notes = models.TextField(blank=True, null=True)
 
     class Meta:

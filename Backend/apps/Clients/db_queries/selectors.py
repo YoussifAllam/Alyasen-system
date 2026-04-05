@@ -43,6 +43,18 @@ def get_client_project_and_campaings(client_id):
     return projects, campaigns
 
 
+def get_client_CPB(project_id: int, project_type: str):
+    try:
+        if project_type == "campaine":
+            CPB_obj = ClientProjectBalance.objects.get(campaine_fk=project_id)
+        else:
+            CPB_obj = ClientProjectBalance.objects.get(project_fk=project_id)
+
+        return CPB_obj
+    except ClientProjectBalance.DoesNotExist:
+        raise NotFound({"الخطأ": "لا يوجد دفعات لهذا المشروع"})
+
+
 def get_client_payments_instances_by_CPB(project_id: int, project_type: str):
     try:
         if project_type == "campaine" or project_type == "حملة":
