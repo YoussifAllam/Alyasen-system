@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import (
     QTextEdit,
     QDateEdit,
     QFileDialog,
+    QComboBox,
 )
 from PyQt5.QtCore import Qt, QPoint, QDate
 import qtawesome as qta
@@ -20,7 +21,7 @@ class PaymentDialog(QDialog):
     def __init__(self, supplier_id, parent=None):
         super().__init__(parent)
         self.setWindowTitle("تسديد مبلغ للفاتورة")
-        self.setMinimumSize(500, 500)
+        self.setMinimumSize(600, 600)
         self.setModal(True)
 
         # Frameless Window Setup
@@ -65,6 +66,24 @@ class PaymentDialog(QDialog):
         form_layout.setSpacing(15)
         form_layout.setLabelAlignment(Qt.AlignRight)
 
+        self.payment_type_combo = QComboBox()
+        self.payment_type_combo.addItem("اختر طريقة الدفع", "")
+        self.payment_type_combo.addItem("كاش", "cash")
+        self.payment_type_combo.addItem("فيزا", "visa")
+        self.payment_type_combo.addItem("تحويل بنكي", "bank_transfer")
+        self.payment_type_combo.addItem("شيك", "check")
+        self.payment_type_combo.currentIndexChanged.connect(
+            self.on_payment_type_changed
+        )
+
+        self.check_date_label = QLabel("تاريخ تحويل الشيك:")
+        self.check_date_input = QDateEdit()
+        self.check_date_input.setCalendarPopup(True)
+        self.check_date_input.setDate(QDate.currentDate())
+        self.check_date_input.setDisplayFormat("yyyy-MM-dd")
+        self.check_date_label.hide()
+        self.check_date_input.hide()
+
         self.amount_input = QLineEdit()
         self.notes_input = QTextEdit()
         self.notes_input.setMaximumHeight(80)
@@ -73,19 +92,21 @@ class PaymentDialog(QDialog):
         self.date_input.setCalendarPopup(True)
         self.date_input.setDate(QDate.currentDate())
         self.date_input.setDisplayFormat("yyyy-MM-dd")
-        
+
         self.invoice_number_input = QLineEdit()
-        
+
         self.file_path = ""
         self.file_label = QLabel("لم يتم اختيار ملف")
         self.file_button = QPushButton("اختيار ملف الفاتورة")
         self.file_button.clicked.connect(self.select_file)
-        
+
         file_layout = QHBoxLayout()
         file_layout.addWidget(self.file_button)
         file_layout.addWidget(self.file_label)
         file_layout.addStretch()
 
+        form_layout.addRow("طريقة الدفع:", self.payment_type_combo)
+        form_layout.addRow(self.check_date_label, self.check_date_input)
         form_layout.addRow("المبلغ المدفوع:", self.amount_input)
         form_layout.addRow("تاريخ الدفع:", self.date_input)
         form_layout.addRow("رقم فاتورة البوابة:", self.invoice_number_input)
@@ -117,9 +138,23 @@ class PaymentDialog(QDialog):
         layout.addWidget(container)
         self.old_pos = None
 
+    def on_payment_type_changed(self):
+        if self.payment_type_combo.currentData() == "check":
+            self.check_date_label.show()
+            self.check_date_input.show()
+        else:
+            self.check_date_label.hide()
+            self.check_date_input.hide()
+
     def get_data(self):
         """Returns the data entered in the dialog."""
         return {
+            "payment_type": self.payment_type_combo.currentData(),
+            "check_date": (
+                self.check_date_input.date().toString("yyyy-MM-dd")
+                if self.payment_type_combo.currentData() == "check"
+                else None
+            ),
             "payment_amount": self.amount_input.text().strip(),
             "notes": self.notes_input.toPlainText().strip(),
             "payment_date": self.date_input.date().toString("yyyy-MM-dd"),
@@ -128,7 +163,9 @@ class PaymentDialog(QDialog):
         }
 
     def select_file(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "اختيار ملف الفاتورة", "", "All Files (*)")
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "اختيار ملف الفاتورة", "", "All Files (*)"
+        )
         if file_path:
             self.file_path = file_path
             self.file_label.setText(file_path.split("/")[-1])

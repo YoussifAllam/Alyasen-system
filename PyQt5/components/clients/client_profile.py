@@ -355,7 +355,49 @@ class ClientProfileUI(QWidget):
         self.update_pagination_controls()
 
     def handle_pay_invoice(self):
-        pass
+        selected_rows = self.table.selectionModel().selectedRows()
+        if not selected_rows:
+            QMessageBox.warning(self, "تنبيه", "الرجاء اختيار مشروع من الجدول أولاً.")
+            return
+
+        selected_row = selected_rows[0].row()
+        p_id_item = self.table.item(selected_row, 0)
+        if p_id_item:
+            p_id = p_id_item.text().strip()
+        else:
+            QMessageBox.warning(self, "خطأ", "لم يتم العثور على كود المشروع المختار.")
+            return
+        dialog = PaymentDialog(p_id, self)
+        if dialog.exec_() == QDialog.Accepted:
+            data = dialog.get_data()
+            amount_str = data.get("payment_amount")
+            try:
+                amount = float(amount_str)
+                if amount <= 0:
+                    QMessageBox.warning(
+                        self, "خطأ", "يجب أن يكون المبلغ المدفوع رقمًا موجبًا."
+                    )
+                    return
+            except (ValueError, TypeError):
+                QMessageBox.warning(self, "خطأ", "الرجاء إدخال مبلغ صحيح.")
+                return
+            settings = QSettings("FactorySystem")
+            username = settings.value("user_name", "system")
+            form_data = {
+                "client_id": str(self.client_id) if self.client_id else "",
+                "project_id": str(p_id),
+                "payment_amount": amount_str,
+                "note": data.get("notes", ""),
+                "payment_date": data.get("payment_date", ""),
+                "payment_type": data.get("payment_type", ""),
+                "portal_invoice_number": data.get("portal_invoice_number", ""),
+                "username": username,
+            }
+            files = {}
+            if data.get("portal_invoice_file"):
+                files["portal_invoice_file"] = data.get("portal_invoice_file")
+            url = f"{BACKEND_BASE_URL}/clients/projects/payments/"
+            self._start_post_request(url, data=form_data, files=files)
 
     def _start_post_request(self, url, payload):
         self._set_loading(True)
