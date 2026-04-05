@@ -11,7 +11,8 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QWidget,
 )
-from PyQt5.QtCore import Qt, QPoint, QObject, QThread, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import Qt, QPoint, QObject, QThread, pyqtSignal, pyqtSlot, QUrl
+from PyQt5.QtGui import QDesktopServices
 import qtawesome as qta
 from requests import request, exceptions
 
@@ -25,32 +26,43 @@ class PaymentDetailsWorker(QObject):
     success = pyqtSignal(dict)
     error = pyqtSignal(str)
 
-    def __init__(self, url):
+    def __init__(self, url, params=None):
         super().__init__()
         self.url = url
+        self.params = params
 
     @pyqtSlot()
     def run(self):
-        return  # todo remove it
         try:
-            response = request("GET", self.url, timeout=15)
+            response = request("GET", self.url, params=self.params, timeout=15)
             if response.status_code == 200:
                 self.success.emit(response.json())
             else:
-                self.error.emit(f"خطأ من الخادم: {response.status_code}")
+                self.error.emit(
+                    f"خطأ من الخادم: {response.status_code}\n{response.text}"
+                )
         except exceptions.RequestException:
             self.error.emit("فشل الاتصال بالخادم.")
         finally:
             self.finished.emit()
 
 
-class ClientPaymentDetailsDialog(QDialog):
-    def __init__(self, client_id, parent=None):
+class InvoicePaymentDetailsDialog(QDialog):
+    def __init__(self, client_id, project_id, project_type, parent=None):
         super().__init__(parent)
         self.client_id = client_id
-        self.setWindowTitle(f"تفاصيل دفعات العميل: {client_id}")
-        self.setMinimumSize(900, 500)
+        self.project_id = project_id
+        self.project_type = project_type
+        self.setWindowTitle("تفاصيل دفعات المشروع")
+        self.setMinimumSize(850, 500)
         self.setModal(True)
+
+        print(
+            "-------------------------",
+            self.client_id,
+            self.project_id,
+            self.project_type,
+        )
 
         # Frameless Window Setup
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
@@ -68,7 +80,7 @@ class ClientPaymentDetailsDialog(QDialog):
         self.title_bar.setObjectName("dialogTitleBar")
         title_bar_layout = QHBoxLayout(self.title_bar)
         title_bar_layout.setContentsMargins(15, 0, 5, 0)
-        title_text = QLabel(f"تفاصيل دفعات العميل رقم: {client_id}")
+        title_text = QLabel(f"تفاصيل دفعات المشروع رقم: {project_id}")
         title_text.setObjectName("titleBarText")
         close_button = QPushButton()
         close_button.setObjectName("closeButton")
@@ -87,22 +99,32 @@ class ClientPaymentDetailsDialog(QDialog):
 
         # Table
         self.table = QTableWidget()
-        self.table.setColumnCount(7)
-        self.table.setHorizontalHeaderLabels(
-            [
-                "المشروع",
-                "طريقة الدفع",
-                "المبلغ المدفوع",
-                "تاريخ الدفعة",
-                "تاريخ تحصيل الشيك",
-                "",
-                "ملاحظات",
-            ]
+        self.table.setColumnCount(5)
+        headers = [
+            "رقم الفاتورة",
+            "المبلغ المدفوع",
+            "تاريخ الدفعة",
+            "ملاحظات",
+            # "ملف الفاتورة",
+            "",
+        ]
+        self.table.setHorizontalHeaderLabels(headers)
+        self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeToContents
         )
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.Stretch)
-        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        content_layout.addWidget(self.table)
+        self.table.horizontalHeader().setSectionResizeMode(
+            2, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            3, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeToContents
+        )
+        self.table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.table.verticalHeader().setDefaultSectionSize(80)
+        content_layout.addWidget(self.table, 1)
 
         main_layout.addWidget(content_area)
 
@@ -112,10 +134,15 @@ class ClientPaymentDetailsDialog(QDialog):
         self.fetch_payment_details()
 
     def fetch_payment_details(self):
-        """Fetches the payment history for the given invoice number."""
-        url = f"{BACKEND_BASE_URL}/clients/invoice/payment/?client_id={self.client_id}"
+        """Fetches the payment history for the given project_id and supplier_id."""
+        url = f"{BACKEND_BASE_URL}/clients/projects/payments/"
+        params = {
+            "type": str(self.project_type).strip(),
+            "project_id": str(self.project_id).strip(),
+        }
+
         self.thread = QThread()
-        self.worker = PaymentDetailsWorker(url)
+        self.worker = PaymentDetailsWorker(url, params=params)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.worker.success.connect(self.populate_table)
@@ -124,20 +151,46 @@ class ClientPaymentDetailsDialog(QDialog):
         self.thread.start()
 
     def populate_table(self, response_data):
-        data_obj = response_data.get("data", {}).get("data", {})
+        data_obj = response_data.get("data", {})
         results = data_obj.get("results", [])
         self.table.setRowCount(0)
         for payment in results:
             row_pos = self.table.rowCount()
             self.table.insertRow(row_pos)
+
+            invoice_num = payment.get("portal_invoice_number", "")
+            amount = payment.get("payment_amount", 0)
+            date = payment.get("payment_date", "")
+            notes = payment.get("notes") or ""
+            # file = payment.get("portal_invoice_file", "")
+
             items = [
-                QTableWidgetItem(f"{payment.get('payment_amount', 0):,.2f}"),
-                QTableWidgetItem(payment.get("payment_date", "")),
-                QTableWidgetItem(str(payment.get("notes", ""))),
+                QTableWidgetItem(invoice_num),
+                QTableWidgetItem(str(amount)),
+                QTableWidgetItem(date),
+                QTableWidgetItem(notes),
+                # QTableWidgetItem(file),
             ]
+
             for i, item in enumerate(items):
                 item.setTextAlignment(Qt.AlignCenter)
                 self.table.setItem(row_pos, i, item)
+
+            file_url = payment.get("portal_invoice_file")
+            if file_url:
+                btn_view = QPushButton("عرض الملف")
+                btn_view.setCursor(Qt.PointingHandCursor)
+                btn_view.clicked.connect(
+                    lambda checked, url=file_url: self.open_file_url(url)
+                )
+                self.table.setCellWidget(row_pos, 4, btn_view)
+            else:
+                empty_item = QTableWidgetItem("لا يوجد ملف")
+                empty_item.setTextAlignment(Qt.AlignCenter)
+                self.table.setItem(row_pos, 4, empty_item)
+
+    def open_file_url(self, url):
+        QDesktopServices.openUrl(QUrl(url))
 
     def show_error(self, message):
         QMessageBox.critical(self, "خطأ", message)
@@ -149,8 +202,8 @@ class ClientPaymentDetailsDialog(QDialog):
     def mouseMoveEvent(self, event):
         if (
             hasattr(self, "old_pos")
-            and self.old_pos
-            and event.buttons() == Qt.LeftButton
+            and self.old_pos  # noqa
+            and event.buttons() == Qt.LeftButton  # noqa
         ):
             delta = QPoint(event.globalPos() - self.old_pos)
             self.move(self.x() + delta.x(), self.y() + delta.y())

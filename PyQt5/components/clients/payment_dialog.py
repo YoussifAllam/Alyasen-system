@@ -6,22 +6,21 @@ from PyQt5.QtWidgets import (
     QLabel,
     QLineEdit,
     QFrame,
-    QWidget,
     QFormLayout,
+    QWidget,
     QTextEdit,
-    QComboBox,
-    QCheckBox,
     QDateEdit,
+    QFileDialog,
 )
 from PyQt5.QtCore import Qt, QPoint, QDate
 import qtawesome as qta
 
 
-class ClientPaymentDialog(QDialog):
-    def __init__(self, client_id, parent=None):
+class PaymentDialog(QDialog):
+    def __init__(self, supplier_id, parent=None):
         super().__init__(parent)
         self.setWindowTitle("تسديد مبلغ للفاتورة")
-        self.setMinimumSize(650, 650)
+        self.setMinimumSize(500, 500)
         self.setModal(True)
 
         # Frameless Window Setup
@@ -41,7 +40,7 @@ class ClientPaymentDialog(QDialog):
         title_bar_layout = QHBoxLayout(self.title_bar)
         title_bar_layout.setContentsMargins(15, 0, 5, 0)
 
-        title_text = QLabel(f"تسديد دفعة للعميل رقم: {client_id}")
+        title_text = QLabel(f"تسديد دفعة للمورد رقم: {supplier_id}")
         title_text.setObjectName("titleBarText")
 
         close_button = QPushButton()
@@ -66,38 +65,32 @@ class ClientPaymentDialog(QDialog):
         form_layout.setSpacing(15)
         form_layout.setLabelAlignment(Qt.AlignRight)
 
-        self.project_combo = QComboBox()
-        self.payment_method = QComboBox()
-
-        self.deferred_cheque_checkbox = QCheckBox("شيك مأجل ؟")
-        self.deferred_cheque_checkbox.setObjectName("filterCheckbox")
-        self.deferred_cheque_checkbox.hide()
-
-        self.cheque_date_label = QLabel("تاريخ تحصيل الشيك:")
-        self.cheque_date_input = QDateEdit()
-        self.cheque_date_input.setCalendarPopup(True)
-        self.cheque_date_input.setDate(QDate.currentDate())
-        self.cheque_date_label.hide()
-        self.cheque_date_input.hide()
-
         self.amount_input = QLineEdit()
         self.notes_input = QTextEdit()
-
         self.notes_input.setMaximumHeight(80)
 
-        self.payment_method.addItems(["نقدي", "بنك", "شيك"])
+        self.date_input = QDateEdit()
+        self.date_input.setCalendarPopup(True)
+        self.date_input.setDate(QDate.currentDate())
+        self.date_input.setDisplayFormat("yyyy-MM-dd")
+        
+        self.invoice_number_input = QLineEdit()
+        
+        self.file_path = ""
+        self.file_label = QLabel("لم يتم اختيار ملف")
+        self.file_button = QPushButton("اختيار ملف الفاتورة")
+        self.file_button.clicked.connect(self.select_file)
+        
+        file_layout = QHBoxLayout()
+        file_layout.addWidget(self.file_button)
+        file_layout.addWidget(self.file_label)
+        file_layout.addStretch()
 
-        form_layout.addRow("المشروع:", self.project_combo)
-        form_layout.addRow("طريقة الدفع:", self.payment_method)
-        form_layout.addRow("", self.deferred_cheque_checkbox)
-        form_layout.addRow(self.cheque_date_label, self.cheque_date_input)
         form_layout.addRow("المبلغ المدفوع:", self.amount_input)
+        form_layout.addRow("تاريخ الدفع:", self.date_input)
+        form_layout.addRow("رقم فاتورة البوابة:", self.invoice_number_input)
+        form_layout.addRow("ملف الفاتورة:", file_layout)
         form_layout.addRow("ملاحظات:", self.notes_input)
-
-        self.payment_method.currentTextChanged.connect(self.on_payment_method_changed)
-        self.deferred_cheque_checkbox.stateChanged.connect(
-            self.on_deferred_cheque_changed
-        )
 
         content_layout.addLayout(form_layout)
 
@@ -124,55 +117,28 @@ class ClientPaymentDialog(QDialog):
         layout.addWidget(container)
         self.old_pos = None
 
-    def on_payment_method_changed(self, method):
-        if method == "شيك":
-            self.deferred_cheque_checkbox.show()
-            self.on_deferred_cheque_changed()
-        else:
-            self.deferred_cheque_checkbox.hide()
-            self.deferred_cheque_checkbox.setChecked(False)
-            self.cheque_date_label.hide()
-            self.cheque_date_input.hide()
-
-    def on_deferred_cheque_changed(self):
-        if self.deferred_cheque_checkbox.isChecked():
-            self.cheque_date_label.show()
-            self.cheque_date_input.show()
-        else:
-            self.cheque_date_label.hide()
-            self.cheque_date_input.hide()
-
     def get_data(self):
         """Returns the data entered in the dialog."""
-        data = {
+        return {
             "payment_amount": self.amount_input.text().strip(),
             "notes": self.notes_input.toPlainText().strip(),
-            "project_id": self.project_combo.currentData(),
-            "payment_method": self.payment_method.currentText(),
+            "payment_date": self.date_input.date().toString("yyyy-MM-dd"),
+            "portal_invoice_number": self.invoice_number_input.text().strip(),
+            "portal_invoice_file": self.file_path,
         }
 
-        if (
-            self.payment_method.currentText() == "شيك"
-            and self.deferred_cheque_checkbox.isChecked()  # noqa
-        ):
-            data["is_deferred_cheque"] = True
-            data["cheque_date"] = self.cheque_date_input.date().toString("yyyy-MM-dd")
-        else:
-            data["is_deferred_cheque"] = False
-            data["cheque_date"] = None
-
-        return data
+    def select_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "اختيار ملف الفاتورة", "", "All Files (*)")
+        if file_path:
+            self.file_path = file_path
+            self.file_label.setText(file_path.split("/")[-1])
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton and self.title_bar.underMouse():
             self.old_pos = event.globalPos()
 
     def mouseMoveEvent(self, event):
-        if (
-            hasattr(self, "old_pos")
-            and self.old_pos  # noqa
-            and event.buttons() == Qt.LeftButton  # noqa
-        ):
+        if self.old_pos and event.buttons() == Qt.LeftButton:
             delta = QPoint(event.globalPos() - self.old_pos)
             self.move(self.x() + delta.x(), self.y() + delta.y())
             self.old_pos = event.globalPos()

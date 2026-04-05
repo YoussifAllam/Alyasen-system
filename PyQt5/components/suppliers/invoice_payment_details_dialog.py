@@ -194,8 +194,8 @@ class InvoicePaymentDetailsDialog(QDialog):
     def mouseMoveEvent(self, event):
         if (
             hasattr(self, "old_pos")
-            and self.old_pos
-            and event.buttons() == Qt.LeftButton
+            and self.old_pos  # noqa
+            and event.buttons() == Qt.LeftButton  # noqa
         ):
             delta = QPoint(event.globalPos() - self.old_pos)
             self.move(self.x() + delta.x(), self.y() + delta.y())

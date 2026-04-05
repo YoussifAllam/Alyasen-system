@@ -18,10 +18,10 @@ from PyQt5.QtCore import Qt, pyqtSignal, QObject, QThread, QSettings, pyqtSlot
 from requests import request, get, exceptions
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
-from .client_payment_details_dialog import ClientPaymentDetailsDialog
-from .client_payment_dialog import ClientPaymentDialog
 from .update_client_data_dialog import UpdateClientDataDialog
 from .select_project_dialog import ProjectSelectionDialog
+from .invoice_payment_details_dialog import InvoicePaymentDetailsDialog
+from .payment_dialog import PaymentDialog
 
 
 class ApiWorker(QObject):
@@ -173,6 +173,24 @@ class ClientProfileUI(QWidget):
         layout.addWidget(self.send_email)
         layout.addStretch()
         return card
+
+    def handle_show_payment_details(self):
+        selected_rows = self.table.selectionModel().selectedRows()
+        if not selected_rows:
+            QMessageBox.warning(self, "تنبيه", "الرجاء اختيار مشروع من الجدول أولاً.")
+            return
+
+        selected_row = selected_rows[0].row()
+        p_id_item = self.table.item(selected_row, 0)
+        p_type = self.table.item(selected_row, 2).text().strip()
+        p_type = "campaine" if p_type == "حملة" else "project"
+
+        if p_id_item:
+            p_id = p_id_item.text().strip()
+            dialog = InvoicePaymentDetailsDialog(self.client_id, p_id, p_type, self)
+            dialog.exec_()
+        else:
+            QMessageBox.warning(self, "خطأ", "لم يتم العثور على كود المشروع المختار.")
 
     def handle_add_project(self):
         dialog = ProjectSelectionDialog(self)
@@ -336,35 +354,8 @@ class ClientProfileUI(QWidget):
 
         self.update_pagination_controls()
 
-    def handle_show_payment_details(self):
-        dialog = ClientPaymentDetailsDialog(self.client_id, self)
-        dialog.exec_()
-
     def handle_pay_invoice(self):
-        dialog = ClientPaymentDialog(self.client_id, self)
-        if dialog.exec_() == QDialog.Accepted:
-            data = dialog.get_data()
-            amount_str = data.get("payment_amount")
-            try:
-                amount = float(amount_str)
-                if amount <= 0:
-                    QMessageBox.warning(
-                        self, "خطأ", "يجب أن يكون المبلغ المدفوع رقمًا موجبًا."
-                    )
-                    return
-            except (ValueError, TypeError):
-                QMessageBox.warning(self, "خطأ", "الرجاء إدخال مبلغ صحيح.")
-                return
-            settings = QSettings("FactorySystem")
-            username = settings.value("user_name", "unknown_user")
-            payload = {
-                "client_id": self.client_id,
-                "payment_amount": amount_str,
-                "username": username,
-                "notes": data.get("notes"),
-            }
-            url = f"{BACKEND_BASE_URL}/clients/invoice/payment/"
-            self._start_post_request(url, payload)
+        pass
 
     def _start_post_request(self, url, payload):
         self._set_loading(True)
