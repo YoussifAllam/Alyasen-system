@@ -84,37 +84,32 @@ class ClientProjectAndCampaingsApiView(APIView):
 
 
 class InovicePaymentApiView(APIView):
-    # def post(self, request: Request, format=None):
-    #     ParamsSerializers.validate_serializer(
-    #         ParamsSerializers.InvoicePaymentSerializer, data=request.data
-    #     )
-    #     project_id = request.data["project_id"]
-    #     project_type = request.data["project_type"]
-    #     payment_amount = float(request.data["payment_amount"])
+    def post(self, request: Request, format=None):
+        ParamsSerializers.validate_serializer(
+            ParamsSerializers.InvoicePaymentSerializer, data=request.data
+        )
+        project_id = request.data["project_id"]
+        project_type = request.data["project_type"]
+        payment_amount = float(request.data["payment_amount"])
 
-    #     project_instance = selectors.get_client_CPB(project_id, project_type)
+        project_instance = selectors.get_client_CPB(project_id, project_type)
 
-    #     if payment_amount > project_instance.remining:
-    #         return Response({"حطأ": "المبلغ المدفوع اكبر من المتبقي "}, 400)
+        if payment_amount > project_instance.remining:
+            return Response({"حطأ": "المبلغ المدفوع اكبر من المتبقي "}, 400)
 
-    #     services.client_payment(project_instance, payment_amount)
-    #     services.pay_for_project(project_instance, payment_amount)
+        services.client_payment(project_instance, payment_amount)
+        services.update_project_balance(project_instance, payment_amount)
 
-    #     serializer = InputSerializers.InvoicePaymentSerializer(data=request.data)
-    #     if not serializer.is_valid():
-    #         return Response(
-    #             {"status": "faild", "errors": serializer.errors}, status=400
-    #         )
-    #     serializer.save(
-    #         supplier_fk=supplier_instance, project_fk=project_instance.project_fk
-    #     )
+        serializer = InputSerializers.ProjectPaymentSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"status": "faild", "errors": serializer.errors}, status=400
+            )
+        serializer.save(
+            client_fk=project_instance.client_fk, project_fk=project_instance.project_fk
+        )
 
-    #     create_transaction_log.delay(
-    #         username=request.data["username"],
-    #         transaction_data=f"تم تسديد دفعه للمورد {supplier_instance.name} بمبلغ {payment_amount}",
-    #     )
-
-    #     return Response({"status": "sucess"}, 200)
+        return Response({"status": "sucess"}, 200)
 
     def get(Self, request: Request, format=None):
         # client_id = request.GET.get("client_id")

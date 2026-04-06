@@ -18,9 +18,7 @@ class ClientsSerializer(ModelSerializer):
             "total_balance_owed_to_us",
             "total_remaining_balance_owed_to_us",
         ]
-        read_only_fields = (
-            "total_paid_amount",
-        )
+        read_only_fields = ("total_paid_amount",)
         extra_kwargs = {"email": {"required": False}}
 
     def validate_profile_picture(self, value):
@@ -30,7 +28,9 @@ class ClientsSerializer(ModelSerializer):
         # File size validation (5MB)
         max_size = 5 * 1024 * 1024
         if value.size > max_size:
-            raise serializers.ValidationError("Image file too large. Maximum size is 5MB.")
+            raise serializers.ValidationError(
+                "Image file too large. Maximum size is 5MB."
+            )
 
         # File extension validation
         valid_extensions = [".jpg", ".jpeg", ".png", ".webp"]
@@ -48,7 +48,10 @@ class ClientsSerializer(ModelSerializer):
             "image/png",
             "image/webp",
         ]
-        if hasattr(value, "content_type") and value.content_type not in valid_content_types:
+        if (
+            hasattr(value, "content_type")
+            and value.content_type not in valid_content_types  # noqa
+        ):
             raise serializers.ValidationError("Invalid image format.")
 
         return value
@@ -62,8 +65,20 @@ class ClientUpdateSerializer(ModelSerializer):
             "name",
             "phone",
             "email",
-            
         ]
-        
-        extra_kwargs = {"email": {"required": False},"phone": {"required": False},"name": {"required": False}}
 
+        extra_kwargs = {
+            "email": {"required": False},
+            "phone": {"required": False},
+            "name": {"required": False},
+        }
+
+
+class ProjectPaymentSerializer(ModelSerializer):
+    class Meta:
+        model = models.ProjectPayment
+        fields = "__all__"
+        extra_kwargs = {
+            "client_fk": {"required": False},
+            "project_fk": {"required": False},
+        }

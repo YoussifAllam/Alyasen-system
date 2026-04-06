@@ -56,10 +56,13 @@ def get_client_CPB(project_id: int, project_type: str):
 
 
 def get_client_payments_instances_by_CPB(project_id: int, project_type: str):
+    print("-----------", project_type)
     try:
         if project_type == "campaine" or project_type == "حملة":
+            print("campaine")
             CPB_obj = ClientProjectBalance.objects.get(campaine_fk=project_id)
         else:
+            print("project")
             CPB_obj = ClientProjectBalance.objects.get(project_fk=project_id)
 
         return CPB_obj.payments.all()
