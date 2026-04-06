@@ -414,37 +414,19 @@ class ClientProfileUI(QWidget):
         else:
             QMessageBox.warning(self, "خطأ", "لم يتم العثور على كود المشروع المختار.")
             return
-        dialog = PaymentDialog(p_id, self)
+        p_type_item = self.table.item(selected_row, 2)
+        if p_type_item:
+            p_type_text = p_type_item.text().strip()
+            p_type = "campaine" if p_type_text == "حملة" else "project"
+        else:
+            p_type = "project"
+
+        dialog = PaymentDialog(p_id, p_type, self)
         if dialog.exec_() == QDialog.Accepted:
-            data = dialog.get_data()
-            amount_str = data.get("payment_amount")
-            try:
-                amount = float(amount_str)
-                if amount <= 0:
-                    QMessageBox.warning(
-                        self, "خطأ", "يجب أن يكون المبلغ المدفوع رقمًا موجبًا."
-                    )
-                    return
-            except (ValueError, TypeError):
-                QMessageBox.warning(self, "خطأ", "الرجاء إدخال مبلغ صحيح.")
-                return
-            settings = QSettings("FactorySystem")
-            username = settings.value("user_name", "system")
-            form_data = {
-                "client_id": str(self.client_id) if self.client_id else "",
-                "project_id": str(p_id),
-                "payment_amount": amount_str,
-                "note": data.get("notes", ""),
-                "payment_date": data.get("payment_date", ""),
-                "payment_type": data.get("payment_type", ""),
-                "portal_invoice_number": data.get("portal_invoice_number", ""),
-                "username": username,
-            }
-            files = {}
-            if data.get("portal_invoice_file"):
-                files["portal_invoice_file"] = data.get("portal_invoice_file")
-            url = f"{BACKEND_BASE_URL}/clients/projects/payments/"
-            self._start_post_request(url, data=form_data, files=files)
+            QMessageBox.information(self, "نجاح", "تم تسجيل الدفعة بنجاح.")
+            if self.client_id:
+                url = f"{BACKEND_BASE_URL}/clients/info/?id={self.client_id}"
+                self._start_info_fetch_request(url)
 
     def _start_post_request(self, url, payload):
         self._set_loading(True)

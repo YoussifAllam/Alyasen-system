@@ -12,14 +12,72 @@ from PyQt5.QtWidgets import (
     QDateEdit,
     QFileDialog,
     QComboBox,
+    QMessageBox,
 )
-from PyQt5.QtCore import Qt, QPoint, QDate
+from PyQt5.QtCore import (
+    Qt,
+    QPoint,
+    QDate,
+    QObject,
+    pyqtSignal,
+    pyqtSlot,
+    QThread,
+    QSettings,
+)
+from requests import request
 import qtawesome as qta
+from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+
+
+class ApiWorker(QObject):
+    finished = pyqtSignal()
+    success = pyqtSignal(dict)
+    error = pyqtSignal(str)
+
+    def __init__(self, method, url, data=None, files=None):
+        super().__init__()
+        self.method = method
+        self.url = url
+        self.data = data
+        self.files = files
+
+    @pyqtSlot()
+    def run(self):
+        try:
+            kwargs = {}
+            if self.data:
+                kwargs["data"] = self.data
+
+            opened_files = {}
+            if self.files:
+                for key, path in self.files.items():
+                    try:
+                        opened_files[key] = open(path, "rb")
+                    except Exception:
+                        pass
+                if opened_files:
+                    kwargs["files"] = opened_files
+
+            response = request(self.method, self.url, timeout=15, **kwargs)
+
+            for file_obj in opened_files.values():
+                file_obj.close()
+
+            if response.status_code in [200, 201]:
+                self.success.emit(response.json())
+            else:
+                self.error.emit(f"خطأ: {response.text}")
+        except Exception as e:
+            self.error.emit(f"{e}")
+        finally:
+            self.finished.emit()
 
 
 class PaymentDialog(QDialog):
-    def __init__(self, supplier_id, parent=None):
+    def __init__(self, project_id, project_type, parent=None):
         super().__init__(parent)
+        self.project_id = project_id
+        self.project_type = project_type
         self.setWindowTitle("تسديد مبلغ للفاتورة")
         self.setMinimumSize(600, 600)
         self.setModal(True)
@@ -41,7 +99,7 @@ class PaymentDialog(QDialog):
         title_bar_layout = QHBoxLayout(self.title_bar)
         title_bar_layout.setContentsMargins(15, 0, 5, 0)
 
-        title_text = QLabel(f"تسديد دفعة للمورد رقم: {supplier_id}")
+        title_text = QLabel(f"تسديد دفعة للمشروع رقم: {project_id}")
         title_text.setObjectName("titleBarText")
 
         close_button = QPushButton()
@@ -119,14 +177,14 @@ class PaymentDialog(QDialog):
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
-        save_button = QPushButton("حفظ")
-        save_button.setObjectName("primaryButton")
-        save_button.clicked.connect(self.accept)
+        self.save_button = QPushButton("حفظ")
+        self.save_button.setObjectName("primaryButton")
+        self.save_button.clicked.connect(self.handle_save)
 
         cancel_button = QPushButton("إلغاء")
         cancel_button.clicked.connect(self.reject)
 
-        button_layout.addWidget(save_button)
+        button_layout.addWidget(self.save_button)
         button_layout.addWidget(cancel_button)
 
         content_layout.addLayout(button_layout)
@@ -145,6 +203,63 @@ class PaymentDialog(QDialog):
         else:
             self.check_date_label.hide()
             self.check_date_input.hide()
+
+    def handle_save(self):
+        amount_str = self.amount_input.text().strip()
+        try:
+            amount = float(amount_str)
+            if amount <= 0:
+                QMessageBox.warning(
+                    self, "خطأ", "يجب أن يكون المبلغ المدفوع رقمًا موجبًا."
+                )
+                return
+        except ValueError:
+            QMessageBox.warning(self, "خطأ", "الرجاء إدخال مبلغ صحيح.")
+            return
+
+        settings = QSettings("FactorySystem")
+        username = settings.value("user_name", "system")
+
+        form_data = {
+            "project_id": str(self.project_id),
+            "project_type": str(self.project_type),
+            "payment_amount": amount_str,
+            "payment_date": self.date_input.date().toString("yyyy-MM-dd"),
+            "payment_type": self.payment_type_combo.currentData(),
+            "notes": self.notes_input.toPlainText().strip(),
+            "portal_invoice_number": self.invoice_number_input.text().strip(),
+            "user_name": username,
+        }
+
+        # If check, include check_date
+        if self.payment_type_combo.currentData() == "check":
+            form_data["check_date"] = self.check_date_input.date().toString(
+                "yyyy-MM-dd"
+            )
+
+        files = {}
+        if self.file_path:
+            files["portal_invoice_file"] = self.file_path
+
+        url = f"{BACKEND_BASE_URL}/clients/projects/payments/"
+
+        self.post_thread = QThread()
+        self.post_worker = ApiWorker("POST", url, data=form_data, files=files)
+        self.post_worker.moveToThread(self.post_thread)
+        self.post_thread.started.connect(self.post_worker.run)
+        self.post_worker.success.connect(self.on_success)
+        self.post_worker.error.connect(self.on_error)
+        self.post_worker.finished.connect(self.post_thread.quit)
+
+        self.save_button.setEnabled(False)
+        self.post_thread.start()
+
+    def on_success(self, response_data):
+        self.accept()
+
+    def on_error(self, message):
+        self.save_button.setEnabled(True)
+        QMessageBox.critical(self, "خطأ في الاتصال", message)
 
     def get_data(self):
         """Returns the data entered in the dialog."""
