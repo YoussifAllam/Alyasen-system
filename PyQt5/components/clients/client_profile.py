@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QThread, QSettings, pyqtSlot
 from requests import request, get, exceptions
+from PyQt5.QtGui import QBrush, QColor
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
 from .update_client_data_dialog import UpdateClientDataDialog
@@ -97,10 +98,22 @@ class ClientProfileUI(QWidget):
         top_layout.addWidget(actions_card)
         main_layout.addLayout(top_layout)
         self.table = QTableWidget()
-        self.table.setColumnCount(6)
-        headers = ["كود ", "اسم ", "نوع ", "تكلفة ", "حالة ", ""]
+        self.table.setColumnCount(8)
+        headers = [
+            "كود ",
+            "اسم ",
+            "نوع ",
+            "تكلفة ",
+            "المدفوع ",
+            "المتبقي ",
+            "حالة ",
+            "",
+        ]
         self.table.setHorizontalHeaderLabels(headers)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeToContents
+        )
         self.table.verticalHeader().setDefaultSectionSize(70)
 
         self.table.setHorizontalScrollBarPolicy(
@@ -302,6 +315,7 @@ class ClientProfileUI(QWidget):
         self.prev_page_url = data.get("previous")
 
         for row_idx, item in enumerate(all_items):
+
             self.table.insertRow(row_idx)
             is_campaign = "total_cost" in item
 
@@ -309,6 +323,8 @@ class ClientProfileUI(QWidget):
             name = str(item.get("name", ""))
             item_type = str(item.get("project_type", ""))
             cost = item.get("total_cost") if is_campaign else item.get("cost")
+            paid = item.get("paid")
+            remining = item.get("remining")
             status = str(item.get("project_status", ""))
 
             idx_item = QTableWidgetItem(str(row_idx + 1))
@@ -332,7 +348,36 @@ class ClientProfileUI(QWidget):
             cost_item = QTableWidgetItem(cost_value)
             cost_item.setTextAlignment(Qt.AlignCenter)
 
-            status_item = QTableWidgetItem(status)
+            paid_value = "0.00"
+            if paid is not None:
+                try:
+                    paid_value = f"{float(paid):,.2f}"
+                except (ValueError, TypeError):
+                    paid_value = str(paid)
+            paid_item = QTableWidgetItem(paid_value)
+            paid_item.setTextAlignment(Qt.AlignCenter)
+
+            remining_value = "0.00"
+            if remining is not None:
+                try:
+                    remining_value = f"{float(remining):,.2f}"
+                except (ValueError, TypeError):
+                    remining_value = str(remining)
+            remining_item = QTableWidgetItem(remining_value)
+            remining_item.setTextAlignment(Qt.AlignCenter)
+
+            status = item.get("project_status", "")
+            status_text = (
+                "نشط"
+                if status == "active"
+                else "غير نشط" if status == "inactive" else status
+            )
+
+            status_item = QTableWidgetItem(status_text)
+            if status == "active":
+                status_item.setForeground(QBrush(QColor("#10b981")))
+            elif status == "inactive":
+                status_item.setForeground(QBrush(QColor("#ef4444")))
             status_item.setTextAlignment(Qt.AlignCenter)
 
             btn_details = QPushButton("عرض التفاصيل")
@@ -349,8 +394,10 @@ class ClientProfileUI(QWidget):
             self.table.setItem(row_idx, 1, name_item)
             self.table.setItem(row_idx, 2, type_item)
             self.table.setItem(row_idx, 3, cost_item)
-            self.table.setItem(row_idx, 4, status_item)
-            self.table.setCellWidget(row_idx, 5, btn_details)
+            self.table.setItem(row_idx, 4, paid_item)
+            self.table.setItem(row_idx, 5, remining_item)
+            self.table.setItem(row_idx, 6, status_item)
+            self.table.setCellWidget(row_idx, 7, btn_details)
 
         self.update_pagination_controls()
 
