@@ -8,9 +8,11 @@ from apps.TransactionsLog.tasks.celery_tasks import create_transaction_log
 
 def increase_safe_balance(amount: float, client_name: str):
     safe_instance, created = Safe.objects.get_or_create(id=1)
-    safe_instance.balance -= amount
+    safe_instance.balance += amount
     safe_instance.save()
-    add_safe_log.delay(transaction=f" تم سحب دفعه للمورد {client_name} بمبلغ {amount}")
+    add_safe_log.delay(
+        transaction=f" تم تحصيل دفعه من العميل {client_name} بمبلغ {amount}"
+    )
 
 
 # def update_client_balance(
