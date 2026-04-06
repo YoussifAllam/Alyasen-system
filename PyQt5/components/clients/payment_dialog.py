@@ -27,6 +27,12 @@ from PyQt5.QtCore import (
 from requests import request
 import qtawesome as qta
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..validation import (
+    validate_positive_number,
+    validate_combo_selected,
+    run_validations,
+    _clear_errors,
+)
 
 
 class ApiWorker(QObject):
@@ -205,17 +211,17 @@ class PaymentDialog(QDialog):
             self.check_date_input.hide()
 
     def handle_save(self):
-        amount_str = self.amount_input.text().strip()
-        try:
-            amount = float(amount_str)
-            if amount <= 0:
-                QMessageBox.warning(
-                    self, "خطأ", "يجب أن يكون المبلغ المدفوع رقمًا موجبًا."
-                )
-                return
-        except ValueError:
-            QMessageBox.warning(self, "خطأ", "الرجاء إدخال مبلغ صحيح.")
+        fields = [self.payment_type_combo, self.amount_input]
+        _clear_errors(fields)
+
+        validations = [
+            validate_combo_selected(self.payment_type_combo, "طريقة الدفع"),
+            validate_positive_number(self.amount_input, "المبلغ المدفوع"),
+        ]
+        if not run_validations(self, validations):
             return
+
+        amount_str = self.amount_input.text().strip()
 
         settings = QSettings("FactorySystem")
         username = settings.value("user_name", "system")

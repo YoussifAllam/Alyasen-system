@@ -21,6 +21,12 @@ from urllib.parse import urlencode
 # We'll assume the base URL is in a constant file for good practice
 from .Main_Ui_Components.constant import BACKEND_BASE_URL
 from requests import request, exceptions
+from .validation import (
+    validate_not_empty,
+    validate_positive_number,
+    run_validations,
+    _clear_errors,
+)
 
 
 class ExpenseFetcherWorker(QObject):
@@ -258,13 +264,19 @@ class ExpensesUI(QWidget):
         self.month_count_display.setText(str(data.get("month_count", 0)))
 
     def handle_add_expense(self):
+        fields = [self.name_input, self.amount_input]
+        _clear_errors(fields)
+
+        validations = [
+            validate_not_empty(self.name_input, "الاسم"),
+            validate_positive_number(self.amount_input, "المبلغ"),
+        ]
+        if not run_validations(self, validations):
+            return
+
         transaction = self.name_input.text().strip()
         amount = self.amount_input.text().strip()
         notes = self.notes_input.toPlainText().strip()
-        # permit_number = self.permit_input.text().strip() <-- Removed
-        if not transaction or not amount:
-            QMessageBox.warning(self, "خطأ", "الرجاء إدخال الاسم والمبلغ على الأقل.")
-            return
         payload = {
             "transaction": transaction,
             "amount": amount,

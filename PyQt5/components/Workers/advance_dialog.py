@@ -20,6 +20,11 @@ import qtawesome as qta
 from requests import request, exceptions
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..validation import (
+    validate_positive_number,
+    run_validations,
+    _clear_errors,
+)
 
 
 class AdvanceApiWorker(QObject):
@@ -139,14 +144,14 @@ class AdvanceDialog(QDialog):
         self.fetch_advances()
 
     def handle_add_advance(self):
-        amount_str = self.amount_input.text().strip()
-        try:
-            amount = float(amount_str)
-            if amount <= 0:
-                raise ValueError
-        except (ValueError, TypeError):
-            QMessageBox.warning(self, "خطأ", "الرجاء إدخال مبلغ سلفة صحيح وموجب.")
+        _clear_errors([self.amount_input])
+        validations = [
+            validate_positive_number(self.amount_input, "مبلغ السلفة"),
+        ]
+        if not run_validations(self, validations):
             return
+
+        amount = float(self.amount_input.text().strip())
 
         settings = QSettings("FactorySystem")
         username = settings.value("user_name", "unknown_user")

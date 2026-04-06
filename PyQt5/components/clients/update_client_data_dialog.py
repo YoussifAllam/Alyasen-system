@@ -14,6 +14,13 @@ import qtawesome as qta
 from requests import request, exceptions
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..validation import (
+    validate_not_empty,
+    validate_phone,
+    validate_optional_email,
+    run_validations,
+    _clear_errors,
+)
 
 
 class ClientUpdateWorker(QObject):
@@ -40,7 +47,9 @@ class ClientUpdateWorker(QObject):
             if response.status_code in [200, 201]:
                 self.success.emit(response.json())
             else:
-                self.error.emit(f"خطأ من الخادم: {response.status_code}\n{response.text}")
+                self.error.emit(
+                    f"خطأ من الخادم: {response.status_code}\n{response.text}"
+                )
         except exceptions.RequestException:
             self.error.emit("فشل الاتصال بالخادم.")
         finally:
@@ -61,9 +70,9 @@ class UpdateClientDataDialog(QDialog):
 
         container = QFrame()
         container.setObjectName("dialogContainer")
-        # Apply style directly if needed or rely on global stylesheet. 
+        # Apply style directly if needed or rely on global stylesheet.
         # Assuming global stylesheet handles #dialogContainer
-        
+
         main_layout = QVBoxLayout(container)
         main_layout.setContentsMargins(1, 1, 1, 1)
         main_layout.setSpacing(0)
@@ -126,25 +135,32 @@ class UpdateClientDataDialog(QDialog):
         self.old_pos = None
 
     def handle_save(self):
+        fields = [self.name_input, self.phone_input, self.email_input]
+        _clear_errors(fields)
+
+        validations = [
+            validate_not_empty(self.name_input, "الاسم"),
+            validate_phone(self.phone_input, "رقم الهاتف"),
+            validate_optional_email(self.email_input, "البريد الإلكتروني"),
+        ]
+        if not run_validations(self, validations):
+            return
+
         name = self.name_input.text().strip()
         phone = self.phone_input.text().strip()
         email = self.email_input.text().strip()
-
-        if not name:
-            QMessageBox.warning(self, "خطأ", "الاسم مطلوب.")
-            return
 
         settings = QSettings("FactorySystem")
         username = settings.value("user_name", "unknown_user")
 
         payload = {
-            'client_id': self.client_id,
-            'name': name,
-            'phone': phone,
-            'email': email,
-            'username': username
+            "client_id": self.client_id,
+            "name": name,
+            "phone": phone,
+            "email": email,
+            "username": username,
         }
-        
+
         # Using the base clients endpoint provided by user instructions
         url = f"{BACKEND_BASE_URL}/clients/clients/"
         self._start_update_request(url, payload)
@@ -178,7 +194,11 @@ class UpdateClientDataDialog(QDialog):
             self.old_pos = event.globalPos()
 
     def mouseMoveEvent(self, event):
-        if hasattr(self, "old_pos") and self.old_pos and event.buttons() == Qt.LeftButton:
+        if (
+            hasattr(self, "old_pos")
+            and self.old_pos
+            and event.buttons() == Qt.LeftButton
+        ):
             delta = QPoint(event.globalPos() - self.old_pos)
             self.move(self.x() + delta.x(), self.y() + delta.y())
             self.old_pos = event.globalPos()

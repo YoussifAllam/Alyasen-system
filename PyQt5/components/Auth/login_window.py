@@ -29,6 +29,12 @@ from PyQt5.QtCore import (
 
 from .signup_widget import SignupWidget
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL, BASE_DIR
+from ..validation import (
+    validate_email,
+    validate_min_length,
+    run_validations,
+    _clear_errors,
+)
 
 
 class LoginWidget(QFrame):
@@ -211,6 +217,14 @@ class LoginWidget(QFrame):
         self._thread.start()
 
     def handle_login(self):
+        _clear_errors([self.email_input, self.password_input])
+        validations = [
+            validate_email(self.email_input, "البريد الإلكتروني"),
+            validate_min_length(self.password_input, "كلمة المرور", 6),
+        ]
+        if not run_validations(self, validations):
+            return
+
         url = f"{BACKEND_BASE_URL}/registertion/user/login/"
         payload = {
             "email": self.email_input.text().strip(),

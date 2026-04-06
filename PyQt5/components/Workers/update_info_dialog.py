@@ -18,6 +18,13 @@ import qtawesome as qta
 from requests import request, exceptions
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..validation import (
+    validate_not_empty,
+    validate_phone,
+    validate_non_negative_number,
+    run_validations,
+    _clear_errors,
+)
 
 
 class UpdateWorkerApiWorker(QObject):
@@ -138,13 +145,18 @@ class UpdateWorkerDialog(QDialog):
 
     def handle_save(self):
         """Validates inputs and starts the update API request."""
-        try:
-            daily_salary = float(self.daily_salary_input.text().strip())
-            if daily_salary < 0:
-                raise ValueError
-        except (ValueError, TypeError):
-            QMessageBox.warning(self, "خطأ", "الرجاء إدخال راتب يومي صالح.")
+        fields = [self.name_input, self.phone_input, self.daily_salary_input]
+        _clear_errors(fields)
+
+        validations = [
+            validate_not_empty(self.name_input, "الاسم"),
+            validate_phone(self.phone_input, "رقم الهاتف"),
+            validate_non_negative_number(self.daily_salary_input, "الراتب اليومي"),
+        ]
+        if not run_validations(self, validations):
             return
+
+        daily_salary = float(self.daily_salary_input.text().strip())
 
         settings = QSettings("FactorySystem")
         username = settings.value("user_name", "unknown_user")

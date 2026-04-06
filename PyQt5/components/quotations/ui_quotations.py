@@ -18,6 +18,12 @@ from PyQt5.QtCore import Qt, QDate, QObject, QThread, pyqtSignal, pyqtSlot
 from requests import request, exceptions
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
 from .quotation_attachments_dialog import QuotationAttachmentsDialog
+from ..validation import (
+    validate_not_empty,
+    validate_positive_number,
+    run_validations,
+    _clear_errors,
+)
 
 
 class QuotationApiWorker(QObject):
@@ -214,13 +220,18 @@ class QuotationsUI(QWidget):
             )
 
     def handle_add_quotation(self):
-        client_name = self.client_name_input.text().strip()
-        if not client_name:
-            QMessageBox.warning(self, "خطأ", "الرجاء إدخال اسم العميل.")
+        fields = [self.client_name_input, self.price_input]
+        _clear_errors(fields)
+
+        validations = [
+            validate_not_empty(self.client_name_input, "اسم العميل"),
+            validate_positive_number(self.price_input, "السعر"),
+        ]
+        if not run_validations(self, validations):
             return
 
         payload = {
-            "client_name": client_name,
+            "client_name": self.client_name_input.text().strip(),
             "company_name": self.company_name_input.text().strip(),
             "price": self.price_input.text().strip(),
             "details": self.details_input.toPlainText().strip(),

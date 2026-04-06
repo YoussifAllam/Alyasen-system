@@ -11,6 +11,14 @@ from PyQt5.QtCore import pyqtSignal, Qt, QObject, QThread, pyqtSlot
 from requests import request, exceptions
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..validation import (
+    validate_not_empty,
+    validate_email,
+    validate_min_length,
+    validate_password_match,
+    run_validations,
+    _clear_errors,
+)
 
 
 class SignupWidget(QFrame):
@@ -35,14 +43,22 @@ class SignupWidget(QFrame):
         form_layout = QVBoxLayout()
         form_layout.setSpacing(15)
 
-        self.name_input = QLineEdit(placeholderText="الاسم بالكامل", objectName="inputField")
-        self.email_input = QLineEdit(placeholderText="البريد الإلكتروني", objectName="inputField")
+        self.name_input = QLineEdit(
+            placeholderText="الاسم بالكامل", objectName="inputField"
+        )
+        self.email_input = QLineEdit(
+            placeholderText="البريد الإلكتروني", objectName="inputField"
+        )
         self.password_input = QLineEdit(
-            placeholderText="كلمة المرور", echoMode=QLineEdit.Password, objectName="inputField"
+            placeholderText="كلمة المرور",
+            echoMode=QLineEdit.Password,
+            objectName="inputField",
         )
         # --- ADDED: Confirm Password Field ---
         self.confirm_password_input = QLineEdit(
-            placeholderText="تأكيد كلمة المرور", echoMode=QLineEdit.Password, objectName="inputField"
+            placeholderText="تأكيد كلمة المرور",
+            echoMode=QLineEdit.Password,
+            objectName="inputField",
         )
 
         # --- New User Type Selection Design ---
@@ -58,8 +74,12 @@ class SignupWidget(QFrame):
         self.btn_admin.setCheckable(True)
         self.btn_admin.setObjectName("userTypeButton")
 
-        self.btn_accountant.clicked.connect(lambda: self.handle_user_type_selection(self.btn_accountant))
-        self.btn_admin.clicked.connect(lambda: self.handle_user_type_selection(self.btn_admin))
+        self.btn_accountant.clicked.connect(
+            lambda: self.handle_user_type_selection(self.btn_accountant)
+        )
+        self.btn_admin.clicked.connect(
+            lambda: self.handle_user_type_selection(self.btn_admin)
+        )
 
         self.user_type_group.addWidget(self.btn_admin)
         self.user_type_group.addWidget(self.btn_accountant)
@@ -114,7 +134,9 @@ class SignupWidget(QFrame):
         user_type = "Accountant" if self.btn_accountant.isChecked() else "Admin"
         return name, email, user_type, password, confirm_password
 
-    def validation_signup_parameters(self, name, email, password, confirm_password) -> bool:
+    def validation_signup_parameters(
+        self, name, email, password, confirm_password
+    ) -> bool:
         if not all([name, email, password, confirm_password]):
             QMessageBox.warning(self, "خطأ", "الرجاء ملء جميع الحقول.")
             return False
@@ -122,8 +144,25 @@ class SignupWidget(QFrame):
 
     def handle_signup(self):
         """Validates form and shows a standard QMessageBox."""
-        name, email, user_type, password, confirm_password = self.get_signup_parametrs_from_ui()
-        if not self.validation_signup_parameters(name, email, password, confirm_password):
+        fields = [
+            self.name_input,
+            self.email_input,
+            self.password_input,
+            self.confirm_password_input,
+        ]
+        _clear_errors(fields)
+
+        name, email, user_type, password, confirm_password = (
+            self.get_signup_parametrs_from_ui()
+        )
+
+        validations = [
+            validate_not_empty(self.name_input, "الاسم"),
+            validate_email(self.email_input, "البريد الإلكتروني"),
+            validate_min_length(self.password_input, "كلمة المرور", 6),
+            validate_password_match(self.password_input, self.confirm_password_input),
+        ]
+        if not run_validations(self, validations):
             return
 
         url = f"{BACKEND_BASE_URL}/registertion/users/"
@@ -199,7 +238,9 @@ class SignupWidget(QFrame):
 
         def on_success():
             self._set_loading(False)
-            QMessageBox.information(self, "تم إرسال الطلب", "من فضلك انتظر حتى يوافق الادمن على طلب إضافتك.")
+            QMessageBox.information(
+                self, "تم إرسال الطلب", "من فضلك انتظر حتى يوافق الادمن على طلب إضافتك."
+            )
             self.back_to_login_requested.emit()
 
         def on_error(message: str):

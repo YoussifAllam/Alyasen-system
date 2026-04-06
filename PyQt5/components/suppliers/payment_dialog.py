@@ -14,6 +14,11 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QPoint, QDate
 import qtawesome as qta
+from ..validation import (
+    validate_positive_number,
+    run_validations,
+    _clear_errors,
+)
 
 
 class PaymentDialog(QDialog):
@@ -100,7 +105,7 @@ class PaymentDialog(QDialog):
 
         save_button = QPushButton("حفظ")
         save_button.setObjectName("primaryButton")
-        save_button.clicked.connect(self.accept)
+        save_button.clicked.connect(self.handle_save)
 
         cancel_button = QPushButton("إلغاء")
         cancel_button.clicked.connect(self.reject)
@@ -116,6 +121,16 @@ class PaymentDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.addWidget(container)
         self.old_pos = None
+
+    def handle_save(self):
+        """Validates inputs before accepting the dialog."""
+        _clear_errors([self.amount_input])
+        validations = [
+            validate_positive_number(self.amount_input, "المبلغ المدفوع"),
+        ]
+        if not run_validations(self, validations):
+            return
+        self.accept()
 
     def get_data(self):
         """Returns the data entered in the dialog."""

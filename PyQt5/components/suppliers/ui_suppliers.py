@@ -20,6 +20,14 @@ from urllib.parse import urlencode
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
 from .supplier_profile import SupplierProfileUI
+from ..validation import (
+    validate_not_empty,
+    validate_phone,
+    validate_optional_email,
+    validate_positive_number,
+    run_validations,
+    _clear_errors,
+)
 
 
 class SupplierApiWorker(QObject):
@@ -281,19 +289,23 @@ class SuppliersUI(QWidget):
             )
 
     def handle_add_supplier(self):
+        fields = [self.name_input, self.phone_input, self.email_input, self.total_amount_due_input]
+        _clear_errors(fields)
+
+        validations = [
+            validate_not_empty(self.name_input, "اسم المورد"),
+            validate_phone(self.phone_input, "رقم الهاتف"),
+            validate_optional_email(self.email_input, "البريد الإلكتروني"),
+            validate_positive_number(self.total_amount_due_input, "إجمالي المطلوب دفعه"),
+        ]
+        if not run_validations(self, validations):
+            return
+
         name = self.name_input.text().strip()
         phone = self.phone_input.text().strip()
         email = self.email_input.text().strip()
         total_amount_due = self.total_amount_due_input.text().strip()
         total_amount_payable = self.total_amount_due_input.text().strip()
-
-        if not name or not phone or not total_amount_due or not total_amount_payable:
-            QMessageBox.warning(
-                self,
-                "خطأ",
-                "الرجاء إدخال اسم المورد ورقم الهاتف و إجمالي المطلوب دفعه على الأقل.",
-            )
-            return
 
         settings = QSettings("FactorySystem")
         username = settings.value("user_name", "unknown_user")

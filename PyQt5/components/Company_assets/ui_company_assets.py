@@ -19,6 +19,12 @@ from requests import request, exceptions
 from urllib.parse import urlencode
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..validation import (
+    validate_not_empty,
+    validate_optional_number,
+    run_validations,
+    _clear_errors,
+)
 
 # from .machien_profile import MachineProfileUI
 
@@ -218,13 +224,19 @@ class CompanyAssetsUI(QWidget):
             )
 
     def handle_add_machine(self):
+        fields = [self.name_input, self.price_input]
+        _clear_errors(fields)
+
+        validations = [
+            validate_not_empty(self.name_input, "الاسم"),
+            validate_optional_number(self.price_input, "السعر"),
+        ]
+        if not run_validations(self, validations):
+            return
+
         name = self.name_input.text().strip()
         price = self.price_input.text().strip()
         details = self.details_input.text().strip()
-        
-        if not name:
-            QMessageBox.warning(self, "خطأ", "الرجاء إدخال اسم .")
-            return
             
         settings = QSettings("FactorySystem")
         username = settings.value("user_name", "unknown_user")

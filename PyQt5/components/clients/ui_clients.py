@@ -19,6 +19,14 @@ from requests import request, exceptions
 from urllib.parse import urlencode
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..validation import (
+    validate_not_empty,
+    validate_phone,
+    validate_optional_email,
+    validate_positive_number,
+    run_validations,
+    _clear_errors,
+)
 
 from .client_profile import ClientProfileUI
 from ..projects.ui_rent_project import RentProjectPage
@@ -274,18 +282,22 @@ class ClientsUI(QWidget):
 
     def handle_add_client(self):
         """Validates form data and starts the POST request."""
+        fields = [self.name_input, self.phone_input, self.email_input, self.total_balance_owed_to_us_input]
+        _clear_errors(fields)
+
+        validations = [
+            validate_not_empty(self.name_input, "اسم العميل"),
+            validate_phone(self.phone_input, "رقم الهاتف"),
+            validate_optional_email(self.email_input, "البريد الإلكتروني"),
+            validate_positive_number(self.total_balance_owed_to_us_input, "مبلغ مدينية العميل"),
+        ]
+        if not run_validations(self, validations):
+            return
+
         name = self.name_input.text().strip()
         phone = self.phone_input.text().strip()
         email = self.email_input.text().strip()
         total_balance_owed_to_us = self.total_balance_owed_to_us_input.text().strip()
-
-        if not name or not phone or not total_balance_owed_to_us:
-            QMessageBox.warning(
-                self,
-                "خطأ",
-                "الرجاء إدخال اسم العميل ورقم الهاتف و اجمالي المستحق لنا على الأقل.",
-            )
-            return
 
         username = self.settings.value("user_name", "unknown_user")
 

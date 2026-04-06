@@ -14,6 +14,12 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QObject, pyqtSlot, QSettings, QPoint
 from requests import request, exceptions
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..validation import (
+    validate_not_empty,
+    validate_combo_selected,
+    run_validations,
+    _clear_errors,
+)
 
 
 class ApiWorker(QObject):
@@ -275,12 +281,21 @@ class AddCampaignDialog(QDialog):
         self.total_label.setText(f"إجمالي التكلفة: {total:,.2f} SAR")
 
     def handle_save(self):
+        _clear_errors([self.name_input, self.client_combo])
+
+        validations = [
+            validate_not_empty(self.name_input, "اسم الحملة"),
+            validate_combo_selected(self.client_combo, "العميل"),
+        ]
+        if not run_validations(self, validations):
+            return
+
+        if not self.rows:
+            QMessageBox.warning(self, "خطأ", "يرجى إضافة مورد واحد على الأقل.")
+            return
+
         name = self.name_input.text().strip()
         client_id = self.client_combo.currentData()
-
-        if not name or not client_id or not self.rows:
-            QMessageBox.warning(self, "خطأ", "يرجى تعبئة جميع البيانات.")
-            return
         items_data = []
         for row in self.rows:
             data = row.get_data()
