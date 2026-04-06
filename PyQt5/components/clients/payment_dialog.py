@@ -232,6 +232,7 @@ class PaymentDialog(QDialog):
             "payment_amount": amount_str,
             "payment_date": self.date_input.date().toString("yyyy-MM-dd"),
             "payment_type": self.payment_type_combo.currentData(),
+            "check_cleared_date": self.check_date_input.date().toString("yyyy-MM-dd"),
             "notes": self.notes_input.toPlainText().strip(),
             "portal_invoice_number": self.invoice_number_input.text().strip(),
             "user_name": username,

@@ -91,17 +91,21 @@ class InvoicePaymentDetailsDialog(QDialog):
 
         # Table
         self.table = QTableWidget()
-        self.table.setColumnCount(6)
+        self.table.setColumnCount(7)
         headers = [
             "رقم الفاتورة",
             "المبلغ المدفوع",
             "تاريخ الدفعة",
             "ملاحظات",
             "طريقة الدفع",
+            "تاريخ استلام الشيك",
             "",
         ]
         self.table.setHorizontalHeaderLabels(headers)
-        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.Stretch)
+
+        self.table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeToContents
+        )
         self.table.horizontalHeader().setSectionResizeMode(
             1, QHeaderView.ResizeToContents
         )
@@ -115,12 +119,13 @@ class InvoicePaymentDetailsDialog(QDialog):
             4, QHeaderView.ResizeToContents
         )
         self.table.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.ResizeToContents
+            5, QHeaderView.ResizeToContents
         )
+        self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.Fixed)
+        self.table.setColumnWidth(6, 200)
+
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.table.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarAsNeeded
-        )  # or Qt.ScrollBarAlwaysOn
+        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.table.verticalHeader().setDefaultSectionSize(80)
         content_layout.addWidget(self.table, 1)
 
@@ -161,6 +166,7 @@ class InvoicePaymentDetailsDialog(QDialog):
             date = payment.get("payment_date", "")
             notes = payment.get("notes") or ""
             payment_type = payment.get("payment_type", "")
+            check_cleared_date = payment.get("check_cleared_date", "")
             # file = payment.get("portal_invoice_file", "")
 
             items = [
@@ -169,6 +175,7 @@ class InvoicePaymentDetailsDialog(QDialog):
                 QTableWidgetItem(date),
                 QTableWidgetItem(notes),
                 QTableWidgetItem(payment_type),
+                QTableWidgetItem(check_cleared_date),
                 # QTableWidgetItem(file),
             ]
 
@@ -183,11 +190,11 @@ class InvoicePaymentDetailsDialog(QDialog):
                 btn_view.clicked.connect(
                     lambda checked, url=file_url: self.open_file_url(url)
                 )
-                self.table.setCellWidget(row_pos, 5, btn_view)
+                self.table.setCellWidget(row_pos, 6, btn_view)
             else:
                 empty_item = QTableWidgetItem("لا يوجد ملف")
                 empty_item.setTextAlignment(Qt.AlignCenter)
-                self.table.setItem(row_pos, 5, empty_item)
+                self.table.setItem(row_pos, 6, empty_item)
 
     def open_file_url(self, url):
         QDesktopServices.openUrl(QUrl(url))
