@@ -91,23 +91,22 @@ class InovicePaymentApiView(APIView):
         project_id = request.data["project_id"]
         project_type = request.data["project_type"]
         payment_amount = float(request.data["payment_amount"])
+        user_name = request.data["user_name"]
 
-        project_instance = selectors.get_client_CPB(project_id, project_type)
+        CPB_instance = selectors.get_client_CPB(project_id, project_type)
 
-        if payment_amount > project_instance.remining:
+        if payment_amount > CPB_instance.remining:
             return Response({"حطأ": "المبلغ المدفوع اكبر من المتبقي "}, 400)
 
-        services.client_payment(project_instance, payment_amount)
-        services.update_project_balance(project_instance, payment_amount)
+        services.client_payment(CPB_instance.client_fk.id, payment_amount, user_name)
+        services.update_project_balance(CPB_instance, payment_amount)
 
         serializer = InputSerializers.ProjectPaymentSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(
                 {"status": "faild", "errors": serializer.errors}, status=400
             )
-        serializer.save(
-            client_fk=project_instance.client_fk, project_fk=project_instance.project_fk
-        )
+        serializer.save(client_project_balance_fk=CPB_instance)
 
         return Response({"status": "sucess"}, 200)
 

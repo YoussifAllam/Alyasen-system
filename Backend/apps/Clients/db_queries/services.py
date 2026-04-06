@@ -1,4 +1,5 @@
 from ..models import Client, ClientProjectBalance
+from . import selectors
 
 from apps.Safe.models import Safe
 from apps.Safe.tasks.safe_logs import add_safe_log
@@ -25,9 +26,10 @@ def increase_safe_balance(amount: float, client_name: str):
 #     )
 
 
-def client_payment(client_instance: Client, payment_amount: float, username: str):
+def client_payment(client_id: int, payment_amount: float, username: str):
+    client_instance = selectors.get_client_instance(client_id)
     client_instance.total_paid_amount += payment_amount
-    client_instance.total_amount_payable -= payment_amount
+    client_instance.total_remaining_balance_owed_to_us -= payment_amount
     client_instance.save()
 
     increase_safe_balance(payment_amount, client_instance.name)

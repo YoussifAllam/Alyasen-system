@@ -79,6 +79,5 @@ class ProjectPaymentSerializer(ModelSerializer):
         model = models.ProjectPayment
         fields = "__all__"
         extra_kwargs = {
-            "client_fk": {"required": False},
-            "project_fk": {"required": False},
+            "client_project_balance_fk": {"required": False},
         }
