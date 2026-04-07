@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QApplication,
     QScrollArea,
 )
-from PyQt5.QtCore import pyqtSlot, Qt, QPoint, QSettings, QSize, QTimer
+from PyQt5.QtCore import pyqtSlot, Qt, QPoint, QSettings, QSize, QTimer, pyqtSignal
 from PyQt5.QtGui import QIcon, QPixmap, QPainter
 import qtawesome as qta
 
@@ -41,6 +41,8 @@ from .constant import BASE_DIR, APP_VERSION, BACKEND_BASE_URL
 
 
 class MainWindow(QMainWindow):
+    logout_requested = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Factory Management System")
@@ -124,6 +126,7 @@ class MainWindow(QMainWindow):
         main_container_layout.addWidget(content_area)
 
         self.sidebar.theme_changed.connect(self.toggle_theme)
+        self.sidebar.logout_clicked.connect(self.logout_requested.emit)
 
         # Set initial theme based on settings
         self.settings = QSettings("FactorySystem")
@@ -262,17 +265,13 @@ class MainWindow(QMainWindow):
     def mouseReleaseEvent(self, event):
         self.old_pos = None
 
-    def set_user_name(self, user_name: str):
-        if hasattr(self.sidebar, "set_user_name"):
-            self.sidebar.set_user_name(user_name)
-
     def create_pages(self):
         # Create all page instances
         self.dashboard_page = DashboardUI()
         self.clients_page = ClientsUI()
         self.suppliers_page = SuppliersUI()
         self.expenses_page = ExpensesUI()
-        self.reports_page = ReportsUI()
+        # self.reports_page = ReportsUI()
         self.program_log_page = ProgramLogUI()
         self.company_assets_page = CompanyAssetsUI()
         self.company_safe_page = CompanySafeUI()
@@ -287,7 +286,7 @@ class MainWindow(QMainWindow):
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.clients_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.suppliers_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.expenses_page))
-        self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.reports_page))
+        # self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.reports_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.program_log_page))
         self.stacked_widget.addWidget(
             self.wrap_in_scroll_area(self.company_assets_page)

@@ -265,6 +265,17 @@ class AuthWindow(QWidget):
     def show_signup_page(self):
         self.stacked_widget.setCurrentIndex(1)
 
+    def reset_form(self):
+        """Resets the login form, clearing the password field."""
+        if hasattr(self.login_page, "password_input"):
+            self.login_page.password_input.clear()
+
+        # If remember me is not checked, clear the email as well
+        if self.login_page.settings.value("remember_me", "false", type=str) != "true":
+            self.login_page.email_input.clear()
+
+        self.show_login_page()
+
     def center(self):
         screen_geometry = QApplication.desktop().screenGeometry()
         self.move(

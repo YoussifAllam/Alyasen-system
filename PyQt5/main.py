@@ -22,6 +22,7 @@ class AppController:
 
         # Connect the 'login_successful' signal from the auth window
         self.auth_win.login_successful.connect(self.show_main_window)
+        self.main_win.logout_requested.connect(self.handle_logout)
 
     def start(self):
         """Shows the initial authentication window to the user."""
@@ -33,7 +34,16 @@ class AppController:
         if hasattr(self.main_win, "set_user_name"):
             self.main_win.set_user_name(user_name or "")
         self.main_win.show()
-        self.auth_win.close()
+        self.auth_win.hide()
+
+    def handle_logout(self):
+        """Handles the logout request by switching back to the auth window."""
+        self.main_win.hide()
+        self.auth_win.reset_form()
+        self.auth_win.show()
+        # Clear the username from settings on logout
+        settings = QSettings("FactorySystem")
+        settings.remove("user_name")
 
 
 if __name__ == "__main__":

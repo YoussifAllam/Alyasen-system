@@ -16,6 +16,7 @@ from .constant import BASE_DIR
 class SidebarWidget(QWidget):
     page_changed = pyqtSignal(int)
     theme_changed = pyqtSignal()  # New signal for theme toggle
+    logout_clicked = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -43,7 +44,7 @@ class SidebarWidget(QWidget):
             {"text": " العملاء", "icon": "fa5s.user-friends"},
             {"text": " الموردين", "icon": "fa5s.truck"},
             {"text": " مصروفات", "icon": "fa5s.file-invoice-dollar"},
-            {"text": " جرد", "icon": "fa5s.clipboard-list"},
+            # {"text": " جرد", "icon": "fa5s.clipboard-list"},
             {"text": " سجل العمليات", "icon": "fa5s.history"},
             {"text": "اصول الشركة", "icon": "fa5s.tools"},
             {"text": " الخزنة", "icon": "fa5s.money-bill-wave"},
@@ -75,11 +76,29 @@ class SidebarWidget(QWidget):
         user_layout.setContentsMargins(5, 5, 5, 5)
 
         user_info_layout = QVBoxLayout()
-        self.user_name = QLabel("مرحباً")
-        self.user_name.setObjectName("userName")
-        logout_link = QLabel("<a href='#'>تسجيل الخروج</a>")
-        user_info_layout.addWidget(self.user_name)
-        user_info_layout.addWidget(logout_link)
+        self.logout_button = QPushButton(" تسجيل الخروج")
+        self.logout_button.setObjectName("linkButton")
+        self.logout_button.setIcon(qta.icon("fa5s.sign-out-alt", color="#00bc88"))
+        self.logout_button.setStyleSheet(
+            """
+            QPushButton {
+                background-color: transparent;
+                border: none;
+                color: #00bc88;
+                font-size: 18px;
+                font-weight: 500;
+            }
+            QPushButton:hover {
+                background-color: rgba(255, 255, 255, 0.1);
+                color: #ffffff;
+            }
+        """
+        )
+        self.logout_button.setIconSize(QSize(18, 18))
+        self.logout_button.setCursor(Qt.PointingHandCursor)
+        self.logout_button.clicked.connect(self.logout_clicked.emit)
+
+        user_info_layout.addWidget(self.logout_button)
         user_layout.addLayout(user_info_layout)
         layout.addWidget(user_frame)
 
