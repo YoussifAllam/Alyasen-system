@@ -68,3 +68,11 @@ class ProjectContractsApiView(APIView):
         ProjectContracts.objects.bulk_create(objs_to_create)
 
         return Response({"status": "success"}, status=HTTP_200_OK)
+
+
+class RentProjectsApiView(APIView):
+    def get(self, request: Request, format=None):
+        project_id = request.GET.get("project_id")
+        target_project = selectors.get_specific_project(project_id)
+        serializer = OutputSerializers.RentProjectInfoSerializer(target_project)
+        return Response(serializer.data, status=HTTP_200_OK)

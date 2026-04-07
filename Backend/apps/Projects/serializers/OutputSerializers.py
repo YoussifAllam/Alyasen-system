@@ -20,3 +20,20 @@ class BaseProjectsNamesSerializer(serializers.ModelSerializer):
             "project_status",
             "created_date",
         ]
+
+
+class RentProjectInfoSerializer(serializers.ModelSerializer):
+    model = models.RentProjects
+    fields = [
+        "id",
+        "name",
+        "operating_costs",
+        # profit
+        # total_cost
+        "project_type"
+        # taxes
+        "value_added_tax",
+        "insurance_tax",
+        "insurance_tax_date",
+        "profits_tax",
+    ]

@@ -18,3 +18,10 @@ def get_base_project_by_id(id):
         return models.BaseProject.objects.get(id=id)
     except models.BaseProject.DoesNotExist:
         raise NotFound("Project not found")
+
+
+def get_specific_project(project_id):
+    try:
+        return models.RentProjects.objects.get(project_id=id)
+    except models.RentProjects.DoesNotExist:
+        raise NotFound("Project not found")
