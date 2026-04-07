@@ -8,6 +8,10 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QFrame,
     QWidget,
+    QLineEdit,
+    QTableWidget,
+    QTableWidgetItem,
+    QHeaderView,
 )
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QPoint, QObject, pyqtSlot
 from requests import get, exceptions, request
@@ -61,13 +65,14 @@ class ProjectSelectionDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("اختيار مشروع")
-        self.setFixedSize(500, 350)
+        self.setMinimumSize(800, 600)
 
         # Frameless Window Setup
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.setAttribute(Qt.WA_TranslucentBackground)
 
-        self.projects_list = []
+        self.all_projects = []
+        self.filtered_projects = []
         self.setup_ui()
         self.load_projects()
 
@@ -109,15 +114,38 @@ class ProjectSelectionDialog(QDialog):
         header_label.setObjectName("dialogHeader")
         layout.addWidget(header_label)
 
-        self.project_combobox = QComboBox()
-        self.project_combobox.setPlaceholderText("جاري التحميل...")
-        self.project_combobox.setEnabled(False)
-        layout.addWidget(self.project_combobox)
+        # Search and Filter Area
+        filter_layout = QHBoxLayout()
+        filter_layout.setSpacing(10)
+
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("بحث باسم المشروع أو المورد...")
+        self.search_input.textChanged.connect(self.filter_projects)
+
+        self.type_filter = QComboBox()
+        self.type_filter.addItems(["الكل", "تأجير", "صناعي", "بيع", "حملة"])
+        self.type_filter.currentTextChanged.connect(self.filter_projects)
+        self.type_filter.setFixedWidth(150)
+
+        filter_layout.addWidget(self.search_input, 1)
+        filter_layout.addWidget(self.type_filter)
+        layout.addLayout(filter_layout)
+
+        # Table Section
+        self.table = QTableWidget()
+        self.table.setColumnCount(2)
+        self.table.setHorizontalHeaderLabels(["اسم المشروع", "اسم المورد"])
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.table.itemDoubleClicked.connect(self.handle_next)
+        layout.addWidget(self.table)
 
         btn_layout = QHBoxLayout()
         self.cancel_button = QPushButton("إلغاء")
         self.cancel_button.clicked.connect(self.reject)
-        self.next_button = QPushButton("التالي")
+        self.next_button = QPushButton("اختيار")
         self.next_button.setObjectName("primaryButton")
         self.next_button.setEnabled(False)
         self.next_button.clicked.connect(self.handle_next)
@@ -151,31 +179,89 @@ class ProjectSelectionDialog(QDialog):
 
     def on_projects_loaded(self, response_data):
         data = response_data.get("data", {})
-        self.projects_list = data.get("results", [])
+        self.all_projects = data.get("results", [])
 
-        self.project_combobox.clear()
-        if not self.projects_list:
-            self.project_combobox.setPlaceholderText("لا توجد مشاريع متباحة")
+        if not self.all_projects:
+            QMessageBox.information(self, "تنبيه", "لا توجد مشاريع متاحة حالياً.")
             return
 
-        self.project_combobox.setPlaceholderText("اختر المشروع...")
-        for project in self.projects_list:
-            self.project_combobox.addItem(project.get("name"), project)
-
-        self.project_combobox.setEnabled(True)
+        self.filter_projects()
         self.next_button.setEnabled(True)
 
+    def filter_projects(self):
+        search_text = self.search_input.text().strip().lower()
+        type_text = self.type_filter.currentText()
+
+        # Mapping UI type to API type
+        type_map = {
+            "تأجير": "rent",
+            "صناعي": "industrial",
+            "بيع": "selling",
+            "حملة": "campaine",
+        }
+
+        self.filtered_projects = []
+        for project in self.all_projects:
+            name = project.get("name", "").lower()
+
+            # Robust supplier name lookup
+            supplier_obj = project.get("supplier")
+            if isinstance(supplier_obj, dict):
+                supplier_name = supplier_obj.get("name", "").lower()
+            else:
+                supplier_name = project.get("supplier_name", "").lower()
+
+            project_type = project.get("project_type", "")
+
+            # Search Filter
+            search_match = search_text in name or search_text in supplier_name
+
+            # Type Filter
+            type_match = True
+            if type_text != "الكل":
+                expected_type = type_map.get(type_text)
+                type_match = project_type == expected_type
+
+            if search_match and type_match:
+                self.filtered_projects.append(project)
+
+        self.update_table()
+
+    def update_table(self):
+        self.table.setRowCount(0)
+        for project in self.filtered_projects:
+            row_idx = self.table.rowCount()
+            self.table.insertRow(row_idx)
+
+            name = project.get("name", "")
+
+            # Robust supplier name lookup
+            supplier_obj = project.get("supplier")
+            if isinstance(supplier_obj, dict):
+                supplier_name = supplier_obj.get("name", "غير محدد")
+            else:
+                supplier_name = project.get("supplier_name") or "غير محدد"
+
+            name_item = QTableWidgetItem(name)
+            supplier_item = QTableWidgetItem(supplier_name)
+
+            name_item.setTextAlignment(Qt.AlignCenter)
+            supplier_item.setTextAlignment(Qt.AlignCenter)
+
+            self.table.setItem(row_idx, 0, name_item)
+            self.table.setItem(row_idx, 1, supplier_item)
+
     def on_error(self, message):
-        self.project_combobox.setPlaceholderText("فشل تحميل المشاريع")
         QMessageBox.warning(self, "خطأ", f"فشل تحميل المشاريع:\n{message}")
 
     def handle_next(self):
-        selected_project = self.project_combobox.currentData()
-        if selected_project:
+        selected_row = self.table.currentRow()
+        if selected_row >= 0 and selected_row < len(self.filtered_projects):
+            selected_project = self.filtered_projects[selected_row]
             self.project_selected.emit(selected_project)
             self.accept()
         else:
-            QMessageBox.warning(self, "تنبيه", "الرجاء اختيار مشروع أولاً.")
+            QMessageBox.warning(self, "تنبيه", "الرجاء اختيار مشروع من الجدول أولاً.")
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton and self.title_bar.underMouse():
