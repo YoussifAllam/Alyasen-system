@@ -67,3 +67,10 @@ def get_client_payments_instances_by_CPB(project_id: int, project_type: str):
         return CPB_obj.payments.all()
     except ClientProjectBalance.DoesNotExist:
         raise NotFound({"الخطأ": "لا يوجد دفعات لهذا المشروع"})
+
+
+def get_payment_instance(payment_id):
+    try:
+        return ProjectPayment.objects.get(id=payment_id)
+    except ProjectPayment.DoesNotExist:
+        raise NotFound({"الخطأ": "لا يوجد دفعة بهذا الكود"})

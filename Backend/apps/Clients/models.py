@@ -81,6 +81,7 @@ class ProjectPayment(models.Model):
         max_length=20, choices=PaymentTypes.choices, default="cash"
     )
     check_cleared_date = models.DateField(null=True, blank=True)
+    is_cleared = models.BooleanField(default=False)
     notes = models.TextField(blank=True, null=True)
 
     class Meta:

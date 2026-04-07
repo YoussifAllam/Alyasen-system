@@ -14,7 +14,7 @@ class ClientsSerializer(serializers.ModelSerializer):
 class InvoicePaymentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectPayment
-        exclude = ["id", "client_project_balance_fk"]
+        exclude = ["client_project_balance_fk"]
 
 
 class ClientInfoSerializer(serializers.ModelSerializer):

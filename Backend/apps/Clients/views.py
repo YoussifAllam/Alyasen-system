@@ -91,22 +91,29 @@ class InovicePaymentApiView(APIView):
         project_id = request.data["project_id"]
         project_type = request.data["project_type"]
         payment_amount = float(request.data["payment_amount"])
+        payment_method = request.data["payment_type"]
         user_name = request.data["user_name"]
 
         CPB_instance = selectors.get_client_CPB(project_id, project_type)
 
         if payment_amount > CPB_instance.remining:
-            return Response({"حطأ": "المبلغ المدفوع اكبر من المتبقي "}, 400)
+            return Response({"error": "المبلغ المدفوع اكبر من المتبقي "}, 400)
 
-        services.client_payment(CPB_instance.client_fk.id, payment_amount, user_name)
-        services.update_project_balance(CPB_instance, payment_amount)
+        if payment_method == "check":
+            is_cleared = False
+        else:
+            is_cleared = True
+            services.client_payment(
+                CPB_instance.client_fk.id, payment_amount, user_name
+            )
+            services.update_project_balance(CPB_instance, payment_amount)
 
         serializer = InputSerializers.ProjectPaymentSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(
                 {"status": "faild", "errors": serializer.errors}, status=400
             )
-        serializer.save(client_project_balance_fk=CPB_instance)
+        serializer.save(client_project_balance_fk=CPB_instance, is_cleared=is_cleared)
 
         return Response({"status": "sucess"}, 200)
 
@@ -122,6 +129,26 @@ class InovicePaymentApiView(APIView):
             payments_instances, request, OutputSerializers.InvoicePaymentsSerializer
         )
         return Response(response_data, 200)
+
+    def patch(self, request: Request, format=None):
+        payment_id = request.data["payment_id"]
+        user_name = request.data["user_name"]
+        payment_instance = selectors.get_payment_instance(payment_id)
+        if payment_instance.is_cleared:
+            return Response({"error": "الدفعة تم تسويتها بالفعل"}, 400)
+
+        services.client_payment(
+            payment_instance.client_project_balance_fk.client_fk.id,
+            payment_instance.payment_amount,
+            user_name,
+        )
+        services.update_project_balance(
+            payment_instance.client_project_balance_fk, payment_instance.payment_amount
+        )
+        payment_instance.is_cleared = True
+        payment_instance.save()
+
+        return Response({"status": "success"}, 200)
 
 
 class SendFinancialReportEmailApiView(APIView):
