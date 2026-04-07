@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QWidget,
 )
-from PyQt5.QtCore import Qt, QPoint, QObject, QThread, pyqtSignal, pyqtSlot, QUrl
+from PyQt5.QtCore import Qt, QPoint, QObject, QThread, pyqtSignal, pyqtSlot, QUrl, QSettings
 from PyQt5.QtGui import QDesktopServices
 import qtawesome as qta
 from requests import request, exceptions
@@ -47,7 +47,37 @@ class PaymentDetailsWorker(QObject):
             self.finished.emit()
 
 
+class ClearPaymentWorker(QObject):
+    """Worker thread for clearing a check payment via PATCH."""
+
+    finished = pyqtSignal()
+    success = pyqtSignal(dict)
+    error = pyqtSignal(str)
+
+    def __init__(self, url, payload):
+        super().__init__()
+        self.url = url
+        self.payload = payload
+
+    @pyqtSlot()
+    def run(self):
+        try:
+            response = request("PATCH", self.url, data=self.payload, timeout=15)
+            if response.status_code == 200:
+                self.success.emit(response.json())
+            else:
+                data = response.json()
+                msg = data.get("error", f"خطأ من الخادم: {response.status_code}")
+                self.error.emit(msg)
+        except exceptions.RequestException:
+            self.error.emit("فشل الاتصال بالخادم.")
+        finally:
+            self.finished.emit()
+
+
 class InvoicePaymentDetailsDialog(QDialog):
+    update_client_data = pyqtSignal()
+
     def __init__(self, client_id, project_id, project_type, parent=None):
         super().__init__(parent)
         self.client_id = client_id
@@ -91,14 +121,15 @@ class InvoicePaymentDetailsDialog(QDialog):
 
         # Table
         self.table = QTableWidget()
-        self.table.setColumnCount(7)
+        self.table.setColumnCount(8)
         headers = [
             "رقم الفاتورة",
             "المبلغ المدفوع",
             "تاريخ الدفعة",
             "ملاحظات",
             "طريقة الدفع",
-            "تاريخ استلام الشيك",
+            "تاريخ تسوية الشيك",
+            "",
             "",
         ]
         self.table.setHorizontalHeaderLabels(headers)
@@ -121,8 +152,11 @@ class InvoicePaymentDetailsDialog(QDialog):
         self.table.horizontalHeader().setSectionResizeMode(
             5, QHeaderView.ResizeToContents
         )
+
         self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.Fixed)
         self.table.setColumnWidth(6, 200)
+        self.table.horizontalHeader().setSectionResizeMode(7, QHeaderView.Fixed)
+        self.table.setColumnWidth(7, 200)
 
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
@@ -167,6 +201,7 @@ class InvoicePaymentDetailsDialog(QDialog):
             notes = payment.get("notes") or ""
             payment_type = payment.get("payment_type", "")
             check_cleared_date = payment.get("check_cleared_date", "")
+            is_cleared = payment.get("is_cleared")
             # file = payment.get("portal_invoice_file", "")
 
             items = [
@@ -183,6 +218,21 @@ class InvoicePaymentDetailsDialog(QDialog):
                 item.setTextAlignment(Qt.AlignCenter)
                 self.table.setItem(row_pos, i, item)
 
+            payment_id = payment.get("id")
+            if not is_cleared and payment_type == "check":
+                btn_clear = QPushButton("تسوية")
+                btn_clear.setCursor(Qt.PointingHandCursor)
+                btn_clear.setObjectName("primaryButton")
+                btn_clear.clicked.connect(
+                    lambda checked, pid=payment_id: self.handle_clear_payment(pid)
+                )
+                self.table.setCellWidget(row_pos, 6, btn_clear)
+            else:
+                btn_clear = QLabel("تم التسوية")
+                btn_clear.setCursor(Qt.PointingHandCursor)
+                btn_clear.setAlignment(Qt.AlignCenter)
+                self.table.setCellWidget(row_pos, 6, btn_clear)
+
             file_url = payment.get("portal_invoice_file")
             if file_url:
                 btn_view = QPushButton("عرض الملف")
@@ -190,11 +240,48 @@ class InvoicePaymentDetailsDialog(QDialog):
                 btn_view.clicked.connect(
                     lambda checked, url=file_url: self.open_file_url(url)
                 )
-                self.table.setCellWidget(row_pos, 6, btn_view)
+                self.table.setCellWidget(row_pos, 7, btn_view)
             else:
                 empty_item = QTableWidgetItem("لا يوجد ملف")
                 empty_item.setTextAlignment(Qt.AlignCenter)
-                self.table.setItem(row_pos, 6, empty_item)
+                self.table.setItem(row_pos, 7, empty_item)
+
+    def handle_clear_payment(self, payment_id):
+        """Initiate PATCH request to clear a check payment."""
+        reply = QMessageBox.question(
+            self,
+            "تأكيد التسوية",
+            "هل أنت متأكد من تسوية هذه الدفعة؟",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        url = f"{BACKEND_BASE_URL}/clients/projects/payments/"
+        payload = {
+            "payment_id": str(payment_id),
+            "user_name": "system",
+        }
+
+        self.clear_thread = QThread()
+        self.clear_worker = ClearPaymentWorker(url, payload)
+        self.clear_worker.moveToThread(self.clear_thread)
+        self.clear_thread.started.connect(self.clear_worker.run)
+        self.clear_worker.success.connect(self.on_clear_success)
+        self.clear_worker.error.connect(self.on_clear_error)
+        self.clear_worker.finished.connect(self.clear_thread.quit)
+        self.clear_thread.start()
+
+    def on_clear_success(self, response_data):
+        """Handle successful check clearing."""
+        QMessageBox.information(self, "نجاح", "تم تسوية الدفعة بنجاح.")
+        self.update_client_data.emit()
+        self.fetch_payment_details()
+
+    def on_clear_error(self, message):
+        """Handle check clearing error."""
+        QMessageBox.critical(self, "خطأ", message)
 
     def open_file_url(self, url):
         QDesktopServices.openUrl(QUrl(url))

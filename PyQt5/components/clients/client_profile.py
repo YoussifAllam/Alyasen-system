@@ -201,6 +201,7 @@ class ClientProfileUI(QWidget):
         if p_id_item:
             p_id = p_id_item.text().strip()
             dialog = InvoicePaymentDetailsDialog(self.client_id, p_id, p_type, self)
+            dialog.update_client_data.connect(self.update_client_data)
             dialog.exec_()
         else:
             QMessageBox.warning(self, "خطأ", "لم يتم العثور على كود المشروع المختار.")
@@ -228,6 +229,12 @@ class ClientProfileUI(QWidget):
                 "ملاحظة",
                 f"مشروع '{project_data.get('name')}' من النوع {project_type}. صفحة عرض هذا النوع غير متوفرة حالياً.",
             )
+
+    def update_client_data(self):
+        """Fetch updated client data and projects list."""
+        if self.client_id:
+            url = f"{BACKEND_BASE_URL}/clients/info/?id={self.client_id}"
+            self._start_info_fetch_request(url)
 
     def handle_edit_profile(self):
         if not self.client_id or not hasattr(self, "current_client_data"):
