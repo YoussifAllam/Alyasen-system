@@ -16,13 +16,13 @@ CELERY_BROKER_URL = env("REDIS_URL", default="amqp://guest:guest@localhost//")
 CELERY_RESULT_BACKEND = env("REDIS_URL")
 
 CELERY_ENABLE_UTC = True
-CELERY_TIMEZONE = "UTC"
+CELERY_TIMEZONE = "Africa/Cairo"
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 app.conf.beat_schedule = {
     "check-check-cleared-notifications": {
         "task": "apps.Clients.Tasks.celery_tasks.check_check_cleared_notifications",
-        "schedule": crontab(hour=0, minute=0),
+        "schedule": crontab(hour=12, minute=00),
         "options": {
             "expires": 3600,
         },
