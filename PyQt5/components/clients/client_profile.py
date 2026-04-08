@@ -308,34 +308,39 @@ class ClientProfileUI(QWidget):
         self._set_loading(False)
         self.populate_projects_table(response_data)
 
-    def populate_projects_table(self, data):
-        campaigns = data.get("campaigns", [])
-        projects = data.get("projects", [])
-
-        all_items = campaigns + projects
-        all_items.sort(key=lambda x: x.get("created_date", ""), reverse=True)
+    def populate_projects_table(self, response_data):
+        """Populate the table with project data from the new API response format."""
+        inner_data = response_data.get("data", {})
+        all_items = inner_data.get("results", [])
 
         self.table.setRowCount(0)
-        self.total_count = len(all_items)
+        self.total_count = inner_data.get("count", 0)
 
-        self.next_page_url = data.get("next")
-        self.prev_page_url = data.get("previous")
+        self.next_page_url = inner_data.get("next")
+        self.prev_page_url = inner_data.get("previous")
+
+        # Mapping of project types to Arabic for display
+        type_mapping = {
+            "rent": "إيجار",
+            "selling": "بيع",
+            "industrial": "صناعي",
+            "industrial_project": "صناعي",
+            "campaine": "حملة",
+            "campaign": "حملة",
+        }
 
         for row_idx, item in enumerate(all_items):
-
             self.table.insertRow(row_idx)
-            is_campaign = "total_cost" in item
 
             item_id = str(item.get("id", ""))
-            name = str(item.get("name", ""))
+            name = str(item.get("project_name", ""))
             item_type = str(item.get("project_type", ""))
-            cost = item.get("total_cost") if is_campaign else item.get("cost")
+            display_type = type_mapping.get(item_type, item_type)
+
+            cost = item.get("total")
             paid = item.get("paid")
             remining = item.get("remining")
             status = str(item.get("project_status", ""))
-
-            idx_item = QTableWidgetItem(str(row_idx + 1))
-            idx_item.setTextAlignment(Qt.AlignCenter)
 
             id_item = QTableWidgetItem(item_id)
             id_item.setTextAlignment(Qt.AlignCenter)
@@ -343,37 +348,28 @@ class ClientProfileUI(QWidget):
             name_item = QTableWidgetItem(name)
             name_item.setTextAlignment(Qt.AlignCenter)
 
-            type_item = QTableWidgetItem(item_type)
+            type_item = QTableWidgetItem(display_type)
             type_item.setTextAlignment(Qt.AlignCenter)
 
-            cost_value = "0.00"
-            if cost is not None:
+            # Formatting numeric values
+            def format_currency(val):
+                if val is None:
+                    return "0.00"
                 try:
-                    cost_value = f"{float(cost):,.2f}"
+                    return f"{float(val):,.2f}"
                 except (ValueError, TypeError):
-                    cost_value = str(cost)
-            cost_item = QTableWidgetItem(cost_value)
+                    return str(val)
+
+            cost_item = QTableWidgetItem(format_currency(cost))
             cost_item.setTextAlignment(Qt.AlignCenter)
 
-            paid_value = "0.00"
-            if paid is not None:
-                try:
-                    paid_value = f"{float(paid):,.2f}"
-                except (ValueError, TypeError):
-                    paid_value = str(paid)
-            paid_item = QTableWidgetItem(paid_value)
+            paid_item = QTableWidgetItem(format_currency(paid))
             paid_item.setTextAlignment(Qt.AlignCenter)
 
-            remining_value = "0.00"
-            if remining is not None:
-                try:
-                    remining_value = f"{float(remining):,.2f}"
-                except (ValueError, TypeError):
-                    remining_value = str(remining)
-            remining_item = QTableWidgetItem(remining_value)
+            remining_item = QTableWidgetItem(format_currency(remining))
             remining_item.setTextAlignment(Qt.AlignCenter)
 
-            status = item.get("project_status", "")
+            # Status formatting
             status_text = (
                 "نشط"
                 if status == "active"
@@ -389,12 +385,14 @@ class ClientProfileUI(QWidget):
 
             btn_details = QPushButton("عرض التفاصيل")
             btn_details.setObjectName("detailsButton")
+            # Preserve project data for the details callback
+            callback_data = {
+                "id": item.get("id"),
+                "project_type": item_type,
+                "name": name,
+            }
             btn_details.clicked.connect(
-                lambda checked, p={
-                    "id": item.get("id"),
-                    "project_type": item.get("project_type"),
-                    "name": item.get("name"),
-                }: self.on_project_selected(p)
+                lambda checked, p=callback_data: self.on_project_selected(p)
             )
 
             self.table.setItem(row_idx, 0, id_item)
