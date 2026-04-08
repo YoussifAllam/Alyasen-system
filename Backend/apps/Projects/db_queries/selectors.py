@@ -20,8 +20,15 @@ def get_base_project_by_id(id):
         raise NotFound("Project not found")
 
 
-def get_specific_project(project_id):
+def get_specific_project(rent_project_id):
     try:
-        return models.RentProjects.objects.get(project_id=id)
+        return models.RentProjects.objects.get(id=rent_project_id)
     except models.RentProjects.DoesNotExist:
         raise NotFound("Project not found")
+
+
+def get_r_contract_instnace(contract_id):
+    try:
+        return models.RentProjectContracts.objects.get(id=contract_id)
+    except models.RentProjectContracts.DoesNotExist:
+        raise NotFound("Contract not found")

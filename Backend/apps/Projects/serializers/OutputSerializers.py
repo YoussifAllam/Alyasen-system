@@ -22,18 +22,29 @@ class BaseProjectsNamesSerializer(serializers.ModelSerializer):
         ]
 
 
+class RentProjectsContractsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.RentProjectContracts
+        fields = ["id", "contract"]
+
+
 class RentProjectInfoSerializer(serializers.ModelSerializer):
-    model = models.RentProjects
-    fields = [
-        "id",
-        "name",
-        "operating_costs",
-        # profit
-        # total_cost
-        "project_type"
-        # taxes
-        "value_added_tax",
-        "insurance_tax",
-        "insurance_tax_date",
-        "profits_tax",
-    ]
+    contracts = RentProjectsContractsSerializer(
+        many=True, source="rentprojectcontracts_set"
+    )
+
+    class Meta:
+        model = models.RentProjects
+        fields = [
+            "id",
+            "operating_costs",
+            "buying_cost",
+            "total_cost",
+            "selling_price",
+            "net_profit",
+            "value_added_tax",
+            "insurance_tax",
+            "insurance_tax_date",
+            "commercial_profits_tax",
+            "contracts",
+        ]

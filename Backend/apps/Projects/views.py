@@ -45,7 +45,7 @@ class ProjectApiView(APIView):
         return Response({"status": "success"}, status=HTTP_200_OK)
 
 
-class ProjectContractsApiView(APIView):
+class BaseProjectContractsApiView(APIView):
     def get(self, request: Request, format=None):
         project_id = request.GET.get("project_id")
         contracts = ProjectContracts.objects.filter(project_id=project_id)
@@ -72,7 +72,28 @@ class ProjectContractsApiView(APIView):
 
 class RentProjectsApiView(APIView):
     def get(self, request: Request, format=None):
-        project_id = request.GET.get("project_id")
+        project_id = request.GET.get("rent_project_id")
         target_project = selectors.get_specific_project(project_id)
         serializer = OutputSerializers.RentProjectInfoSerializer(target_project)
-        return Response(serializer.data, status=HTTP_200_OK)
+        return Response(
+            {"status": "success", "data": serializer.data}, status=HTTP_200_OK
+        )
+
+
+class RentProjectContractsApiView(APIView):
+
+    def post(self, request: Request, format=None):
+        project_id = request.data.get("rent_project_id")
+        attachments = request.FILES.getlist("attachments")
+
+        r_p_instance = selectors.get_specific_project(project_id)
+
+        services.create_r_p_contracts(r_p_instance, attachments)
+
+        return Response({"status": "success"}, status=HTTP_200_OK)
+
+    def delete(self, request: Request):
+        contract_id = request.data.get("contract_id")
+        contract = selectors.get_r_contract_instnace(contract_id)
+        contract.delete()
+        return Response({"status": "success"}, status=HTTP_200_OK)

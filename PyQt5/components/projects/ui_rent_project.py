@@ -115,7 +115,6 @@ class RentProjectPage(QWidget):
         self.lbl_sell_cost = self.create_value_label()
         self.lbl_profit = self.create_value_label()
         self.lbl_total_cost = self.create_value_label()
-        self.lbl_status = self.create_value_label()
 
         rows = [
             ("الكود:", self.lbl_id),
@@ -125,7 +124,6 @@ class RentProjectPage(QWidget):
             ("اجمالي التكلفة:", self.lbl_total_cost),
             ("مبلغ البيع:", self.lbl_sell_cost),
             ("الربح المتوقع:", self.lbl_profit),
-            ("حالة المشروع:", self.lbl_status),
         ]
 
         for i, (label_text, value_widget) in enumerate(rows):
@@ -273,21 +271,6 @@ class RentProjectPage(QWidget):
         self.lbl_total_cost.setText(
             str(data.get("total_cost", project_details.get("total_cost", "-")))
         )
-        status = str(data.get("project_status", "-"))
-        self.lbl_status.setText(status)
-
-        # Status coloring
-        status_colors = {
-            "نشط": "#10b981",  # Emerald
-            "مكتمل": "#3b82f6",  # Blue
-            "متوقف": "#ef4444",  # Red
-            "قيد التنفيذ": "#f59e0b",  # Amber
-        }
-        color = status_colors.get(status, "#ffffff")
-        self.lbl_status.setStyleSheet(
-            f"font-weight: bold; color: {color}; font-size: 16px;"
-        )
-
         # Taxes
         self.lbl_vat.setText(str(data.get("value_added_tax", "-")))
         self.lbl_insurance_tax.setText(str(data.get("insurance_tax", "-")))
