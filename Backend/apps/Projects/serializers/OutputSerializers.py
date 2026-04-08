@@ -38,7 +38,7 @@ class RentProjectInfoSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "operating_costs",
-            "buying_cost",
+            "buying_price",
             "total_cost",
             "selling_price",
             "net_profit",

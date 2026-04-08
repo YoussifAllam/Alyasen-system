@@ -57,7 +57,7 @@ class ClientProjectBalance(models.Model):
     total = models.FloatField()
     paid = models.FloatField(default=0)
     remining = models.FloatField(default=0)
-
+    created_date = models.DateField(auto_now_add=True)
     class Meta:
         db_table = "client_project_balance"
         indexes = [

@@ -38,9 +38,10 @@ def get_client_instance(client_id: int) -> Client:
 
 
 def get_client_project_and_campaings(client_id):
-    projects = BaseProject.objects.filter(client=client_id)
-    campaigns = Campaine.objects.filter(client=client_id)
-    return projects, campaigns
+    # projects = BaseProject.objects.filter(client=client_id)
+    # campaigns = Campaine.objects.filter(client=client_id)
+    # return projects, campaigns
+    return ClientProjectBalance.objects.filter(client_fk=client_id)
 
 
 def get_client_CPB(project_id: int, project_type: str):
@@ -74,3 +75,17 @@ def get_payment_instance(payment_id):
         return ProjectPayment.objects.get(id=payment_id)
     except ProjectPayment.DoesNotExist:
         raise NotFound({"الخطأ": "لا يوجد دفعة بهذا الكود"})
+
+
+def get_campaine_instance(id) -> Campaine:
+    try:
+        return Campaine.objects.get(id=id)
+    except Campaine.DoesNotExist:
+        raise NotFound({"الخطأ": "لا يوجد حملة بهذا الكود"})
+
+
+def get_BP_instance(id) -> BaseProject:
+    try:
+        return BaseProject.objects.get(id=id)
+    except BaseProject.DoesNotExist:
+        raise NotFound({"الخطأ": "لا يوجد مشروع بهذا الكود"})

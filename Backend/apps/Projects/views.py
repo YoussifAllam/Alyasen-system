@@ -72,8 +72,8 @@ class BaseProjectContractsApiView(APIView):
 
 class RentProjectsApiView(APIView):
     def get(self, request: Request, format=None):
-        project_id = request.GET.get("rent_project_id")
-        target_project = selectors.get_specific_project(project_id)
+        CBP_id = request.GET.get("CBP_id")
+        target_project = selectors.get_specific_project_using_CBP(CBP_id)
         serializer = OutputSerializers.RentProjectInfoSerializer(target_project)
         return Response(
             {"status": "success", "data": serializer.data}, status=HTTP_200_OK

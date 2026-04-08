@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ..models import Client, ProjectPayment
+from ..models import Client, ProjectPayment, ClientProjectBalance
 
 from apps.Projects.models import BaseProject
 from apps.Campaine.models import Campaine
@@ -82,3 +82,37 @@ class CampaineSerializer(serializers.ModelSerializer):
     def get_remining(self, obj: Campaine):
         balance = obj.clientprojectbalance_set.first()
         return balance.remining if balance else 0
+
+
+class CBPSerializer(serializers.ModelSerializer):
+    project_type = serializers.SerializerMethodField()
+    project_name = serializers.SerializerMethodField()
+    project_status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ClientProjectBalance
+        fields = [
+            "id",
+            "project_name",
+            "project_type",
+            "total",
+            "paid",
+            "remining",
+            "project_status",
+            "created_date",
+        ]
+
+    def get_project_type(self, obj: ClientProjectBalance):
+        if obj.project_fk:
+            return obj.project_fk.project_type
+        return "حملة"
+
+    def get_project_name(self, obj: ClientProjectBalance):
+        if obj.project_fk:
+            return obj.project_fk.name
+        return obj.campaine_fk.name
+
+    def get_project_status(self, obj: ClientProjectBalance):
+        if obj.project_fk:
+            return obj.project_fk.project_status
+        return obj.campaine_fk.items.first().project.project_status

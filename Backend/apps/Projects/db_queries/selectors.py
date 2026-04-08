@@ -20,9 +20,9 @@ def get_base_project_by_id(id):
         raise NotFound("Project not found")
 
 
-def get_specific_project(rent_project_id):
+def get_specific_project_using_CBP(CBP_id) -> models.RentProjects:
     try:
-        return models.RentProjects.objects.get(id=rent_project_id)
+        return models.RentProjects.objects.get(CPB_fk=CBP_id)
     except models.RentProjects.DoesNotExist:
         raise NotFound("Project not found")
 

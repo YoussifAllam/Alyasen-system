@@ -67,20 +67,45 @@ class ClientInfoApiView(APIView):
 class ClientProjectAndCampaingsApiView(APIView):
     def get(self, request: Request):
         client_id = request.GET.get("client_id")
-        projects, campaigns = selectors.get_client_project_and_campaings(client_id)
-
-        projects_serializer = OutputSerializers.BaseProjectSerializer(
-            projects, many=True
-        )
-        campaigns_serializer = OutputSerializers.CampaineSerializer(
-            campaigns, many=True
+        CBP_instnaces = selectors.get_client_project_and_campaings(client_id)
+        response_data = pagenator(
+            CBP_instnaces, request, OutputSerializers.CBPSerializer
         )
 
-        response_data = {
-            "campaigns": campaigns_serializer.data,
-            "projects": projects_serializer.data,
-        }
         return Response(response_data, status=HTTP_200_OK)
+
+    def post(self, request: Request, format=None):
+        project_type = request.data.get("project_type")  # campaine , BaseProject
+        project_id = request.data.get("project_id")
+        client_id = request.data.get("client_id")
+
+        client_instance = selectors.get_client_instance(client_id)
+        if project_type == "campaine":
+            campaine_instance = selectors.get_campaine_instance(project_id)
+            CBP_instance = services.create_CPB_instance(
+                client_instance=client_instance, campaine_instance=campaine_instance
+            )
+            services.create_rent_p_instnace(CBP_instance, campaine_instance.total_cost)
+        else:
+            base_project_instance = selectors.get_BP_instance(project_id)
+            CBP_instance = services.create_CPB_instance(
+                client_instance=client_instance,
+                base_project_instance=base_project_instance,
+            )
+            if base_project_instance.project_type == "rent":
+                services.create_rent_p_instnace(
+                    CBP_instance, base_project_instance.cost
+                )
+            # elif base_project_instance.project_type == "industrial":
+            #     services.create_industrial_p_instnace()
+            # else:
+            #     services.create_selling_p_instnace()
+
+        services.update_client_balance_using_CBP(
+            CBP_instance, client_instance, request.data["username"]
+        )
+
+        return Response({"status": "success"}, status=200)
 
 
 class InovicePaymentApiView(APIView):

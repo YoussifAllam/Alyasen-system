@@ -5,6 +5,8 @@ from apps.Safe.models import Safe
 from apps.Safe.tasks.safe_logs import add_safe_log
 from apps.TransactionsLog.tasks.celery_tasks import create_transaction_log
 
+from apps.Projects.models import rent_projects_models
+
 
 def increase_safe_balance(amount: float, client_name: str):
     safe_instance, created = Safe.objects.get_or_create(id=1)
@@ -47,3 +49,48 @@ def update_project_balance(
     project_instance.paid += payment_amount
     project_instance.remining -= payment_amount
     project_instance.save()
+
+
+def create_CPB_instance(
+    client_instance,
+    campaine_instance=None,
+    base_project_instance=None,
+):
+    if campaine_instance:
+        CPB_instance = ClientProjectBalance.objects.create(
+            client_fk=client_instance,
+            campaine_fk=campaine_instance,
+            project_type="campaine",
+            total=campaine_instance.total_cost,
+            paid=0,
+            remining=campaine_instance.total_cost,
+        )
+    else:
+        CPB_instance = ClientProjectBalance.objects.create(
+            client_fk=client_instance,
+            project_fk=base_project_instance,
+            project_type="project",
+            total=base_project_instance.cost,
+            paid=0,
+            remining=base_project_instance.cost,
+        )
+
+    return CPB_instance
+
+
+def create_rent_p_instnace(CBP_instance, buying_price):
+    rent_projects_models.RentProjects.objects.create(
+        CPB_fk=CBP_instance,
+        buying_price=buying_price,
+    )
+
+
+def update_client_balance_using_CBP(CBP_instance, client_instance, user_name):
+    client_instance.total_balance_owed_to_us += CBP_instance.total
+    client_instance.total_remaining_balance_owed_to_us += CBP_instance.total
+    client_instance.save()
+
+    create_transaction_log.delay(
+        username=user_name,
+        transaction_data=f"تم اضافه مشروع جديد للعميل {client_instance.name}",
+    )

@@ -3,8 +3,6 @@ from django.utils.timezone import now
 
 from .base_project_models import BaseProject
 
-from apps.Clients.models import ClientProjectBalance
-
 
 class ProjectStatus(models.Choices):
     active = "active"
@@ -13,12 +11,13 @@ class ProjectStatus(models.Choices):
 
 class RentProjects(models.Model):
     CPB_fk = models.OneToOneField(
-        ClientProjectBalance,
+        "Clients.ClientProjectBalance",
         on_delete=models.CASCADE,
     )
 
     operating_costs = models.FloatField(default=0)
-    project_status = models.CharField(max_length=50, choices=ProjectStatus.choices)
+    project_status = models.CharField(max_length=50, choices=ProjectStatus.choices,default="active")
+    buying_price = models.FloatField(default=0)
 
     # taxes
     value_added_tax = models.FloatField(default=0)
@@ -35,7 +34,7 @@ class RentProjects(models.Model):
 
     def save(self, *args, **kwargs):
         self.total_cost = (
-            self.project.cost  # base_project buying cost
+            self.buying_price  # base_project buying cost
             + self.operating_costs  # noqa
             + self.value_added_tax  # noqa
         )
@@ -43,10 +42,6 @@ class RentProjects(models.Model):
             self.selling_price - self.total_cost - self.commercial_profits_tax
         )
         super().save(*args, **kwargs)
-
-    @property
-    def buying_cost(self):
-        return self.project.cost
 
 
 class RentProjectOperationgCost(models.Model):
