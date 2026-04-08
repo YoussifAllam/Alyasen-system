@@ -1,6 +1,9 @@
 from django.db import models
 from django.utils.timezone import now
+
 from .base_project_models import BaseProject
+
+from apps.Clients.models import ClientProjectBalance
 
 
 class ProjectStatus(models.Choices):
@@ -9,10 +12,9 @@ class ProjectStatus(models.Choices):
 
 
 class RentProjects(models.Model):
-    project = models.ForeignKey(
-        BaseProject,
+    CPB_fk = models.OneToOneField(
+        ClientProjectBalance,
         on_delete=models.CASCADE,
-        related_name="rent_projects",
     )
 
     operating_costs = models.FloatField(default=0)
