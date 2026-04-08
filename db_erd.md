@@ -8,11 +8,11 @@ This ERD represents the database schema for the Alyasen management system.
 
 ```mermaid
 erDiagram
-    User ||--|| Profile : "1-1"
-    User {
+    USER ||--|| PROFILE : "1:1"
+    USER {
         uuid uuid PK
         string name
-        string username UK
+        string username
         string email
         boolean email_verified
         integer otp
@@ -22,14 +22,15 @@ erDiagram
         boolean is_approvid
         string user_type
     }
-    Profile {
-        int user_id PK
+    PROFILE {
+        int id PK
+        int user_id FK
         string reset_password_token
         datetime reset_password_expire
     }
 
-    Client ||--o{ ClientProjectBalance : "1-M"
-    Client {
+    CLIENT ||--o{ CLIENT_PROJECT_BALANCE : "1:N"
+    CLIENT {
         int id PK
         string name
         string phone
@@ -40,11 +41,11 @@ erDiagram
         image profile_picture
     }
 
-    Supplier ||--o{ SupplierProjectBalance : "1-M"
-    Supplier ||--o{ CampaineItem : "1-M"
-    Supplier ||--o{ MaterialsSuppliers : "1-M"
-    Supplier ||--o{ SupplierProjectPayment : "1-M"
-    Supplier {
+    SUPPLIER ||--o{ SUPPLIER_PROJECT_BALANCE : "1:N"
+    SUPPLIER ||--o{ CAMPAINE_ITEM : "1:N"
+    SUPPLIER ||--o{ MATERIALS_SUPPLIERS : "1:N"
+    SUPPLIER ||--o{ SUPPLIER_PROJECT_PAYMENT : "1:N"
+    SUPPLIER {
         int id PK
         string name
         string phone
@@ -55,16 +56,14 @@ erDiagram
         image profile_picture
     }
 
-    BaseProject ||--o| RentProjects : "1-1"
-    BaseProject ||--o| SellingIndustrialProjectDetails : "1-1"
-    BaseProject ||--o{ ClientProjectBalance : "1-M"
-    BaseProject ||--o{ SupplierProjectBalance : "1-M"
-    BaseProject ||--o{ CampaineItem : "1-M"
-    BaseProject ||--o{ ProjectContracts : "1-M"
-    BaseProject ||--o{ ProjectsGuaranteeCheques : "1-M"
-    BaseProject }o--|| Client : "M-1"
-    BaseProject }o--|| Supplier : "M-1"
-    BaseProject {
+    BASE_PROJECT ||--o| RENT_PROJECTS : "1:1"
+    BASE_PROJECT ||--o| SELLING_INDUSTRIAL_DETAILS : "1:1"
+    BASE_PROJECT ||--o{ CLIENT_PROJECT_BALANCE : "1:N"
+    BASE_PROJECT ||--o{ SUPPLIER_PROJECT_BALANCE : "1:N"
+    BASE_PROJECT ||--o{ CAMPAINE_ITEM : "1:N"
+    BASE_PROJECT ||--o{ PROJECT_CONTRACTS : "1:N"
+    BASE_PROJECT ||--o{ GUARANTEE_CHEQUES : "1:N"
+    BASE_PROJECT {
         int id PK
         string name
         string project_type
@@ -75,12 +74,12 @@ erDiagram
         date created_date
     }
 
-    RentProjects ||--o{ RentProjectOperationgCost : "1-M"
-    RentProjects ||--o{ RentProjectContracts : "1-M"
-    RentProjects ||--o{ ProjectRentalAds : "1-M"
-    RentProjects {
+    RENT_PROJECTS ||--o{ RENT_OPERATING_COST : "1:N"
+    RENT_PROJECTS ||--o{ RENT_PROJECT_CONTRACTS : "1:N"
+    RENT_PROJECTS ||--o{ PROJECT_RENTAL_ADS : "1:N"
+    RENT_PROJECTS {
         int id PK
-        int project_id FK UK
+        int project_id FK
         float operating_costs
         string project_status
         float value_added_tax
@@ -92,20 +91,20 @@ erDiagram
         float selling_price
     }
 
-    RentProjectOperationgCost {
+    RENT_OPERATING_COST {
         int id PK
         int project_id FK
         string name
         float amount
     }
 
-    RentProjectContracts {
+    RENT_PROJECT_CONTRACTS {
         int id PK
         int project_id FK
         file contract
     }
 
-    ProjectRentalAds {
+    PROJECT_RENTAL_ADS {
         int id PK
         int project_id FK
         string ad_type
@@ -115,12 +114,12 @@ erDiagram
         text notes
     }
 
-    SellingIndustrialProjectDetails ||--o{ IndustrialProjectOperationgCost : "1-M"
-    SellingIndustrialProjectDetails ||--o{ MaterialsSuppliers : "1-M"
-    SellingIndustrialProjectDetails ||--o{ IndustrialProjectContracts : "1-M"
-    SellingIndustrialProjectDetails {
+    SELLING_INDUSTRIAL_DETAILS ||--o{ INDUSTRIAL_OPERATING_COST : "1:N"
+    SELLING_INDUSTRIAL_DETAILS ||--o{ MATERIALS_SUPPLIERS : "1:N"
+    SELLING_INDUSTRIAL_DETAILS ||--o{ INDUSTRIAL_CONTRACTS : "1:N"
+    SELLING_INDUSTRIAL_DETAILS {
         int id PK
-        int project_id FK UK
+        int project_id FK
         float total_cost
         float total_materials_cost
         float profit
@@ -131,15 +130,15 @@ erDiagram
         float profits_tax
     }
 
-    IndustrialProjectOperationgCost {
+    INDUSTRIAL_OPERATING_COST {
         int id PK
         int project_id FK
         string name
         float amount
     }
 
-    MaterialsSuppliers ||--o{ MaterialsSuppliersPayments : "1-M"
-    MaterialsSuppliers {
+    MATERIALS_SUPPLIERS ||--o{ MATERIALS_PAYMENTS : "1:N"
+    MATERIALS_SUPPLIERS {
         int id PK
         int project_id FK
         string name
@@ -149,26 +148,26 @@ erDiagram
         float quantity
     }
 
-    MaterialsSuppliersPayments {
+    MATERIALS_PAYMENTS {
         int id PK
         int m_supplier_id FK
         float amount
         date date
     }
 
-    IndustrialProjectContracts {
+    INDUSTRIAL_CONTRACTS {
         int id PK
         int project_id FK
         file contract
     }
 
-    ProjectContracts {
+    PROJECT_CONTRACTS {
         int id PK
         int project_id FK
         file contract
     }
 
-    ProjectsGuaranteeCheques {
+    GUARANTEE_CHEQUES {
         int id PK
         int project_id FK
         string cheque_number
@@ -176,9 +175,8 @@ erDiagram
         float cheque_amount
     }
 
-    ClientProjectBalance ||--o{ ClientProjectPayment : "1-M"
-    ClientProjectBalance ||--o|| Campaine : "M-1"
-    ClientProjectBalance {
+    CLIENT_PROJECT_BALANCE ||--o{ CLIENT_PAYMENT : "1:N"
+    CLIENT_PROJECT_BALANCE {
         int id PK
         int client_fk_id FK
         int project_fk_id FK
@@ -189,9 +187,9 @@ erDiagram
         float remining
     }
 
-    ClientProjectPayment {
+    CLIENT_PAYMENT {
         int id PK
-        int client_project_balance_fk_id FK
+        int balance_id FK
         string portal_invoice_number
         file portal_invoice_file
         float payment_amount
@@ -202,8 +200,8 @@ erDiagram
         text notes
     }
 
-    SupplierProjectBalance ||--o{ SupplierProjectPayment : "1-M"
-    SupplierProjectBalance {
+    SUPPLIER_PROJECT_BALANCE ||--o{ SUPPLIER_PROJECT_PAYMENT : "1:N"
+    SUPPLIER_PROJECT_BALANCE {
         int id PK
         int supplier_fk_id FK
         int project_fk_id FK
@@ -212,7 +210,7 @@ erDiagram
         float remining
     }
 
-    SupplierProjectPayment {
+    SUPPLIER_PROJECT_PAYMENT {
         int id PK
         int supplier_fk_id FK
         int project_fk_id FK
@@ -223,10 +221,10 @@ erDiagram
         text notes
     }
 
-    Campaine ||--o{ CampaineItem : "1-M"
-    Campaine ||--o{ ClientProjectBalance : "1-M"
-    Campaine }o--|| Client : "M-1"
-    Campaine {
+    CAMPAINE ||--o{ CAMPAINE_ITEM : "1:N"
+    CAMPAINE ||--o{ CLIENT_PROJECT_BALANCE : "1:N"
+    CAMPAINE ||--|| CLIENT : "N:1"
+    CAMPAINE {
         int id PK
         string name
         int client_id FK
@@ -234,40 +232,40 @@ erDiagram
         date created_date
     }
 
-    CampaineItem {
+    CAMPAINE_ITEM {
         int id PK
         int campaine_id FK
         int supplier_id FK
         int project_id FK
     }
 
-    Safe ||--o{ SafeLogs : "1-M"
-    Safe {
+    SAFE ||--o{ SAFE_LOGS : "1:N"
+    SAFE {
         int id PK
         float balance
     }
 
-    SafeLogs {
+    SAFE_LOGS {
         int id PK
         text transaction
         datetime date
     }
 
-    CompanyAssets ||--o{ CompanyAssetsAttachments : "1-M"
-    CompanyAssets {
+    COMPANY_ASSETS ||--o{ ASSET_ATTACHMENTS : "1:N"
+    COMPANY_ASSETS {
         int id PK
         string name
         float price
     }
 
-    CompanyAssetsAttachments {
+    ASSET_ATTACHMENTS {
         int id PK
         int asset_id FK
         file file
     }
 
-    Quotations ||--o{ QuotationsAttachments : "1-M"
-    Quotations {
+    QUOTATIONS ||--o{ QUOTATION_ATTACHMENTS : "1:N"
+    QUOTATIONS {
         int id PK
         string client_name
         string company_name
@@ -277,13 +275,13 @@ erDiagram
         datetime created_date
     }
 
-    QuotationsAttachments {
+    QUOTATION_ATTACHMENTS {
         int id PK
         int quotation_id FK
         file attachment
     }
 
-    Expenses {
+    EXPENSES {
         int id PK
         text transaction
         string permit_number
@@ -292,16 +290,16 @@ erDiagram
         text notes
     }
 
-    TransactionsLog {
+    TRANSACTIONS_LOG {
         int id PK
         string username
         text transaction
         date created_date
     }
 
-    Notification {
+    NOTIFICATION {
         int id PK
-        uuid uuid UK
+        uuid uuid
         string title
         text message
         boolean is_read
@@ -313,15 +311,15 @@ erDiagram
 
 | Table | Description | Key Fields |
 |-------|-------------|------------|
-| **User** | System users (Admin, Accountant) | uuid PK, username UK |
-| **Profile** | User profile info (password reset) | user_id PK FK |
+| **User** | System users (Admin, Accountant) | uuid PK, username |
+| **Profile** | User profile info (password reset) | user_id FK |
 | **Client** | Customer/client records | id PK |
 | **Supplier** | Vendor/supplier records | id PK |
 | **BaseProject** | Core project table | id PK, project_type |
-| **RentProjects** | Rental project details | project_id FK UK |
-| **SellingIndustrialProjectDetails** | Industrial project details | project_id FK UK |
+| **RentProjects** | Rental project details | project_id FK |
+| **SellingIndustrialProjectDetails** | Industrial project details | project_id FK |
 | **ClientProjectBalance** | Client payment tracking | client_fk, project_fk, campaine_fk |
-| **ClientProjectPayment** | Individual client payments | client_project_balance_fk FK |
+| **ClientProjectPayment** | Individual client payments | balance_id FK |
 | **SupplierProjectBalance** | Supplier payment tracking | supplier_fk, project_fk |
 | **SupplierProjectPayment** | Individual supplier payments | supplier_fk FK |
 | **Campaine** | Marketing campaigns | id PK, client FK |
@@ -334,15 +332,22 @@ erDiagram
 | **QuotationsAttachments** | Quotation documents | quotation FK |
 | **Expenses** | Company expenses | id PK |
 | **TransactionsLog** | User activity log | id PK, username |
-| **Notification** | System notifications | uuid PK UK |
+| **Notification** | System notifications | uuid |
 
 ## Key Relationships
 
-1. **Client ↔ Project**: Through BaseProject.client FK (many projects per client)
-2. **Supplier ↔ Project**: Through BaseProject.supplier FK (many projects per supplier)
-3. **BaseProject ↔ RentProjects**: One-to-One (project_type='rent')
-4. **BaseProject ↔ SellingIndustrialProjectDetails**: One-to-One (project_type='industrial')
-5. **Client ↔ Campaine**: One-to-Many
-6. **Campaine ↔ BaseProject**: Through CampaineItem (many-to-many)
+1. **Client → Project**: Through BaseProject.client FK (many projects per client)
+2. **Supplier → Project**: Through BaseProject.supplier FK (many projects per supplier)
+3. **BaseProject → RentProjects**: One-to-One (project_type='rent')
+4. **BaseProject → SellingIndustrialProjectDetails**: One-to-One (project_type='industrial')
+5. **Client → Campaine**: One-to-Many
+6. **Campaine → BaseProject**: Through CampaineItem (many-to-many)
 7. **ClientProjectBalance**: Links Client, Project, and Campaine with payment tracking
 8. **SupplierProjectBalance**: Links Supplier and Project with payment tracking
+
+## Entity Relationship Notes
+
+- `BaseProject` uses Single Table Inheritance pattern with `project_type` discriminator
+- `RentProjects` and `SellingIndustrialProjectDetails` extend `BaseProject` via 1:1 relationship
+- `ClientProjectBalance` supports both projects and campaigns via polymorphic relationship
+- All balance tables track `total`, `paid`, and `remining` for accounting
