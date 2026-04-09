@@ -69,7 +69,7 @@ class ClientProjectsApiView(APIView):
         client_id = request.GET.get("client_id")
         CBP_instnaces = selectors.get_client_CBP_instances(client_id)
         response_data = pagenator(
-            CBP_instnaces, request, OutputSerializers.CBPSerializer
+            CBP_instnaces, request, OutputSerializers.CBPSerializer, page_size=4
         )
 
         return Response(response_data, status=HTTP_200_OK)

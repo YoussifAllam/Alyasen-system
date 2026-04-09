@@ -475,8 +475,21 @@ class ClientProfileUI(QWidget):
         self.info_fetch_thread.start()
 
     def update_pagination_controls(self):
-        self.next_button.setEnabled(self.next_page_url is not None)
-        self.prev_button.setEnabled(self.prev_page_url is not None)
+        has_next = self.next_page_url is not None
+        has_prev = self.prev_page_url is not None
+
+        self.next_button.setEnabled(has_next)
+        self.prev_button.setEnabled(has_prev)
+
+        # Apply primary styling to pagination buttons when they are navigable
+        self.next_button.setObjectName("primaryButton" if has_next else "")
+        self.prev_button.setObjectName("primaryButton" if has_prev else "")
+
+        # Refresh styling for both buttons to apply objectName changes
+        for btn in [self.next_button, self.prev_button]:
+            btn.style().unpolish(btn)
+            btn.style().polish(btn)
+
         if self.total_count > 0:
             self.page_info_label.setText(f"إجمالي المشاريع: {self.total_count}")
         else:
