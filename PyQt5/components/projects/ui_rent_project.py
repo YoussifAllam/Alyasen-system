@@ -242,7 +242,7 @@ class RentProjectPage(QWidget):
         )
         self.project_id = project_id
         # Updated URL as per user request (keeping it slightly more standard with ?rent_project_id=)
-        url = f"{BACKEND_BASE_URL}/projects/rent/info/?rent_project_id={project_id}"
+        url = f"{BACKEND_BASE_URL}/projects/rent/info/?CBP_id={project_id}"
 
         self.thread = QThread()
         self.worker = ProjectApiWorker("GET", url)

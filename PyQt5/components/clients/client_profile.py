@@ -207,7 +207,7 @@ class ClientProfileUI(QWidget):
             QMessageBox.warning(self, "خطأ", "لم يتم العثور على كود المشروع المختار.")
 
     def handle_add_project(self):
-        dialog = ProjectSelectionDialog(self)
+        dialog = ProjectSelectionDialog(self.client_id, self)
         dialog.project_selected.connect(self.on_project_selected)
         dialog.exec_()
 

@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (
     QTableWidgetItem,
     QHeaderView,
 )
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QPoint, QObject, pyqtSlot
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QPoint, QObject, pyqtSlot, QSettings
 from requests import get, exceptions, request
 from PyQt5.QtGui import QPixmap, QImage
 import qtawesome as qta
@@ -29,20 +29,24 @@ class ApiWorker(QObject):
     image_success = pyqtSignal(QPixmap)
     error = pyqtSignal(str)
 
-    def __init__(self, method, url, payload=None, response_type="json"):
+    def __init__(self, method, url, payload=None, data=None, response_type="json"):
         super().__init__()
         self.method = method
         self.url = url
         self.payload = payload
+        self.data = data
         self.response_type = response_type
 
     @pyqtSlot()
     def run(self):
         try:
-            if self.method == "GET":
-                response = get(self.url, timeout=15)
-            else:
-                response = request(self.method, self.url, json=self.payload, timeout=15)
+            kwargs = {"timeout": 15}
+            if self.payload:
+                kwargs["json"] = self.payload
+            if self.data:
+                kwargs["data"] = self.data
+
+            response = request(self.method, self.url, **kwargs)
 
             if response.status_code in [200, 201]:
                 if self.response_type == "json":
@@ -62,8 +66,9 @@ class ApiWorker(QObject):
 class ProjectSelectionDialog(QDialog):
     project_selected = pyqtSignal(dict)  # Emits full project dictionary
 
-    def __init__(self, parent=None):
+    def __init__(self, client_id=None, parent=None):
         super().__init__(parent)
+        self.client_id = client_id
         self.setWindowTitle("اختيار مشروع")
         self.setMinimumSize(800, 600)
 
@@ -307,10 +312,48 @@ class ProjectSelectionDialog(QDialog):
         selected_row = self.table.currentRow()
         if selected_row >= 0 and selected_row < len(self.filtered_projects):
             selected_project = self.filtered_projects[selected_row]
-            self.project_selected.emit(selected_project)
-            self.accept()
+
+            # Prepare API call to link project to client
+            url = f"{BACKEND_BASE_URL}/clients/projects/"
+
+            settings = QSettings("FactorySystem")
+            username = settings.value("user_name", "system")
+
+            p_type = selected_project.get("project_type", "")
+            # Ensure p_type is 'project' if it's not a campaign (legacy/general projects)
+            if p_type != "campaine" and p_type not in ["rent", "industrial", "selling"]:
+                p_type = "project"
+
+            form_data = {
+                "project_type": p_type,
+                "project_id": str(selected_project.get("id", "")),
+                "client_id": str(self.client_id) if self.client_id else "",
+                "username": username,
+            }
+
+            self.next_button.setEnabled(False)
+            self.thread = QThread()
+            self.worker = ApiWorker("POST", url, data=form_data)
+            self.worker.moveToThread(self.thread)
+            self.thread.started.connect(self.worker.run)
+            self.worker.success.connect(
+                lambda response: self.on_link_success(response, selected_project)
+            )
+            self.worker.error.connect(self.on_link_error)
+            self.worker.finished.connect(self.thread.quit)
+            self.worker.finished.connect(self.worker.deleteLater)
+            self.thread.finished.connect(self.thread.deleteLater)
+            self.thread.start()
         else:
             QMessageBox.warning(self, "تنبيه", "الرجاء اختيار مشروع من الجدول أولاً.")
+
+    def on_link_success(self, response_data, selected_project):
+        self.project_selected.emit(selected_project)
+        self.accept()
+
+    def on_link_error(self, message):
+        self.next_button.setEnabled(True)
+        QMessageBox.warning(self, "خطأ", f"فشل ربط المشروع بالعميل:\n{message}")
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton and self.title_bar.underMouse():
