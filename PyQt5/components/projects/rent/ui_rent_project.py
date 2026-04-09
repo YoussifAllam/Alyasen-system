@@ -21,6 +21,7 @@ import qtawesome as qta
 from ...Main_Ui_Components.constant import BACKEND_BASE_URL
 from ..ui_projects import ProjectApiWorker  # Reusing API worker
 from .update_rent_project_dialog import UpdateRentProjectDialog
+from .rent_project_ads_dialog import RentProjectAdsDialog
 
 
 class RentProjectPage(QWidget):
@@ -219,7 +220,7 @@ class RentProjectPage(QWidget):
 
         # Connect buttons
         self.update_project_data.clicked.connect(self.handle_update_project)
-        self.btn_ads.clicked.connect(lambda: self.show_placeholder("إعلانات المشروع"))
+        self.btn_ads.clicked.connect(self.handle_show_ads)
         self.btn_op_cost.clicked.connect(
             lambda: self.show_placeholder("تكاليف التشغيل")
         )
@@ -356,6 +357,14 @@ class RentProjectPage(QWidget):
         )
         if dialog.exec_():
             self.load_project_data(self.project_id)
+
+    def handle_show_ads(self):
+        if not self.project_id:
+            QMessageBox.warning(self, "تنبيه", "لا يوجد مشروع محمل لعرض إعلاناته.")
+            return
+
+        dialog = RentProjectAdsDialog(self.project_id, self)
+        dialog.exec_()
 
     def open_contract(self, url):
         if url:
