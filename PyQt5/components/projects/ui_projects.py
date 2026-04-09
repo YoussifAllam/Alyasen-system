@@ -38,7 +38,7 @@ class ProjectApiWorker(QObject):
     @pyqtSlot()
     def run(self):
         try:
-            if self.method == "POST" and self.files:
+            if self.method in ["POST", "PATCH"] and self.files is not None:
                 response = request(
                     self.method,
                     self.url,

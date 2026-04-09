@@ -17,8 +17,10 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, pyqtSignal, QThread, QSize, QUrl
 from PyQt5.QtGui import QIcon, QDesktopServices
 import qtawesome as qta
-from ..Main_Ui_Components.constant import BACKEND_BASE_URL
-from .ui_projects import ProjectApiWorker  # Reusing API worker
+
+from ...Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..ui_projects import ProjectApiWorker  # Reusing API worker
+from .update_rent_project_dialog import UpdateRentProjectDialog
 
 
 class RentProjectPage(QWidget):
@@ -27,6 +29,7 @@ class RentProjectPage(QWidget):
     def __init__(self):
         super().__init__()
         self.project_id = None
+        self.project_data = {}
         self.setup_ui()
 
     def setup_ui(self):
@@ -215,9 +218,7 @@ class RentProjectPage(QWidget):
         self.btn_cheques = QPushButton("شيك الضمان")
 
         # Connect buttons
-        self.update_project_data.clicked.connect(
-            lambda: self.load_project_data(self.project_id)
-        )
+        self.update_project_data.clicked.connect(self.handle_update_project)
         self.btn_ads.clicked.connect(lambda: self.show_placeholder("إعلانات المشروع"))
         self.btn_op_cost.clicked.connect(
             lambda: self.show_placeholder("تكاليف التشغيل")
@@ -258,6 +259,7 @@ class RentProjectPage(QWidget):
     def on_data_loaded(self, response_data):
         self.header_label.setText(f"تفاصيل مشروع إيجار رقم : {self.project_id}")
         data = response_data.get("data", {})
+        self.project_data = data
 
         # Search for name in various possible locations
         name = data.get("project_name")
@@ -272,10 +274,7 @@ class RentProjectPage(QWidget):
         # Taxes
         self.lbl_vat.setText(f"{data.get('value_added_tax', 0):,.2f}")
         self.lbl_insurance_tax.setText(f"{data.get('insurance_tax', 0):,.2f}")
-        self.lbl_insurance_date.setText(
-            str(data.get("insurance_tax_date") or "لا يوجد")
-        )
-        self.lbl_insurance_date.setAlignment(Qt.AlignCenter)
+        self.lbl_insurance_date.setText(str(data.get("insurance_tax_date") or "-"))
         self.lbl_profits_tax.setText(f"{data.get('commercial_profits_tax', 0):,.2f}")
 
         # Contracts table
@@ -346,6 +345,17 @@ class RentProjectPage(QWidget):
         self.contracts_table.setSpan(
             add_row, 1, 1, 1
         )  # Span across filename and actions columns
+
+    def handle_update_project(self):
+        if not self.project_id:
+            QMessageBox.warning(self, "تنبيه", "لا يوجد مشروع محمل لتحديثه.")
+            return
+
+        dialog = UpdateRentProjectDialog(
+            self.project_id, current_data=self.project_data, parent=self
+        )
+        if dialog.exec_():
+            self.load_project_data(self.project_id)
 
     def open_contract(self, url):
         if url:

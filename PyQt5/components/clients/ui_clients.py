@@ -29,7 +29,7 @@ from ..validation import (
 )
 
 from .client_profile import ClientProfileUI
-from ..projects.ui_rent_project import RentProjectPage
+from ..projects.rent.ui_rent_project import RentProjectPage
 from ..projects.ui_industrial_project import IndustrialProjectPage
 from ..projects.ui_selling_project import SellingProjectPage
 
