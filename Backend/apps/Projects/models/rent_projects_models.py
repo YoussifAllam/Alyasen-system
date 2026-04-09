@@ -16,7 +16,9 @@ class RentProjects(models.Model):
     )
 
     operating_costs = models.FloatField(default=0)
-    project_status = models.CharField(max_length=50, choices=ProjectStatus.choices,default="active")
+    project_status = models.CharField(
+        max_length=50, choices=ProjectStatus.choices, default="active"
+    )
     buying_price = models.FloatField(default=0)
 
     # taxes

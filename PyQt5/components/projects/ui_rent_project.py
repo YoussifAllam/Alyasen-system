@@ -109,7 +109,6 @@ class RentProjectPage(QWidget):
         grid = QGridLayout()
         grid.setSpacing(15)
 
-        self.lbl_id = self.create_value_label()
         self.lbl_name = self.create_value_label()
         self.lbl_operating_cost = self.create_value_label()
         self.lbl_supplier_cost = self.create_value_label()
@@ -118,7 +117,6 @@ class RentProjectPage(QWidget):
         self.lbl_total_cost = self.create_value_label()
 
         rows = [
-            ("الكود:", self.lbl_id),
             ("الاسم:", self.lbl_name),
             ("تكلفة التشغيل:", self.lbl_operating_cost),
             ("تكلفة الشراء:", self.lbl_supplier_cost),
@@ -261,7 +259,6 @@ class RentProjectPage(QWidget):
         self.header_label.setText(f"تفاصيل مشروع إيجار رقم : {self.project_id}")
         data = response_data.get("data", {})
 
-        self.lbl_id.setText(str(data.get("id", self.project_id)))
         # Search for name in various possible locations
         name = data.get("name", response_data.get("name", "-"))
         self.lbl_name.setText(str(name))
@@ -354,10 +351,12 @@ class RentProjectPage(QWidget):
         if url:
             if not url.startswith("http"):
                 # Handle relative media paths if necessary
+                # Remove /api from the base URL to correctly point to the media root
+                base_server_url = BACKEND_BASE_URL.replace("/api", "")
                 if url.startswith("/media/"):
-                    url = f"{BACKEND_BASE_URL}{url}"
+                    url = f"{base_server_url}{url}"
                 else:
-                    url = f"{BACKEND_BASE_URL}/media/{url}"
+                    url = f"{base_server_url}/media/{url}"
             QDesktopServices.openUrl(QUrl(url))
         else:
             QMessageBox.warning(self, "تنبيه", "لا يوجد رابط لهذا العقد.")
@@ -402,7 +401,7 @@ class RentProjectPage(QWidget):
             return
 
         url = f"{BACKEND_BASE_URL}/projects/rent/contracts/"
-        payload = {"rent_project_id": str(self.project_id)}
+        payload = {"CBP_id": str(self.project_id)}
 
         files = []
         for path in file_paths:

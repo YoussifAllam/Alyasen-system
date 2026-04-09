@@ -83,10 +83,10 @@ class RentProjectsApiView(APIView):
 class RentProjectContractsApiView(APIView):
 
     def post(self, request: Request, format=None):
-        project_id = request.data.get("rent_project_id")
+        CBP_id = request.data.get("CBP_id")
         attachments = request.FILES.getlist("attachments")
 
-        r_p_instance = selectors.get_specific_project(project_id)
+        r_p_instance = selectors.get_specific_project_using_CBP(CBP_id)
 
         services.create_r_p_contracts(r_p_instance, attachments)
 

@@ -32,3 +32,10 @@ def get_r_contract_instnace(contract_id):
         return models.RentProjectContracts.objects.get(id=contract_id)
     except models.RentProjectContracts.DoesNotExist:
         raise NotFound("Contract not found")
+
+
+def get_specific_project_using_id(project_id) -> models.RentProjects:
+    try:
+        return models.RentProjects.objects.get(id=project_id)
+    except models.RentProjects.DoesNotExist:
+        raise NotFound("Project not found")
