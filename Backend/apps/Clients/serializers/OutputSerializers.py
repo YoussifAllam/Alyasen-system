@@ -28,60 +28,29 @@ class ClientInfoSerializer(serializers.ModelSerializer):
 
 
 class BaseProjectSerializer(serializers.ModelSerializer):
-    paid = serializers.SerializerMethodField()
-    remining = serializers.SerializerMethodField()
+    supplier_name = serializers.CharField(source="supplier.name", read_only=True)
 
     class Meta:
         model = BaseProject
-        fields = [
-            "id",
-            "name",
-            "project_type",
-            "cost",
-            "paid",
-            "remining",
-            "project_status",
-            "created_date",
-        ]
-
-    def get_paid(self, obj: BaseProject):
-        balance = obj.clientprojectbalance_set.first()
-        return balance.paid if balance else 0
-
-    def get_remining(self, obj: BaseProject):
-        balance = obj.clientprojectbalance_set.first()
-        return balance.remining if balance else 0
+        fields = ["id", "name", "supplier_name"]
 
 
 class CampaineSerializer(serializers.ModelSerializer):
-    project_type = serializers.CharField(default="حملة", read_only=True)
-    project_status = serializers.SerializerMethodField()
-    paid = serializers.SerializerMethodField()
-    remining = serializers.SerializerMethodField()
+    suppliers = serializers.SerializerMethodField()
 
     class Meta:
         model = Campaine
-        fields = [
-            "id",
-            "name",
-            "project_type",
-            "total_cost",
-            "paid",
-            "remining",
-            "project_status",
-            "created_date",
-        ]
+        fields = ["id", "name", "suppliers"]
 
-    def get_project_status(self, obj: Campaine):
-        return obj.items.first().project.project_status
-
-    def get_paid(self, obj: Campaine):
-        balance = obj.clientprojectbalance_set.first()
-        return balance.paid if balance else 0
-
-    def get_remining(self, obj: Campaine):
-        balance = obj.clientprojectbalance_set.first()
-        return balance.remining if balance else 0
+    def get_suppliers(self, obj: Campaine):
+        # Already prefetch if possible in view
+        if hasattr(obj, "_prefetched_items"):
+            return [item.supplier.name for item in obj.items.all()]
+        return list(
+            obj.items.select_related("supplier")
+            .values_list("supplier__name", flat=True)
+            .distinct()
+        )
 
 
 class CBPSerializer(serializers.ModelSerializer):

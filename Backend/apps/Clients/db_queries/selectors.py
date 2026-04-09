@@ -37,10 +37,7 @@ def get_client_instance(client_id: int) -> Client:
         raise NotFound({"الخطأ": "لا يوجد عميل بهذا الكود"})
 
 
-def get_client_project_and_campaings(client_id):
-    # projects = BaseProject.objects.filter(client=client_id)
-    # campaigns = Campaine.objects.filter(client=client_id)
-    # return projects, campaigns
+def get_client_CBP_instances(client_id):
     return ClientProjectBalance.objects.filter(client_fk=client_id)
 
 
@@ -89,3 +86,9 @@ def get_BP_instance(id) -> BaseProject:
         return BaseProject.objects.get(id=id)
     except BaseProject.DoesNotExist:
         raise NotFound({"الخطأ": "لا يوجد مشروع بهذا الكود"})
+
+
+def get_client_project_and_campaings():
+    projects = BaseProject.objects.all()
+    campaigns = Campaine.objects.all()
+    return projects, campaigns

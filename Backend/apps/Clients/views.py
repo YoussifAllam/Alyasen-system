@@ -64,10 +64,10 @@ class ClientInfoApiView(APIView):
         return Response({"status": "succes", "data": serializer.data}, 200)
 
 
-class ClientProjectAndCampaingsApiView(APIView):
+class ClientProjectsApiView(APIView):
     def get(self, request: Request):
         client_id = request.GET.get("client_id")
-        CBP_instnaces = selectors.get_client_project_and_campaings(client_id)
+        CBP_instnaces = selectors.get_client_CBP_instances(client_id)
         response_data = pagenator(
             CBP_instnaces, request, OutputSerializers.CBPSerializer
         )
@@ -181,3 +181,21 @@ class SendFinancialReportEmailApiView(APIView):
         client_id = request.data.get("client_id")
         msg, status_code = client_email_tasks.send_financial_report_email(client_id)
         return Response(msg, status=status_code)
+
+
+class ClientProjectAndCampaingsApiView(APIView):
+    def get(self, request: Request):
+        projects, campaigns = selectors.get_client_project_and_campaings()
+
+        projects_serializer = OutputSerializers.BaseProjectSerializer(
+            projects, many=True
+        )
+        campaigns_serializer = OutputSerializers.CampaineSerializer(
+            campaigns, many=True
+        )
+
+        response_data = {
+            "campaigns": campaigns_serializer.data,
+            "projects": projects_serializer.data,
+        }
+        return Response(response_data, status=HTTP_200_OK)
