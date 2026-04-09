@@ -53,3 +53,9 @@ class RentProjectInfoSerializer(serializers.ModelSerializer):
 
     def get_project_name(self, obj: models.RentProjects):
         return obj.CPB_fk.project_name
+
+
+class RentProjectAdsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.ProjectRentalAds
+        fields = "__all__"

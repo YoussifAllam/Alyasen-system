@@ -18,3 +18,10 @@ class RentProjectsUpdateSerializer(serializers.ModelSerializer):
             "insurance_tax",
             "insurance_tax_date",
         ]
+
+
+class RentProjectAdsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.ProjectRentalAds
+        fields = "__all__"
+        extra_kwargs = {"project": {"required": False}}

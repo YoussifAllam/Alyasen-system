@@ -55,3 +55,10 @@ def get_CBP(id):
         return ClientProjectBalance.objects.get(id=id)
     except ClientProjectBalance.DoesNotExist:
         raise NotFound("Client Project Balance not found")
+
+
+def get_r_ads_instnace(ads_id):
+    try:
+        return models.ProjectRentalAds.objects.get(id=ads_id)
+    except models.ProjectRentalAds.DoesNotExist:
+        raise NotFound("Ads not found")

@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QFrame,
 )
-from PyQt5.QtCore import Qt, QDate, QThread, QPoint
+from PyQt5.QtCore import Qt, QDate, QThread, QPoint, QSettings
 from ..ui_projects import ProjectApiWorker
 from ...Main_Ui_Components.constant import BACKEND_BASE_URL
 from ...validation import (
@@ -169,12 +169,16 @@ class UpdateRentProjectDialog(QDialog):
 
         insurance_tax_val = self.insurance_tax_input.text().strip()
 
+        settings = QSettings("FactorySystem")
+        username = settings.value("user_name", "system")
+
         payload = {
             "CBP_id": str(self.project_id),
             "selling_price": self.selling_price_input.text().strip(),
             "value_added_tax": self.vat_input.text().strip(),
             "commercial_profits_tax": self.profits_tax_input.text().strip(),
             "insurance_tax": insurance_tax_val,
+            "user_name": username,
         }
 
         # Don't send insurance_tax_date if insurance_tax is 0 or empty

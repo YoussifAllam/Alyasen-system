@@ -266,7 +266,7 @@ class RentProjectPage(QWidget):
         self.lbl_name.setText(str(name))
 
         self.lbl_operating_cost.setText(f"{data.get('operating_costs', 0):,.2f}")
-        self.lbl_supplier_cost.setText(f"{data.get('buying_cost', 0):,.2f}")
+        self.lbl_supplier_cost.setText(f"{data.get('buying_price', 0):,.2f}")
         self.lbl_total_cost.setText(f"{data.get('total_cost', 0):,.2f}")
         self.lbl_sell_cost.setText(f"{data.get('selling_price', 0):,.2f}")
         self.lbl_profit.setText(f"{data.get('net_profit', 0):,.2f}")
