@@ -260,7 +260,7 @@ class RentProjectPage(QWidget):
         data = response_data.get("data", {})
 
         # Search for name in various possible locations
-        name = data.get("name", response_data.get("name", "-"))
+        name = data.get("project_name")
         self.lbl_name.setText(str(name))
 
         self.lbl_operating_cost.setText(f"{data.get('operating_costs', 0):,.2f}")

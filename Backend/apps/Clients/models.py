@@ -68,6 +68,14 @@ class ClientProjectBalance(models.Model):
         verbose_name = "Client Project Balance"
         verbose_name_plural = "Client Project Balance"
 
+    @property
+    def project_name(self):
+        if self.project_type == "project" and self.project_fk:
+            return self.project_fk.name
+        elif self.project_type == "campaine" and self.campaine_fk:
+            return self.campaine_fk.name
+        return "N/A"
+    
 
 class ProjectPayment(models.Model):
     client_project_balance_fk = models.ForeignKey(

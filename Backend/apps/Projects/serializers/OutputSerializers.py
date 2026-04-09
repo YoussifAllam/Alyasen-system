@@ -32,11 +32,13 @@ class RentProjectInfoSerializer(serializers.ModelSerializer):
     contracts = RentProjectsContractsSerializer(
         many=True, source="rentprojectcontracts_set"
     )
+    project_name = serializers.SerializerMethodField()
 
     class Meta:
         model = models.RentProjects
         fields = [
             "id",
+            "project_name",
             "operating_costs",
             "buying_price",
             "total_cost",
@@ -48,3 +50,6 @@ class RentProjectInfoSerializer(serializers.ModelSerializer):
             "commercial_profits_tax",
             "contracts",
         ]
+
+    def get_project_name(self, obj: models.RentProjects):
+        return obj.CPB_fk.project_name
