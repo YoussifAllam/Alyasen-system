@@ -22,6 +22,7 @@ from ...Main_Ui_Components.constant import BACKEND_BASE_URL
 from ..ui_projects import ProjectApiWorker  # Reusing API worker
 from .update_rent_project_dialog import UpdateRentProjectDialog
 from .rent_project_ads_dialog import RentProjectAdsDialog
+from .rent_project_cheque_dialog import RentProjectChequeDialog
 
 
 class RentProjectPage(QWidget):
@@ -224,7 +225,7 @@ class RentProjectPage(QWidget):
         self.btn_op_cost.clicked.connect(
             lambda: self.show_placeholder("تكاليف التشغيل")
         )
-        self.btn_cheques.clicked.connect(lambda: self.show_placeholder("شيكات الضمان"))
+        self.btn_cheques.clicked.connect(self.handle_show_cheques)
 
         layout.addWidget(self.update_project_data)
         layout.addWidget(self.btn_ads)
@@ -364,6 +365,14 @@ class RentProjectPage(QWidget):
             return
 
         dialog = RentProjectAdsDialog(self.project_id, self)
+        dialog.exec_()
+
+    def handle_show_cheques(self):
+        if not self.project_id:
+            QMessageBox.warning(self, "تنبيه", "لا يوجد مشروع محمل لعرض شيكات الضمان.")
+            return
+
+        dialog = RentProjectChequeDialog(self.project_id, self)
         dialog.exec_()
 
     def open_contract(self, url):
