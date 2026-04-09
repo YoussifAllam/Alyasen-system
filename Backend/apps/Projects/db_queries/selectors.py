@@ -4,6 +4,8 @@ from rest_framework.request import Request
 from rest_framework.exceptions import NotFound
 from cacheops import cached_as
 
+from apps.Clients.models import ClientProjectBalance, Client
+
 
 def get_projects(request: Request):
     q = request.GET.get("q")
@@ -39,3 +41,17 @@ def get_specific_project_using_id(project_id) -> models.RentProjects:
         return models.RentProjects.objects.get(id=project_id)
     except models.RentProjects.DoesNotExist:
         raise NotFound("Project not found")
+
+
+def get_client_instnce(client_id):
+    try:
+        return Client.objects.get(id=client_id)
+    except Client.DoesNotExist:
+        raise NotFound("Client not found")
+
+
+def get_CBP(id):
+    try:
+        return ClientProjectBalance.objects.get(id=id)
+    except ClientProjectBalance.DoesNotExist:
+        raise NotFound("Client Project Balance not found")

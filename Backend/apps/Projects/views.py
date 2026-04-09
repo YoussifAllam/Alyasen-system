@@ -79,6 +79,22 @@ class RentProjectsApiView(APIView):
             {"status": "success", "data": serializer.data}, status=HTTP_200_OK
         )
 
+    def patch(self, request: Request):
+        CBP_id = request.data.get("CBP_id")
+        target_project = selectors.get_specific_project_using_CBP(CBP_id)
+        # selling price , taxes
+        serializer = InputSerializers.RentProjectsUpdateSerializer(
+            target_project, data=request.data, partial=True
+        )
+        if not serializer.is_valid():
+            return Response(
+                {"status": "failed", "errors": serializer.errors}, status=400
+            )
+        serializer.save()
+        if "selling_price" in request.data:
+            services.update_project_info(CBP_id, target_project)
+        return Response({"status": "success"}, status=HTTP_200_OK)
+
 
 class RentProjectContractsApiView(APIView):
 
