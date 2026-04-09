@@ -202,8 +202,9 @@ class RentProjectOperationgCost(APIView):
         services.update_client_balance_fields(CBP_id)
         return Response({"status": "success"}, status=HTTP_200_OK)
 
-    # def delete(self, request: Request):
-    #     CBP_id = request.data.get("CBP_id")
-    #     cost = selectors.get_specific_operating_cost_using_CBP(CBP_id)
-    #     cost.delete()
-    #     return Response({"status": "success"}, status=HTTP_200_OK)
+    def delete(self, request: Request):
+        cost_id = request.data.get("cost_id")
+        cost = selectors.get_specific_operating_cost(cost_id)
+        cost.delete()
+        services.update_client_balance_fields(cost.project.CPB_fk)
+        return Response({"status": "success"}, status=HTTP_200_OK)

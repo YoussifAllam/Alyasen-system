@@ -76,3 +76,10 @@ def get_project_operating_costs_using_CBP(CBP_id):
         return models.RentProjectOperationgCost.objects.filter(project__CPB_fk=CBP_id)
     except models.RentProjectOperationgCost.DoesNotExist:
         raise NotFound("Project operating costs not found")
+
+
+def get_specific_operating_cost(cost_id):
+    try:
+        return models.RentProjectOperationgCost.objects.get(id=cost_id)
+    except models.RentProjectOperationgCost.DoesNotExist:
+        raise NotFound("Project operating cost not found")
