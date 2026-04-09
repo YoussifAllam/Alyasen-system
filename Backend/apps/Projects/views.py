@@ -9,6 +9,7 @@ from .db_queries import selectors, services
 from .tasks.pagenator import pagenator
 
 from apps.TransactionsLog.tasks.celery_tasks import create_transaction_log
+from apps.Safe.tasks.celery_tasks import reduce_safe_balance
 
 
 class ProjectApiView(APIView):
@@ -82,7 +83,6 @@ class RentProjectsApiView(APIView):
     def patch(self, request: Request):
         CBP_id = request.data.get("CBP_id")
         target_project = selectors.get_specific_project_using_CBP(CBP_id)
-        # selling price , taxes
         serializer = InputSerializers.RentProjectsUpdateSerializer(
             target_project, data=request.data, partial=True
         )
@@ -93,6 +93,11 @@ class RentProjectsApiView(APIView):
         serializer.save()
         if "selling_price" in request.data:
             services.update_project_info(CBP_id, target_project)
+        if "insurance_tax" in request.data:
+            transaction = f"تم دفع تأمين بملغ {request.data['insurance_tax']} لمشروع {target_project.CPB_fk.project_name}"  # noqa
+            reduce_safe_balance.delay(
+                request.data["insurance_tax"], transaction, request.data["user_name"]
+            )
         return Response({"status": "success"}, status=HTTP_200_OK)
 
 
