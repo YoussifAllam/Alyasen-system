@@ -65,3 +65,9 @@ class RentProjectGuaranteeChequesSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.RentProjectsGuaranteeCheques
         fields = "__all__"
+
+
+class RentProjectOperationgCostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.RentProjectOperationgCost
+        fields = "__all__"

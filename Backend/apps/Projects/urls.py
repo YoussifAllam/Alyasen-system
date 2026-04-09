@@ -6,6 +6,7 @@ rent_urls = [
     path("contracts/", views.RentProjectContractsApiView.as_view()),
     path("ads/", views.RentProjectAdsApiView.as_view()),
     path("guarantee-cheque/", views.RentProjectGuaranteeChequesApiView.as_view()),
+    path("operating-costs/", views.RentProjectOperationgCost.as_view()),
 ]
 
 urlpatterns = [

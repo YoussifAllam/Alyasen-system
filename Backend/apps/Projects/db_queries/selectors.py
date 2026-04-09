@@ -69,3 +69,10 @@ def get_specific_guarantee_cheque_using_CBP(CBP_id):
         return models.RentProjectsGuaranteeCheques.objects.get(project__CPB_fk=CBP_id)
     except models.RentProjectsGuaranteeCheques.DoesNotExist:
         raise NotFound("Guarantee cheque not found")
+
+
+def get_project_operating_costs_using_CBP(CBP_id):
+    try:
+        return models.RentProjectOperationgCost.objects.filter(project__CPB_fk=CBP_id)
+    except models.RentProjectOperationgCost.DoesNotExist:
+        raise NotFound("Project operating costs not found")

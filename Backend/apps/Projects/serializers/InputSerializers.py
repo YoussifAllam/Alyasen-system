@@ -32,3 +32,10 @@ class RentProjectGuaranteeChequesSerializer(serializers.ModelSerializer):
         model = models.RentProjectsGuaranteeCheques
         fields = "__all__"
         extra_kwargs = {"project": {"required": False}}
+
+
+class RentProjectOperationgCostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.RentProjectOperationgCost
+        fields = "__all__"
+        extra_kwargs = {"project": {"required": False}}
