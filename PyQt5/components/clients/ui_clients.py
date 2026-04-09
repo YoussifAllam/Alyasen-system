@@ -282,14 +282,21 @@ class ClientsUI(QWidget):
 
     def handle_add_client(self):
         """Validates form data and starts the POST request."""
-        fields = [self.name_input, self.phone_input, self.email_input, self.total_balance_owed_to_us_input]
+        fields = [
+            self.name_input,
+            self.phone_input,
+            self.email_input,
+            self.total_balance_owed_to_us_input,
+        ]
         _clear_errors(fields)
 
         validations = [
             validate_not_empty(self.name_input, "اسم العميل"),
             validate_phone(self.phone_input, "رقم الهاتف"),
             validate_optional_email(self.email_input, "البريد الإلكتروني"),
-            validate_positive_number(self.total_balance_owed_to_us_input, "مبلغ مدينية العميل"),
+            validate_positive_number(
+                self.total_balance_owed_to_us_input, "مبلغ مدينية العميل"
+            ),
         ]
         if not run_validations(self, validations):
             return
@@ -435,6 +442,7 @@ class ClientsUI(QWidget):
     def show_main_page(self):
         """Switches the view back to the main client list."""
         self.stacked_widget.setCurrentIndex(0)
+        self.handle_show_profile()
 
     def show_profile_page(self):
         self.stacked_widget.setCurrentIndex(1)

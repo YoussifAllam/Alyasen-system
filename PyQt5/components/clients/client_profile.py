@@ -215,7 +215,7 @@ class ClientProfileUI(QWidget):
         project_type = project_data.get("project_type")
         project_id = project_data.get("id")
 
-        if project_type == "rent":
+        if project_type in ["rent", "campaine", "حملة"]:
             self.show_rent_project_requested.emit(project_id)
 
         elif project_type == "industrial":

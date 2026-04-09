@@ -195,7 +195,9 @@ class RentProjectPage(QWidget):
         self.contracts_table.horizontalHeader().setSectionResizeMode(
             2, QHeaderView.ResizeToContents
         )
-        self.contracts_table.verticalHeader().hide()
+        # self.contracts_table.verticalHeader().hide()
+        self.contracts_table.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
+        self.contracts_table.verticalHeader().setDefaultSectionSize(80)
 
         layout.addWidget(self.contracts_table)
         return card
@@ -276,6 +278,7 @@ class RentProjectPage(QWidget):
         self.lbl_insurance_date.setText(
             str(data.get("insurance_tax_date") or "لا يوجد")
         )
+        self.lbl_insurance_date.setAlignment(Qt.AlignCenter)
         self.lbl_profits_tax.setText(f"{data.get('commercial_profits_tax', 0):,.2f}")
 
         # Contracts table
@@ -344,7 +347,7 @@ class RentProjectPage(QWidget):
 
         self.contracts_table.setCellWidget(add_row, 1, add_btn)
         self.contracts_table.setSpan(
-            add_row, 1, 1, 2
+            add_row, 1, 1, 1
         )  # Span across filename and actions columns
 
     def open_contract(self, url):
