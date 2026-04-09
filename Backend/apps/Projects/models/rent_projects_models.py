@@ -76,3 +76,10 @@ class ProjectRentalAds(models.Model):
     size = models.CharField(max_length=50)
     address = models.TextField(max_length=50)
     notes = models.TextField(max_length=50)
+
+
+class RentProjectsGuaranteeCheques(models.Model):
+    project = models.OneToOneField(RentProjects, on_delete=models.CASCADE)
+    cheque_number = models.CharField(max_length=50)
+    cheque_date = models.DateField()
+    cheque_amount = models.FloatField(default=0)

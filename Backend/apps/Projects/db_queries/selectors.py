@@ -62,3 +62,10 @@ def get_r_ads_instnace(ads_id):
         return models.ProjectRentalAds.objects.get(id=ads_id)
     except models.ProjectRentalAds.DoesNotExist:
         raise NotFound("Ads not found")
+
+
+def get_specific_guarantee_cheque_using_CBP(CBP_id):
+    try:
+        return models.RentProjectsGuaranteeCheques.objects.get(project__CPB_fk=CBP_id)
+    except models.RentProjectsGuaranteeCheques.DoesNotExist:
+        raise NotFound("Guarantee cheque not found")

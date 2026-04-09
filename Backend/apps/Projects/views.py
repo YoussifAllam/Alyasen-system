@@ -146,3 +146,32 @@ class RentProjectAdsApiView(APIView):
         ads = selectors.get_r_ads_instnace(ads_id)
         ads.delete()
         return Response({"status": "success"}, status=HTTP_200_OK)
+
+
+class RentProjectGuaranteeChequesApiView(APIView):
+    def get(self, request: Request, format=None):
+        CBP_id = request.GET.get("CBP_id")
+        cheque = selectors.get_specific_guarantee_cheque_using_CBP(CBP_id)
+        serializer = OutputSerializers.RentProjectGuaranteeChequesSerializer(cheque)
+        return Response(
+            {"status": "success", "data": serializer.data}, status=HTTP_200_OK
+        )
+
+    def post(self, request: Request, format=None):
+        CBP_id = request.data.get("CBP_id")
+        r_p_instance = selectors.get_specific_project_using_CBP(CBP_id)
+        serializer = InputSerializers.RentProjectGuaranteeChequesSerializer(
+            data=request.data
+        )
+        if not serializer.is_valid():
+            return Response(
+                {"status": "failed", "errors": serializer.errors}, status=400
+            )
+        serializer.save(project=r_p_instance)
+        return Response({"status": "success"}, status=HTTP_200_OK)
+
+    def delete(self, request: Request):
+        CBP_id = request.data.get("CBP_id")
+        cheque = selectors.get_specific_guarantee_cheque_using_CBP(CBP_id)
+        cheque.delete()
+        return Response({"status": "success"}, status=HTTP_200_OK)

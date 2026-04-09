@@ -59,3 +59,9 @@ class RentProjectAdsSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.ProjectRentalAds
         fields = "__all__"
+
+
+class RentProjectGuaranteeChequesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.RentProjectsGuaranteeCheques
+        fields = "__all__"
