@@ -165,7 +165,7 @@ class ProjectSelectionDialog(QDialog):
         self.old_pos = None
 
     def load_projects(self):
-        url = f"{BACKEND_BASE_URL}/projects/"
+        url = f"{BACKEND_BASE_URL}/clients/projects/get-all-projects/"
         self.thread = QThread()
         self.worker = ApiWorker("GET", url)
         self.worker.moveToThread(self.thread)
@@ -178,8 +178,57 @@ class ProjectSelectionDialog(QDialog):
         self.thread.start()
 
     def on_projects_loaded(self, response_data):
-        data = response_data.get("data", {})
-        self.all_projects = data.get("results", [])
+        # Handle cases where data might be wrapped in a 'data' key or at root
+        if "campaigns" in response_data or "projects" in response_data:
+            data = response_data
+        else:
+            data = response_data.get("data", {})
+
+        campaigns_data = data.get("campaigns", [])
+        projects_data = data.get("projects", [])
+
+        # If projects is empty but results exists, use results (legacy support)
+        if not projects_data and "results" in data:
+            projects_data = data.get("results", [])
+
+        # Normalize campaigns to match project structure
+        normalized_campaigns = []
+        for campaign in campaigns_data:
+            # Join suppliers list into a single string for display
+            suppliers = campaign.get("suppliers", [])
+            supplier_name = (
+                ", ".join(suppliers) if isinstance(suppliers, list) else str(suppliers)
+            )
+
+            normalized_campaigns.append(
+                {
+                    "id": campaign.get("id"),
+                    "name": campaign.get("name") or campaign.get("project_name", ""),
+                    "supplier_name": supplier_name,
+                    "project_type": "campaine",  # Aligns with UI type_map filter
+                }
+            )
+
+        # Normalize projects - and handle project_type if it's missing but can be inferred
+        normalized_projects = []
+        for project in projects_data:
+            p_copy = project.copy()
+            # Ensure name field exists
+            if not p_copy.get("name"):
+                p_copy["name"] = p_copy.get("project_name", "")
+
+            # If project_type is missing, try to infer it from the name for the filter to work
+            if not p_copy.get("project_type"):
+                name_lower = p_copy.get("name", "").lower()
+                if "rent" in name_lower:
+                    p_copy["project_type"] = "rent"
+                elif "industrial" in name_lower:
+                    p_copy["project_type"] = "industrial"
+                elif "selling" in name_lower or "seeling" in name_lower:
+                    p_copy["project_type"] = "selling"
+            normalized_projects.append(p_copy)
+
+        self.all_projects = normalized_projects + normalized_campaigns
 
         if not self.all_projects:
             QMessageBox.information(self, "تنبيه", "لا توجد مشاريع متاحة حالياً.")
