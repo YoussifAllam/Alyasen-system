@@ -25,6 +25,7 @@ class RentProjects(models.Model):
     value_added_tax = models.FloatField(default=0)
     insurance_tax = models.FloatField(default=0)
     insurance_tax_date = models.DateField(null=True, blank=True)
+    insurance_tax_cleared = models.BooleanField(default=False)
     commercial_profits_tax = models.FloatField(default=0)
 
     # total_cost = (project.cost + operating_costs + value_added_tax)

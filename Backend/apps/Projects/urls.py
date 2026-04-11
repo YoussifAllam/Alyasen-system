@@ -7,6 +7,7 @@ rent_urls = [
     path("ads/", views.RentProjectAdsApiView.as_view()),
     path("guarantee-cheque/", views.RentProjectGuaranteeChequesApiView.as_view()),
     path("operating-costs/", views.RentProjectOperationgCost.as_view()),
+    path("clear-insurance-tax/", views.RentProjectInsuranceTaxApiView.as_view()),
 ]
 
 urlpatterns = [

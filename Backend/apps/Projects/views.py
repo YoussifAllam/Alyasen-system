@@ -9,7 +9,7 @@ from .db_queries import selectors, services
 from .tasks.pagenator import pagenator
 
 from apps.TransactionsLog.tasks.celery_tasks import create_transaction_log
-from apps.Safe.tasks.celery_tasks import reduce_safe_balance
+from apps.Safe.tasks.celery_tasks import reduce_safe_balance, increase_safe_balance
 
 
 class ProjectApiView(APIView):
@@ -208,4 +208,18 @@ class RentProjectOperationgCost(APIView):
         cost = selectors.get_specific_operating_cost(cost_id)
         cost.delete()
         services.update_client_balance_fields(cost.project.CPB_fk)
+        return Response({"status": "success"}, status=HTTP_200_OK)
+
+
+class RentProjectInsuranceTaxApiView(APIView):
+    def patch(self, request: Request):
+        CBP_id = request.data.get("CBP_id")
+        r_p_instance = selectors.get_specific_project_using_CBP(CBP_id)
+        amount = r_p_instance.insurance_tax
+        r_p_instance.insurance_tax_cleared = True
+        r_p_instance.save()
+        transaction = (
+            f"تم استرداد تأمين بقيمة {amount} لمشروع {r_p_instance.CPB_fk.project_name}"
+        )
+        increase_safe_balance.delay(amount, transaction, request.data["user_name"])
         return Response({"status": "success"}, status=HTTP_200_OK)
