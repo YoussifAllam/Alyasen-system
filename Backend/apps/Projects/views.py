@@ -199,7 +199,8 @@ class RentProjectOperationgCost(APIView):
                 {"status": "failed", "errors": serializer.errors}, status=400
             )
         serializer.save(project=r_p_instance)
-        services.update_client_balance_fields(CBP_id)
+        CBP_instance = selectors.get_CBP(CBP_id)
+        services.update_client_balance_fields(CBP_instance)
         return Response({"status": "success"}, status=HTTP_200_OK)
 
     def delete(self, request: Request):

@@ -23,6 +23,7 @@ from ..ui_projects import ProjectApiWorker  # Reusing API worker
 from .update_rent_project_dialog import UpdateRentProjectDialog
 from .rent_project_ads_dialog import RentProjectAdsDialog
 from .rent_project_cheque_dialog import RentProjectChequeDialog
+from .rent_project_op_costs_dialog import RentProjectOpCostsDialog
 
 
 class RentProjectPage(QWidget):
@@ -222,9 +223,7 @@ class RentProjectPage(QWidget):
         # Connect buttons
         self.update_project_data.clicked.connect(self.handle_update_project)
         self.btn_ads.clicked.connect(self.handle_show_ads)
-        self.btn_op_cost.clicked.connect(
-            lambda: self.show_placeholder("تكاليف التشغيل")
-        )
+        self.btn_op_cost.clicked.connect(self.handle_show_op_costs)
         self.btn_cheques.clicked.connect(self.handle_show_cheques)
 
         layout.addWidget(self.update_project_data)
@@ -374,6 +373,15 @@ class RentProjectPage(QWidget):
 
         dialog = RentProjectChequeDialog(self.project_id, self)
         dialog.exec_()
+
+    def handle_show_op_costs(self):
+        if not self.project_id:
+            QMessageBox.warning(self, "تنبيه", "لا يوجد مشروع محمل لعرض تكاليف التشغيل.")
+            return
+
+        dialog = RentProjectOpCostsDialog(self.project_id, self)
+        if dialog.exec_():
+            self.load_project_data(self.project_id)
 
     def open_contract(self, url):
         if url:
