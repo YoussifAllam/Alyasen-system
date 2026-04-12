@@ -143,6 +143,10 @@ class CompanySafeUI(QWidget):
 
         self.load_initial_data()
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.load_initial_data()
+
     def load_initial_data(self):
         url = f"{BACKEND_BASE_URL}/safe/logs/"
         self._start_fetch_request(fetch_balance=True, logs_url=url)
