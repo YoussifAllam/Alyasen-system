@@ -39,3 +39,32 @@ class RentProjectOperationgCostSerializer(serializers.ModelSerializer):
         model = models.RentProjectOperationgCost
         fields = "__all__"
         extra_kwargs = {"project": {"required": False}}
+
+
+# ___
+
+
+class SellingIndustrialProjectUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.SellingIndustrialProjectDetails
+        fields = [
+            "selling_price",
+            "value_added_tax",
+            "commercial_profits_tax",
+            "insurance_tax",
+            "insurance_tax_date",
+        ]
+
+
+class SellingIndustrialProjectGuaranteeChequesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.SellingIndustrialProjectGuaranteeCheques
+        fields = "__all__"
+        extra_kwargs = {"project": {"required": False}}
+
+
+class SellingIndustrialProjectOperationgCostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.IndustrialProjectOperationgCost
+        fields = "__all__"
+        extra_kwargs = {"project": {"required": False}}

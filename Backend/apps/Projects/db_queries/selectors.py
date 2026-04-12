@@ -85,8 +85,43 @@ def get_specific_operating_cost(cost_id):
         raise NotFound("Project operating cost not found")
 
 
+# _____
+
+
 def get_selling_ind_project_using_CBP(CBP_id) -> models.SellingIndustrialProjectDetails:
     try:
         return models.SellingIndustrialProjectDetails.objects.get(CPB_fk=CBP_id)
     except models.SellingIndustrialProjectDetails.DoesNotExist:
         raise NotFound("Project not found")
+
+
+def get_sell_ind_contract_instnace(contract_id):
+    try:
+        return models.IndustrialProjectContracts.objects.get(id=contract_id)
+    except models.IndustrialProjectContracts.DoesNotExist:
+        raise NotFound("Contract not found")
+
+
+def get_sell_ind_guarantee_cheque_using_CBP(CBP_id):
+    try:
+        return models.SellingIndustrialProjectGuaranteeCheques.objects.get(
+            project__CPB_fk=CBP_id
+        )
+    except models.SellingIndustrialProjectGuaranteeCheques.DoesNotExist:
+        raise NotFound("Guarantee cheque not found")
+
+
+def get_sell_ind_p_operating_costs_using_CBP(CBP_id):
+    try:
+        return models.IndustrialProjectOperationgCost.objects.filter(
+            project__CPB_fk=CBP_id
+        )
+    except models.IndustrialProjectOperationgCost.DoesNotExist:
+        raise NotFound("Project operating costs not found")
+
+
+def get_specific_sell_ind_operating_cost(cost_id):
+    try:
+        return models.IndustrialProjectOperationgCost.objects.get(id=cost_id)
+    except models.IndustrialProjectOperationgCost.DoesNotExist:
+        raise NotFound("Project operating cost not found")

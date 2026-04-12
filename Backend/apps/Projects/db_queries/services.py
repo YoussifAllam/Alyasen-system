@@ -1,6 +1,10 @@
 from apps.Suppliers.models import Supplier
 
-from ..models import base_project_models, rent_projects_models
+from ..models import (
+    base_project_models,
+    rent_projects_models,
+    industrial_projects_models,
+)
 from ..serializers import InputSerializers
 from . import selectors
 
@@ -116,4 +120,20 @@ def update_client_balance_fields(CBP_instance: ClientProjectBalance):
             "total_paid_amount",
             "total_remaining_balance_owed_to_us",
         ]
+    )
+
+
+# ______
+def create_sell_ind_p_contracts(sell_ind_p_instance, attachments):
+    objs_to_create = []
+
+    for file in attachments:
+        objs_to_create.append(
+            industrial_projects_models.IndustrialProjectContracts(
+                project=sell_ind_p_instance, contract=file
+            )
+        )
+
+    industrial_projects_models.IndustrialProjectContracts.objects.bulk_create(
+        objs_to_create
     )
