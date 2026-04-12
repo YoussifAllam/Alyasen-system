@@ -1,8 +1,6 @@
 from django.db import models
 from django.utils.timezone import now
 
-from .base_project_models import BaseProject
-
 
 class ProjectStatus(models.Choices):
     active = "active"
