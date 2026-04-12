@@ -96,10 +96,10 @@ class ClientProjectsApiView(APIView):
                 services.create_rent_p_instnace(
                     CBP_instance, base_project_instance.cost
                 )
-            # elif base_project_instance.project_type == "industrial":
-            #     services.create_industrial_p_instnace()
-            # else:
-            #     services.create_selling_p_instnace()
+            else:
+                services.create_sell_ind_p_instnace(
+                    CBP_instance, base_project_instance.cost
+                )
 
         services.update_client_balance_using_CBP(
             CBP_instance, client_instance, request.data["username"]

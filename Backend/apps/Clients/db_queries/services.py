@@ -5,7 +5,7 @@ from apps.Safe.models import Safe
 from apps.Safe.tasks.safe_logs import add_safe_log
 from apps.TransactionsLog.tasks.celery_tasks import create_transaction_log
 
-from apps.Projects.models import rent_projects_models
+from apps.Projects.models import rent_projects_models, industrial_projects_models
 
 
 def increase_safe_balance(amount: float, client_name: str):
@@ -93,4 +93,11 @@ def update_client_balance_using_CBP(CBP_instance, client_instance, user_name):
     create_transaction_log.delay(
         username=user_name,
         transaction_data=f"تم اضافه مشروع جديد للعميل {client_instance.name}",
+    )
+
+
+def create_sell_ind_p_instnace(CBP_instance, buying_price):
+    industrial_projects_models.SellingIndustrialProjectDetails.objects.create(
+        CPB_fk=CBP_instance,
+        buying_price=buying_price,
     )

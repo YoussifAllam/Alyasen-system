@@ -23,7 +23,7 @@ class SellingIndustrialProjectDetails(models.Model):
     # taxes
     value_added_tax = models.FloatField(default=0)
     insurance_tax = models.FloatField(default=0)
-    insurance_tax_date = models.DateField()
+    insurance_tax_date = models.DateField(null=True, blank=True)
     insurance_tax_cleared = models.BooleanField(default=False)
     commercial_profits_tax = models.FloatField(default=0)
 
@@ -64,6 +64,7 @@ class IndustrialProjectOperationgCost(models.Model):
         self.project.save()
         super().delete(*args, **kwargs)
 
+
 class IndustrialProjectContracts(models.Model):
     project = models.ForeignKey(
         SellingIndustrialProjectDetails, on_delete=models.CASCADE
@@ -74,10 +75,13 @@ class IndustrialProjectContracts(models.Model):
 
 
 class SellingIndustrialProjectGuaranteeCheques(models.Model):
-    project = models.OneToOneField(SellingIndustrialProjectDetails, on_delete=models.CASCADE)
+    project = models.OneToOneField(
+        SellingIndustrialProjectDetails, on_delete=models.CASCADE
+    )
     cheque_number = models.CharField(max_length=50)
     cheque_date = models.DateField()
     cheque_amount = models.FloatField(default=0)
+
 
 # class MaterialsSuppliers(models.Model):
 #     project = models.ForeignKey(
