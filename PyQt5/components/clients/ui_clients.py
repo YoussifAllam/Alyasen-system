@@ -28,10 +28,9 @@ from ..validation import (
     _clear_errors,
 )
 
-from .client_profile import ClientProfileUI
 from ..projects.rent.ui_rent_project import RentProjectPage
-from ..projects.ui_industrial_project import IndustrialProjectPage
-from ..projects.ui_selling_project import SellingProjectPage
+from .client_profile import ClientProfileUI
+from ..projects.sell_ind.ui_sell_ind_project import RentProjectPage as SellIndProjectPage
 
 
 class ClientApiWorker(QObject):
@@ -91,8 +90,8 @@ class ClientsUI(QWidget):
         self.main_page = self.create_main_page()
         self.profile_page = ClientProfileUI()
         self.rent_project_page = RentProjectPage()
-        self.industrial_project_page = IndustrialProjectPage()
-        self.selling_project_page = SellingProjectPage()
+        self.industrial_project_page = SellIndProjectPage()
+        self.selling_project_page = SellIndProjectPage()
 
         # Add pages to the stack
         self.stacked_widget.addWidget(self.main_page)
