@@ -161,7 +161,7 @@ class UpdateRentProjectDialog(QDialog):
             validate_non_negative_number(
                 self.profits_tax_input, "ضريبة الأرباح التجارية"
             ),
-            validate_non_negative_number(self.insurance_tax_input, "تأمين المسترد"),
+            validate_non_negative_number(self.insurance_tax_input, "التأمين"),
         ]
 
         if not run_validations(self, validations):
@@ -190,7 +190,7 @@ class UpdateRentProjectDialog(QDialog):
         except ValueError:
             pass
 
-        url = f"{BACKEND_BASE_URL}/projects/rent/info/"
+        url = f"{BACKEND_BASE_URL}/projects/selling_ind_p/info/"
 
         # The API expects form-data as per curl --form
         # ProjectApiWorker uses json if files is None.

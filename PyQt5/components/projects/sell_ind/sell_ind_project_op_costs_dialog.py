@@ -213,7 +213,7 @@ class RentProjectOpCostsDialog(QDialog):
         self.old_pos = None
 
     def load_costs(self):
-        url = f"{BACKEND_BASE_URL}/projects/rent/operating-costs/?CBP_id={self.project_id}"
+        url = f"{BACKEND_BASE_URL}/projects/selling_ind_p/operating-costs/?CBP_id={self.project_id}"
         self.thread = QThread()
         self.worker = ProjectApiWorker("GET", url)
         self.worker.moveToThread(self.thread)
@@ -268,7 +268,7 @@ class RentProjectOpCostsDialog(QDialog):
             cost_data["CBP_id"] = str(self.project_id)
 
             self.add_btn.setEnabled(False)
-            url = f"{BACKEND_BASE_URL}/projects/rent/operating-costs/"
+            url = f"{BACKEND_BASE_URL}/projects/selling_ind_p/operating-costs/"
             self.add_thread = QThread()
             self.add_worker = ProjectApiWorker("POST", url, cost_data, files=None)
             self.add_worker.moveToThread(self.add_thread)
@@ -295,7 +295,7 @@ class RentProjectOpCostsDialog(QDialog):
         if reply == QMessageBox.No:
             return
 
-        url = f"{BACKEND_BASE_URL}/projects/rent/operating-costs/"
+        url = f"{BACKEND_BASE_URL}/projects/selling_ind_p/operating-costs/"
         payload = {"cost_id": str(cost_id)}
 
         self.del_thread = QThread()

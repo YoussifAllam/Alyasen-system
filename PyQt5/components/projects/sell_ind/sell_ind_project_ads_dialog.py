@@ -222,7 +222,7 @@ class RentProjectAdsDialog(QDialog):
         self.old_pos = None
 
     def load_ads(self):
-        url = f"{BACKEND_BASE_URL}/projects/rent/ads/?CBP_id={self.project_id}"
+        url = f"{BACKEND_BASE_URL}/projects/selling_ind_p/ads/?CBP_id={self.project_id}"
         self.thread = QThread()
         self.worker = ProjectApiWorker("GET", url)
         self.worker.moveToThread(self.thread)
@@ -269,7 +269,7 @@ class RentProjectAdsDialog(QDialog):
             ad_data = dialog.ad_data
             ad_data["CBP_id"] = str(self.project_id)
 
-            url = f"{BACKEND_BASE_URL}/projects/rent/ads/"
+            url = f"{BACKEND_BASE_URL}/projects/selling_ind_p/ads/"
             self.add_thread = QThread()
             # Passing files={} to ensure multipart/form-data as per --form requirement
             self.add_worker = ProjectApiWorker("POST", url, ad_data, files={})
@@ -292,7 +292,7 @@ class RentProjectAdsDialog(QDialog):
         if reply == QMessageBox.No:
             return
 
-        url = f"{BACKEND_BASE_URL}/projects/rent/ads/"
+        url = f"{BACKEND_BASE_URL}/projects/selling_ind_p/ads/"
         payload = {"ads_id": str(ads_id)}
 
         self.del_thread = QThread()

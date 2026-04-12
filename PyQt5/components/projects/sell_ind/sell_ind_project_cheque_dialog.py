@@ -89,7 +89,7 @@ class RentProjectChequeDialog(QDialog):
         self.old_pos = None
 
     def load_cheque_data(self):
-        url = f"{BACKEND_BASE_URL}/projects/rent/guarantee-cheque/?CBP_id={self.project_id}"
+        url = f"{BACKEND_BASE_URL}/projects/selling_ind_p/guarantee-cheque/?CBP_id={self.project_id}"
         self.thread = QThread()
         self.worker = ProjectApiWorker("GET", url)
         self.worker.moveToThread(self.thread)
@@ -113,8 +113,20 @@ class RentProjectChequeDialog(QDialog):
             self.close()
 
     def clear_content(self):
-        for i in reversed(range(self.content_layout.count())):
-            self.content_layout.itemAt(i).widget().setParent(None)
+        while self.content_layout.count():
+            item = self.content_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+            elif item.layout():
+                self.clear_layout(item.layout())
+
+    def clear_layout(self, layout):
+        while layout.count():
+            item = layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+            elif item.layout():
+                self.clear_layout(item.layout())
 
     def show_cheque_view(self):
         self.clear_content()
@@ -186,7 +198,7 @@ class RentProjectChequeDialog(QDialog):
             "cheque_amount": amount,
         }
 
-        url = f"{BACKEND_BASE_URL}/projects/rent/guarantee-cheque/"
+        url = f"{BACKEND_BASE_URL}/projects/selling_ind_p/guarantee-cheque/"
         self.add_thread = QThread()
         self.add_worker = ProjectApiWorker("POST", url, payload, files={})
         self.add_worker.moveToThread(self.add_thread)
@@ -206,7 +218,7 @@ class RentProjectChequeDialog(QDialog):
         if reply == QMessageBox.No:
             return
 
-        url = f"{BACKEND_BASE_URL}/projects/rent/guarantee-cheque/"
+        url = f"{BACKEND_BASE_URL}/projects/selling_ind_p/guarantee-cheque/"
         payload = {"CBP_id": str(self.project_id)}
 
         self.del_thread = QThread()

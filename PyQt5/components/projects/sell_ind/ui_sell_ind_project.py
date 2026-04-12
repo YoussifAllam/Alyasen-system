@@ -252,7 +252,7 @@ class RentProjectPage(QWidget):
         )
         self.project_id = project_id
         # Updated URL as per user request (keeping it slightly more standard with ?rent_project_id=)
-        url = f"{BACKEND_BASE_URL}/projects/rent/info/?CBP_id={project_id}"
+        url = f"{BACKEND_BASE_URL}/projects/selling_ind_p/info/?CBP_id={project_id}"
 
         self.thread = QThread()
         self.worker = ProjectApiWorker("GET", url)
@@ -357,7 +357,7 @@ class RentProjectPage(QWidget):
 
         self.contracts_table.setCellWidget(add_row, 1, add_btn)
         self.contracts_table.setSpan(
-            add_row, 1, 1, 1
+            add_row, 1, 1, 2
         )  # Span across filename and actions columns
 
     def handle_update_project(self):
@@ -428,7 +428,7 @@ class RentProjectPage(QWidget):
         settings = QSettings("FactorySystem")
         username = settings.value("user_name", "unknown_user")
 
-        url = f"{BACKEND_BASE_URL}/projects/rent/clear-insurance-tax/"
+        url = f"{BACKEND_BASE_URL}/projects/selling_ind_p/clear-insurance-tax/"
         payload = {"CBP_id": str(self.project_id), "user_name": username}
 
         self.tax_thread = QThread()
@@ -477,7 +477,7 @@ class RentProjectPage(QWidget):
         if reply == QMessageBox.No:
             return
 
-        url = f"{BACKEND_BASE_URL}/projects/rent/contracts/"
+        url = f"{BACKEND_BASE_URL}/projects/selling_ind_p/contracts/"
         payload = {"contract_id": str(contract_id)}
 
         # Using a worker for the DELETE request (note: ProjectApiWorker uses 'json' for non-POST/files)
@@ -506,7 +506,7 @@ class RentProjectPage(QWidget):
         if not file_paths:
             return
 
-        url = f"{BACKEND_BASE_URL}/projects/rent/contracts/"
+        url = f"{BACKEND_BASE_URL}/projects/selling_ind_p/contracts/"
         payload = {"CBP_id": str(self.project_id)}
 
         files = []

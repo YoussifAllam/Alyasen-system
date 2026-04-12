@@ -355,7 +355,7 @@ class RentProjectPage(QWidget):
 
         self.contracts_table.setCellWidget(add_row, 1, add_btn)
         self.contracts_table.setSpan(
-            add_row, 1, 1, 1
+            add_row, 1, 1, 2
         )  # Span across filename and actions columns
 
     def handle_update_project(self):
