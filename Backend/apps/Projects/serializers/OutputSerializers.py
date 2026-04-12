@@ -47,6 +47,7 @@ class RentProjectInfoSerializer(serializers.ModelSerializer):
             "value_added_tax",
             "insurance_tax",
             "insurance_tax_date",
+            "insurance_tax_cleared",
             "commercial_profits_tax",
             "contracts",
         ]

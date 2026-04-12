@@ -144,6 +144,7 @@ class RentProjectPage(QWidget):
     def create_value_label(self, text="-"):
         label = QLabel(text)
         label.setStyleSheet("font-weight: bold; color: #ffffff; font-size: 16px;")
+        label.setAlignment(Qt.AlignLeft)
         return label
 
     def create_taxes_card(self):
@@ -162,11 +163,13 @@ class RentProjectPage(QWidget):
         self.lbl_insurance_tax = self.create_value_label()
         self.lbl_insurance_date = self.create_value_label()
         self.lbl_profits_tax = self.create_value_label()
+        self.lbl_insurance_tax_cleared = self.create_value_label()
 
         rows = [
             ("ضريبة القيمة المضافة:", self.lbl_vat),
             ("تأمينات:", self.lbl_insurance_tax),
             ("تاريخ استرداد التأمينات:", self.lbl_insurance_date),
+            ("هل تم استرداد التأمين:", self.lbl_insurance_tax_cleared),
             ("ضريبة الأرباح التاجرية:", self.lbl_profits_tax),
         ]
 
@@ -219,17 +222,20 @@ class RentProjectPage(QWidget):
         self.btn_ads = QPushButton("إعلانات المأجرة")
         self.btn_op_cost = QPushButton("تكاليف التشغيل")
         self.btn_cheques = QPushButton("شيك الضمان")
+        self.btn_clear_insurance_tax = QPushButton("استرداد التأمين")
 
         # Connect buttons
         self.update_project_data.clicked.connect(self.handle_update_project)
         self.btn_ads.clicked.connect(self.handle_show_ads)
         self.btn_op_cost.clicked.connect(self.handle_show_op_costs)
         self.btn_cheques.clicked.connect(self.handle_show_cheques)
+        self.btn_clear_insurance_tax.clicked.connect(self.handle_clear_insurance_tax)
 
         layout.addWidget(self.update_project_data)
         layout.addWidget(self.btn_ads)
         layout.addWidget(self.btn_op_cost)
         layout.addWidget(self.btn_cheques)
+        layout.addWidget(self.btn_clear_insurance_tax)
         layout.addStretch()
         return card
 
@@ -276,6 +282,11 @@ class RentProjectPage(QWidget):
         self.lbl_vat.setText(f"{data.get('value_added_tax', 0):,.2f}")
         self.lbl_insurance_tax.setText(f"{data.get('insurance_tax', 0):,.2f}")
         self.lbl_insurance_date.setText(str(data.get("insurance_tax_date") or "-"))
+        is_cleared = data.get("insurance_tax_cleared")
+        cleared_text = "نعم" if is_cleared else ("لا" if is_cleared is False else "-")
+        # Use an LRM character (Left-to-Right Mark) to enforce left alignment for Arabic text
+        self.lbl_insurance_tax_cleared.setText(f"\u200E{cleared_text}")
+        self.btn_clear_insurance_tax.setEnabled(not is_cleared)
         self.lbl_profits_tax.setText(f"{data.get('commercial_profits_tax', 0):,.2f}")
 
         # Contracts table
@@ -376,12 +387,69 @@ class RentProjectPage(QWidget):
 
     def handle_show_op_costs(self):
         if not self.project_id:
-            QMessageBox.warning(self, "تنبيه", "لا يوجد مشروع محمل لعرض تكاليف التشغيل.")
+            QMessageBox.warning(
+                self, "تنبيه", "لا يوجد مشروع محمل لعرض تكاليف التشغيل."
+            )
             return
 
         dialog = RentProjectOpCostsDialog(self.project_id, self)
         if dialog.exec_():
             self.load_project_data(self.project_id)
+
+    def handle_clear_insurance_tax(self):
+        if not self.project_id:
+            QMessageBox.warning(self, "تنبيه", "لا يوجد مشروع محمل لاسترداد التأمين.")
+            return
+
+        is_cleared = self.project_data.get("insurance_tax_cleared")
+        if str(is_cleared).lower() == "true" or is_cleared is True:
+            QMessageBox.information(
+                self, "معلومة", "تم استرداد التأمين مسبقاً لهذا المشروع."
+            )
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "تأكيد",
+            "هل أنت متأكد من استرداد التأمين الخاص بهذا المشروع؟ لا يمكن التراجع عن هذه العملية.",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+
+        if reply == QMessageBox.No:
+            return
+
+        self.btn_clear_insurance_tax.setEnabled(False)
+        self.btn_clear_insurance_tax.setText("جاري الاسترداد...")
+
+        from PyQt5.QtCore import QSettings
+
+        settings = QSettings("FactorySystem")
+        username = settings.value("user_name", "unknown_user")
+
+        url = f"{BACKEND_BASE_URL}/projects/rent/clear-insurance-tax/"
+        payload = {"CBP_id": str(self.project_id), "user_name": username}
+
+        self.tax_thread = QThread()
+        self.tax_worker = ProjectApiWorker("PATCH", url, payload=payload, files={})
+        self.tax_worker.moveToThread(self.tax_thread)
+        self.tax_thread.started.connect(self.tax_worker.run)
+        self.tax_worker.success.connect(self.on_tax_cleared_success)
+        self.tax_worker.error.connect(self.on_tax_cleared_error)
+        self.tax_worker.finished.connect(self.tax_thread.quit)
+        self.tax_worker.finished.connect(self.tax_worker.deleteLater)
+        self.tax_thread.finished.connect(self.tax_thread.deleteLater)
+        self.tax_thread.start()
+
+    def on_tax_cleared_success(self, _):
+        self.btn_clear_insurance_tax.setEnabled(True)
+        self.btn_clear_insurance_tax.setText("استرداد التأمين")
+        QMessageBox.information(self, "نجاح", "تم استرداد التأمين بنجاح.")
+        self.load_project_data(self.project_id)
+
+    def on_tax_cleared_error(self, message):
+        self.btn_clear_insurance_tax.setEnabled(True)
+        self.btn_clear_insurance_tax.setText("استرداد التأمين")
+        QMessageBox.warning(self, "خطأ", f"حدث خطأ أثناء استرداد التأمين:\n{message}")
 
     def open_contract(self, url):
         if url:
