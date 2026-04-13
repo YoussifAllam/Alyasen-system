@@ -2,7 +2,7 @@ from django.urls import path, include
 from . import views
 
 invoice_urls = [
-    path("invoices/", views.SupplierInovicesApiView.as_view()),
+    path("", views.SupplierInovicesApiView.as_view()),
     path("payment/", views.InovicePaymentApiView.as_view()),
     path("materials/", views.InvoiceMaterialsApiView.as_view()),
     path("info/", views.InvoiceInfoView.as_view()),

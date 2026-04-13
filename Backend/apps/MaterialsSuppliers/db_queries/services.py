@@ -37,3 +37,10 @@ def pay_for_supplier(SupplierInstance: MaterialSupplier, payment_amount: float):
     SupplierInstance.total_paid_amount += payment_amount
     SupplierInstance.total_amount_payable -= payment_amount
     SupplierInstance.save()
+
+
+def add_invoice_to_supplier(invoice_instance: SupplierInvoice):
+    supplier_instance = invoice_instance.supplier
+    supplier_instance.total_amount_due += invoice_instance.invoice_total_amount
+    supplier_instance.total_amount_payable += invoice_instance.invoice_total_amount
+    supplier_instance.save()

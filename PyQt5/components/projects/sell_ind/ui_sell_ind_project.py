@@ -24,6 +24,7 @@ from .sell_ind_update_project_dialog import UpdateRentProjectDialog
 from .sell_ind_project_ads_dialog import RentProjectAdsDialog
 from .sell_ind_project_cheque_dialog import RentProjectChequeDialog
 from .sell_ind_project_op_costs_dialog import RentProjectOpCostsDialog
+from .sell_ind_material_invoice_dialog import CreateMaterialInvoiceDialog
 
 
 class RentProjectPage(QWidget):
@@ -228,7 +229,7 @@ class RentProjectPage(QWidget):
 
         # Connect buttons
         self.update_project_data.clicked.connect(self.handle_update_project)
-        self.btn_m_suppliers.clicked.connect(self.handle_show_ads)
+        self.btn_m_suppliers.clicked.connect(self.handle_show_material_suppliers)
         self.btn_op_cost.clicked.connect(self.handle_show_op_costs)
         self.btn_cheques.clicked.connect(self.handle_show_cheques)
         self.btn_clear_insurance_tax.clicked.connect(self.handle_clear_insurance_tax)
@@ -368,6 +369,15 @@ class RentProjectPage(QWidget):
         dialog = UpdateRentProjectDialog(
             self.project_id, current_data=self.project_data, parent=self
         )
+        if dialog.exec_():
+            self.load_project_data(self.project_id)
+
+    def handle_show_material_suppliers(self):
+        if not self.project_id:
+            QMessageBox.warning(self, "تنبيه", "لا يوجد مشروع محمل لإضافة فاتورة له.")
+            return
+
+        dialog = CreateMaterialInvoiceDialog(self.project_id, self)
         if dialog.exec_():
             self.load_project_data(self.project_id)
 

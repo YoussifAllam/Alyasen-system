@@ -11,6 +11,7 @@ from .tasks import celery_tasks
 
 from apps.TransactionsLog.tasks.celery_tasks import create_transaction_log
 from apps.Safe.tasks.celery_tasks import reduce_safe_balance
+from apps.Projects.tasks.projects_tasks import increase_project_materials_cost
 
 
 class SupplierApiView(APIView):
@@ -99,6 +100,7 @@ class SupplierInovicesApiView(APIView):
 
     def post(self, request: Request, format=None):
         supplier_id = request.data["supplier_id"]
+        CBP_id = request.data["CBP_id"]
         supplier_instance = selectors.get_supplier_instance(supplier_id)
         serializer = InputSerializers.InvoicesSerializer(data=request.data)
 
@@ -107,7 +109,8 @@ class SupplierInovicesApiView(APIView):
                 {"status": "faild", "errors": serializer.errors}, status=400
             )
         invoice_instance = serializer.save(supplier=supplier_instance)
-
+        services.add_invoice_to_supplier(invoice_instance)
+        increase_project_materials_cost(CBP_id, invoice_instance.invoice_total_amount)
         tranaction = f"تم اضافة فاتورة رقم {invoice_instance.invoice_number} للمورد {supplier_instance.name}"
         username = request.data["username"]
         create_transaction_log.delay(transaction_data=tranaction, username=username)

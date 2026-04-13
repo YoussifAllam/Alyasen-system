@@ -99,6 +99,7 @@ class SellingIndustrialProjectDetailsSerializer(serializers.ModelSerializer):
             "total_cost",
             "selling_price",
             "net_profit",
+            "total_materials_cost",
             "value_added_tax",
             "insurance_tax",
             "insurance_tax_date",
