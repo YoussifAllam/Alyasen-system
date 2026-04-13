@@ -20,11 +20,6 @@ from requests import request, get, exceptions
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
 from .payment_dialog import PaymentDialog
 from .invoice_payment_details_dialog import InvoicePaymentDetailsDialog
-from .create_invoice_dialog import CreateInvoiceDialog
-from .add_invoice_materials_dialog import AddInvoiceMaterialsDialog
-from .finalize_invoice_dialog import FinalizeInvoiceDialog
-from .invoice_materials_details_dialog import InvoiceMaterialsDetailsDialog
-from .invoice_details_dialog import InvoiceDetailsDialog  # Import the new dialog
 
 
 class ApiWorker(QObject):
@@ -155,67 +150,19 @@ class SupplierProfileUI(QWidget):
         card.setObjectName("card")
         layout = QVBoxLayout(card)
         layout.setSpacing(15)
-        self.btn_create_invoices = QPushButton("أضافة فاتورة")
-        self.btn_create_invoices.setObjectName("primaryButton")
-        self.btn_create_invoices.clicked.connect(self.handle_create_invoice_step1)
         self.btn_show_invoices = QPushButton("عرض فواتير المورد")
         self.btn_show_invoices.clicked.connect(self.handle_show_invoices)
         self.btn_show_invoice_payment_details = QPushButton("عرض تفاصيل الدفعات")
-        self.btn_show_invoice_payment_details.clicked.connect(self.handle_show_payment_details)
-        self.btn_show_invoice_materials_details = QPushButton("عرض تفاصيل منتجات الفاتورة")
-        self.btn_show_invoice_materials_details.clicked.connect(self.handle_show_materials_details)
+        self.btn_show_invoice_payment_details.clicked.connect(
+            self.handle_show_payment_details
+        )
         self.btn_pay_invoice = QPushButton("تسديد دفعه")
         self.btn_pay_invoice.clicked.connect(self.handle_pay_invoice)
-        self.send_email = QPushButton("ارسال كشف حساب للمورد")
-        # self.btn_show_invoice_payment_details.setEnabled(False)
-        # self.btn_pay_invoice.setEnabled(False)
-        self.btn_show_invoice_materials_details.setEnabled(False)
-        layout.addWidget(self.btn_create_invoices)
         layout.addWidget(self.btn_show_invoices)
         layout.addWidget(self.btn_show_invoice_payment_details)
-        layout.addWidget(self.btn_show_invoice_materials_details)
         layout.addWidget(self.btn_pay_invoice)
-        layout.addWidget(self.send_email)
         layout.addStretch()
         return card
-
-    # --- Invoice Creation Workflow ---
-
-    def handle_create_invoice_step1(self):
-        """Step 1: Open CreateInvoiceDialog to get invoice number."""
-        if not self.supplier_id:
-            QMessageBox.critical(self, "خطأ", "لا يمكن إنشاء فاتورة بدون مورد محدد.")
-            return
-        dialog = CreateInvoiceDialog(self.supplier_id, self)
-        if dialog.exec_() == QDialog.Accepted:
-            invoice_num = dialog.get_invoice_number()
-            self.handle_create_invoice_step2(invoice_num)
-
-    def handle_create_invoice_step2(self, invoice_num):
-        """Step 2: Open AddInvoiceMaterialsDialog to add items."""
-        dialog = AddInvoiceMaterialsDialog(invoice_num, self)
-        if dialog.exec_() == QDialog.Accepted:
-            # Calculate total amount to pass to final step
-            # total_amount = float(dialog.total_amount_display.text().replace(",", ""))
-            # Go to Step 3 (Details) instead of finalizing immediately
-            self.handle_create_invoice_step4(invoice_num)
-
-    # def handle_create_invoice_step3(self, invoice_num, total_amount):
-    #     """Step 3: Open InvoiceDetailsDialog for driver info/weights."""
-    #     dialog = InvoiceDetailsDialog(invoice_num, self)
-    #     # If user saves (Accepted), proceed to Step 4.
-    #     # Even if they cancel/close without saving, we might want to proceed or stop.
-    #     # Assuming we only proceed if they completed this step (clicked Save/Continue).
-    #     if dialog.exec_() == QDialog.Accepted:
-    #         self.handle_create_invoice_step4(invoice_num, total_amount)
-
-    def handle_create_invoice_step4(self, invoice_num):
-        """Step 4: Finalize Payment."""
-        dialog = FinalizeInvoiceDialog(invoice_num, self.supplier_id, self)
-        dialog.invoice_finalized.connect(self.on_invoice_creation_success)
-        dialog.exec_()
-
-    # ---------------------------------
 
     def on_invoice_creation_success(self, updated_supplier_data):
         QMessageBox.information(self, "نجاح", "تم إنشاء الفاتورة بالكامل بنجاح.")
@@ -253,25 +200,21 @@ class SupplierProfileUI(QWidget):
 
     def set_image(self, pixmap):
         self.profile_pic_label.setPixmap(
-            pixmap.scaled(self.profile_pic_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            pixmap.scaled(
+                self.profile_pic_label.size(),
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation,
+            )
         )
 
     def handle_show_invoices(self):
         if self.supplier_id:
-            url = f"{BACKEND_BASE_URL}/suppliers/invoice/invoices/?supplier_id={self.supplier_id}"
+            url = f"{BACKEND_BASE_URL}/materials_suppliers/invoice/invoices/?supplier_id={self.supplier_id}"
             self._start_invoice_fetch_request(url)
 
     def handle_show_payment_details(self):
         supplier_id = self.supplier_id
         dialog = InvoicePaymentDetailsDialog(supplier_id, self)
-        dialog.exec_()
-
-    def handle_show_materials_details(self):
-        selected_rows = self.table.selectionModel().selectedRows()
-        if not selected_rows:
-            return
-        invoice_num = self.table.item(selected_rows[0].row(), 0).text()
-        dialog = InvoiceMaterialsDetailsDialog(invoice_num, self)
         dialog.exec_()
 
     def handle_pay_invoice(self):
@@ -284,7 +227,9 @@ class SupplierProfileUI(QWidget):
             try:
                 amount = float(amount_str)
                 if amount <= 0:
-                    QMessageBox.warning(self, "خطأ", "يجب أن يكون المبلغ المدفوع رقمًا موجبًا.")
+                    QMessageBox.warning(
+                        self, "خطأ", "يجب أن يكون المبلغ المدفوع رقمًا موجبًا."
+                    )
                     return
             except (ValueError, TypeError):
                 QMessageBox.warning(self, "خطأ", "الرجاء إدخال مبلغ صحيح.")
@@ -297,7 +242,7 @@ class SupplierProfileUI(QWidget):
                 "username": username,
                 "notes": data.get("notes"),
             }
-            url = f"{BACKEND_BASE_URL}/suppliers/invoice/payment/"
+            url = f"{BACKEND_BASE_URL}/materials_suppliers/invoice/payment/"
             self._start_post_request(url, payload)
 
     def _start_post_request(self, url, payload):
@@ -315,7 +260,7 @@ class SupplierProfileUI(QWidget):
         self._set_loading(False)
         QMessageBox.information(self, "نجاح", "تم تسجيل الدفعة بنجاح.")
         if self.supplier_id:
-            url = f"{BACKEND_BASE_URL}/suppliers/info/?id={self.supplier_id}"
+            url = f"{BACKEND_BASE_URL}/materials_suppliers/info/?id={self.supplier_id}"
             self._start_info_fetch_request(url)
 
     def on_supplier_info_update(self, supplier_data):

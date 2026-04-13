@@ -22,8 +22,7 @@ from ..clients.ui_clients import ClientsUI
 from ..projects.ui_projects import ProjectsUI
 from ..quotations.ui_quotations import QuotationsUI
 from ..campaine.ui_campaine import CampaignsUI
-
-# from ..Workers.ui_workers import WorkersUI
+from ..MaterialsSuppliers.ui_suppliers import MaterialsSuppliersUI
 from ..suppliers.ui_suppliers import SuppliersUI
 from ..ui_expenses import ExpensesUI
 from ..reports import ReportsUI
@@ -278,6 +277,7 @@ class MainWindow(QMainWindow):
         self.projects_page = ProjectsUI()
         self.quotations_page = QuotationsUI()
         self.campaigns_page = CampaignsUI()
+        self.materials_suppliers_page = MaterialsSuppliersUI()
 
         # Dashboard already has scroll implemented, so skip wrapping it
         self.stacked_widget.addWidget(self.dashboard_page)
@@ -295,6 +295,9 @@ class MainWindow(QMainWindow):
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.projects_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.quotations_page))
         self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.campaigns_page))
+        self.stacked_widget.addWidget(
+            self.wrap_in_scroll_area(self.materials_suppliers_page)
+        )
 
     @pyqtSlot(int)
     def change_page(self, index):

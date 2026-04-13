@@ -87,9 +87,13 @@ class InvoicePaymentDetailsDialog(QDialog):
         # Table
         self.table = QTableWidget()
         self.table.setColumnCount(3)
-        self.table.setHorizontalHeaderLabels(["المبلغ المدفوع", "تاريخ الدفعة", "ملاحظات"])
+        self.table.setHorizontalHeaderLabels(
+            ["المبلغ المدفوع", "تاريخ الدفعة", "ملاحظات"]
+        )
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(
+            2, QHeaderView.ResizeToContents
+        )
         content_layout.addWidget(self.table)
 
         main_layout.addWidget(content_area)
@@ -101,7 +105,7 @@ class InvoicePaymentDetailsDialog(QDialog):
 
     def fetch_payment_details(self):
         """Fetches the payment history for the given invoice number."""
-        url = f"{BACKEND_BASE_URL}/suppliers/invoice/payment/?supplier_id={self.supplier_id}"
+        url = f"{BACKEND_BASE_URL}/materials_suppliers/invoice/payment/?supplier_id={self.supplier_id}"
         self.thread = QThread()
         self.worker = PaymentDetailsWorker(url)
         self.worker.moveToThread(self.thread)
@@ -135,7 +139,11 @@ class InvoicePaymentDetailsDialog(QDialog):
             self.old_pos = event.globalPos()
 
     def mouseMoveEvent(self, event):
-        if hasattr(self, "old_pos") and self.old_pos and event.buttons() == Qt.LeftButton:
+        if (
+            hasattr(self, "old_pos")
+            and self.old_pos  # noqa
+            and event.buttons() == Qt.LeftButton  # noqa
+        ):
             delta = QPoint(event.globalPos() - self.old_pos)
             self.move(self.x() + delta.x(), self.y() + delta.y())
             self.old_pos = event.globalPos()

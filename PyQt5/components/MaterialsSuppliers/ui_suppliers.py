@@ -40,7 +40,13 @@ class SupplierApiWorker(QObject):
     def run(self):
         try:
             if self.method == "POST" and self.files:
-                response = request(self.method, self.url, data=self.payload, files=self.files, timeout=15)
+                response = request(
+                    self.method,
+                    self.url,
+                    data=self.payload,
+                    files=self.files,
+                    timeout=15,
+                )
             else:
                 response = request(self.method, self.url, json=self.payload, timeout=15)
 
@@ -54,7 +60,7 @@ class SupplierApiWorker(QObject):
             self.finished.emit()
 
 
-class SuppliersUI(QWidget):
+class MaterialsSuppliersUI(QWidget):
     def __init__(self):
         super().__init__()
 
@@ -104,9 +110,9 @@ class SuppliersUI(QWidget):
         layout = QVBoxLayout(container)
         layout.setSpacing(20)
 
-        header = QLabel("إدارة الموردين")
+        header = QLabel("إدارة المقاولين")
         header.setObjectName("mainHeader")
-        subheader = QLabel("إضافة مورد جديد أو البحث عن مورد.")
+        subheader = QLabel("إضافة مقاول جديد أو البحث عن مقاول.")
         subheader.setObjectName("mainSubheader")
 
         layout.addWidget(header)
@@ -119,7 +125,9 @@ class SuppliersUI(QWidget):
         self.name_input = QLineEdit(placeholderText="اسم المورد")
         self.phone_input = QLineEdit(placeholderText="رقم الهاتف")
         self.email_input = QLineEdit(placeholderText="(اختياري)البريد الإلكتروني")
-        self.total_amount_due_input = QLineEdit(placeholderText="إجمالي المطلوب دفعة للمورد")
+        self.total_amount_due_input = QLineEdit(
+            placeholderText="إجمالي المطلوب دفعة للمورد"
+        )
 
         self.profile_pic_label = QLabel("لم يتم اختيار صورة")
         self.profile_pic_label.setAlignment(Qt.AlignCenter)
@@ -178,15 +186,29 @@ class SuppliersUI(QWidget):
             ]
         )
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            2, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            3, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            4, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            5, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            6, QHeaderView.ResizeToContents
+        )
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.table.selectionModel().selectionChanged.connect(lambda: self.btn_show_profile.setEnabled(True))
+        self.table.selectionModel().selectionChanged.connect(
+            lambda: self.btn_show_profile.setEnabled(True)
+        )
         pagination_layout = QHBoxLayout()
         self.prev_button = QPushButton("السابق")
         self.next_button = QPushButton("التالي")
@@ -208,7 +230,7 @@ class SuppliersUI(QWidget):
             return
 
         supplier_id = self.table.item(selected_rows[0].row(), 0).text()
-        url = f"{BACKEND_BASE_URL}/suppliers/info/?id={supplier_id}"
+        url = f"{BACKEND_BASE_URL}/materials_suppliers/info/?id={supplier_id}"
         self._start_fetch_request(url, is_profile_fetch=True)
 
     def show_main_page(self):
@@ -236,18 +258,26 @@ class SuppliersUI(QWidget):
         self.fetch_worker = SupplierApiWorker("GET", url)
         self.fetch_worker.moveToThread(self.fetch_thread)
         self.fetch_thread.started.connect(self.fetch_worker.run)
-        self.fetch_worker.success.connect(lambda data: self.handle_api_response(data, is_profile_fetch))
+        self.fetch_worker.success.connect(
+            lambda data: self.handle_api_response(data, is_profile_fetch)
+        )
         self.fetch_worker.error.connect(self.show_error_message)
         self.fetch_worker.finished.connect(self.fetch_thread.quit)
         self.fetch_thread.start()
 
     def choose_profile_picture(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "اختر صورة", "", "Image files (*.png *.jpg *.jpeg)")
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "اختر صورة", "", "Image files (*.png *.jpg *.jpeg)"
+        )
         if file_path:
             self.profile_pic_path = file_path
             pixmap = QPixmap(file_path)
             self.profile_pic_label.setPixmap(
-                pixmap.scaled(self.profile_pic_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                pixmap.scaled(
+                    self.profile_pic_label.size(),
+                    Qt.KeepAspectRatio,
+                    Qt.SmoothTransformation,
+                )
             )
 
     def handle_add_supplier(self):
@@ -258,7 +288,11 @@ class SuppliersUI(QWidget):
         total_amount_payable = self.total_amount_due_input.text().strip()
 
         if not name or not phone or not total_amount_due or not total_amount_payable:
-            QMessageBox.warning(self, "خطأ", "الرجاء إدخال اسم المورد ورقم الهاتف و إجمالي المطلوب دفعه على الأقل.")
+            QMessageBox.warning(
+                self,
+                "خطأ",
+                "الرجاء إدخال اسم المورد ورقم الهاتف و إجمالي المطلوب دفعه على الأقل.",
+            )
             return
 
         settings = QSettings("FactorySystem")
@@ -277,7 +311,7 @@ class SuppliersUI(QWidget):
         if self.profile_pic_path:
             files = {"profile_picture": open(self.profile_pic_path, "rb")}
 
-        url = f"{BACKEND_BASE_URL}/suppliers/suppliers/"
+        url = f"{BACKEND_BASE_URL}/materials_suppliers/suppliers/"
         self._start_post_request(url, payload, files)
 
     def handle_search(self):
@@ -287,7 +321,7 @@ class SuppliersUI(QWidget):
             return
 
         params = urlencode({"q": query})
-        url = f"{BACKEND_BASE_URL}/suppliers/suppliers/?{params}"
+        url = f"{BACKEND_BASE_URL}/materials_suppliers/suppliers/?{params}"
         self._start_fetch_request(url)
 
     def _start_post_request(self, url, payload, files):
@@ -312,7 +346,7 @@ class SuppliersUI(QWidget):
         self.handle_view_all()
 
     def handle_view_all(self):
-        url = f"{BACKEND_BASE_URL}/suppliers/suppliers/"
+        url = f"{BACKEND_BASE_URL}/materials_suppliers/suppliers/"
         self._start_fetch_request(url)
 
     def handle_next_page(self):
