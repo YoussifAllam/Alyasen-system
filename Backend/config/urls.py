@@ -20,7 +20,7 @@ urlpatterns = [
     path("api/safe/", include("apps.Safe.urls")),
     path("api/suppliers/", include("apps.Suppliers.urls")),
     path("api/quotations/", include("apps.Quotations.urls")),
-    # path("api/reports/", include("apps.Reports.urls")),
+    path("api/materials_suppliers/", include("apps.MaterialsSuppliers.urls")),
     path("api/clients/", include("apps.Clients.urls")),
     path("api/dashboard/", include("apps.Dashboard.urls")),
     path("api/campaine/", include("apps.Campaine.urls")),
