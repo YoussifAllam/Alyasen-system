@@ -10,6 +10,7 @@ from .serializers import InputSerializers, OutputSerializers, ParamsSerializers
 from .tasks import celery_tasks
 
 from apps.TransactionsLog.tasks.celery_tasks import create_transaction_log
+from apps.Safe.tasks.celery_tasks import reduce_safe_balance
 
 
 class SupplierApiView(APIView):
@@ -64,8 +65,11 @@ class InovicePaymentApiView(APIView):
 
         services.pay_for_supplier(supplier_instance, payment_amount)
 
-        celery_tasks.create_supplier_payment_record.delay(
+        celery_tasks.create_material_supplier_payment_record.delay(
             supplier_id, payment_amount, notes
+        )
+        reduce_safe_balance.delay(
+            payment_amount, f"تم دفع دفعه للمقاول {supplier_instance.name}", username
         )
         create_transaction_log.delay(
             username=username,

@@ -28,7 +28,7 @@ def update_supplier_balance(
     supplier_instance.total_paid_amount += paid_amount
     supplier_instance.save()
 
-    celery_tasks.create_supplier_payment_record.delay(
+    celery_tasks.create_material_supplier_payment_record.delay(
         supplier_instance.id, paid_amount, ""
     )
 
