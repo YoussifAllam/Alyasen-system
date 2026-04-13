@@ -27,6 +27,13 @@ app.conf.beat_schedule = {
             "expires": 3600,
         },
     },
+    "check-insurance-tax-deadline": {
+        "task": "apps.Projects.tasks.celery_tasks.check_insurance_tax_deadline",
+        "schedule": crontab(hour=0, minute=0),
+        "options": {
+            "expires": 3600,
+        },
+    },
 }
 
 
