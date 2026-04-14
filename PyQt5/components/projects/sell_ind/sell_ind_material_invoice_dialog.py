@@ -79,6 +79,8 @@ class CreateInvoiceWorker(QObject):
 
 
 class CreateMaterialInvoiceDialog(QDialog):
+    invoice_saved = pyqtSignal()
+
     def __init__(self, project_id, parent=None):
         super().__init__(parent)
         self.project_id = project_id
@@ -263,7 +265,7 @@ class CreateMaterialInvoiceDialog(QDialog):
             "CBP_id": self.project_id,  # This might be needed if the invoice is linked to a project
         }
 
-        url = f"{BACKEND_BASE_URL}/materials_suppliers/invoice/invoices/"
+        url = f"{BACKEND_BASE_URL}/materials_suppliers/invoice/"
 
         self.btn_save.setEnabled(False)
         self.btn_save.setText("جاري الحفظ...")
@@ -279,6 +281,7 @@ class CreateMaterialInvoiceDialog(QDialog):
 
     def on_save_success(self, response):
         QMessageBox.information(self, "نجاح", "تم إضافة الفاتورة بنجاح.")
+        self.invoice_saved.emit()
         self.accept()
 
     def on_save_error(self, message):

@@ -280,6 +280,9 @@ class RentProjectPage(QWidget):
         self.lbl_total_cost.setText(f"{data.get('total_cost', 0):,.2f}")
         self.lbl_sell_cost.setText(f"{data.get('selling_price', 0):,.2f}")
         self.lbl_profit.setText(f"{data.get('net_profit', 0):,.2f}")
+        self.lbl_total_materials_cost.setText(
+            f"{data.get('total_materials_cost', 0):,.2f}"
+        )
 
         # Taxes
         self.lbl_vat.setText(f"{data.get('value_added_tax', 0):,.2f}")

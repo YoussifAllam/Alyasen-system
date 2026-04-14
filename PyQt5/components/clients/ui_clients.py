@@ -30,7 +30,9 @@ from ..validation import (
 
 from ..projects.rent.ui_rent_project import RentProjectPage
 from .client_profile import ClientProfileUI
-from ..projects.sell_ind.ui_sell_ind_project import RentProjectPage as SellIndProjectPage
+from ..projects.sell_ind.ui_sell_ind_project import (
+    RentProjectPage as SellIndProjectPage,
+)
 
 
 class ClientApiWorker(QObject):
@@ -441,7 +443,7 @@ class ClientsUI(QWidget):
     def show_main_page(self):
         """Switches the view back to the main client list."""
         self.stacked_widget.setCurrentIndex(0)
-        self.handle_show_profile()
+        # self.handle_show_profile()
 
     def show_profile_page(self):
         self.stacked_widget.setCurrentIndex(1)
