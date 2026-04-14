@@ -98,7 +98,7 @@ class DashboardUI(QWidget):
         content_grid.setSpacing(20)
         left_column = QVBoxLayout()
         left_column.setSpacing(20)
-        left_column.addWidget(self.create_performance_chart_card())
+        left_column.addWidget(self.create_insurance_tax_card())
         left_column.addWidget(self.create_guarantee_checks_card())
         top_lists_layout = QHBoxLayout()
         top_lists_layout.setSpacing(20)
@@ -142,8 +142,8 @@ class DashboardUI(QWidget):
         if self.is_first_load:
             self.handle_fetch_expense_graph()
             self.handle_fetch_top_lists()
-            # self.handle_fetch_guarantee_checks()
-            # self.handle_fetch_performance_graph()
+            self.handle_fetch_guarantee_checks()
+            self.handle_fetch_insurance_tax()
             self.handle_fetch_users_status()
             self.is_first_load = False
 
@@ -183,10 +183,10 @@ class DashboardUI(QWidget):
             url, self.update_guarantee_checks, "checks_thread", "checks_worker"
         )
 
-    def handle_fetch_performance_graph(self):
-        url = f"{BACKEND_BASE_URL}/dashboard/performance-graph/"
+    def handle_fetch_insurance_tax(self):
+        url = f"{BACKEND_BASE_URL}/dashboard/upcoming-insurance-tax-data/"
         self._start_api_request(
-            url, self.update_performance_graph, "perf_graph_thread", "perf_graph_worker"
+            url, self.update_insurance_tax_card, "tax_thread", "tax_worker"
         )
 
     def handle_fetch_users_status(self):
@@ -317,7 +317,23 @@ class DashboardUI(QWidget):
         layout.addStretch()
 
     def update_guarantee_checks(self, response_data):
-        checks_data = response_data.get("data", [])
+        data = response_data.get("data", [])
+
+        # Ensure exactly 4 items
+        items = list(data)
+        while len(items) < 4:
+            items.append(
+                {
+                    "client_name": "لا يوجد",
+                    "project_name": "لا يوجد",
+                    "date": "----",
+                    "amount": 0.0,
+                }
+            )
+
+        # Limit to 4 if more
+        items = items[:4]
+
         while self.guarantee_checks_layout.count():
             child = self.guarantee_checks_layout.takeAt(0)
             if child.widget():
@@ -328,7 +344,7 @@ class DashboardUI(QWidget):
                     if nested_child.widget():
                         nested_child.widget().deleteLater()
 
-        for item in checks_data:
+        for item in items:
             client_name = item.get("client_name", "غير محدد")
             project_name = item.get("project_name", "غير محدد")
             check_date = item.get("date", "غير محدد")
@@ -341,34 +357,106 @@ class DashboardUI(QWidget):
 
         self.guarantee_checks_layout.addStretch()
 
-    def update_performance_graph(self, response_data):
-        data = response_data.get("data", {}).get("data", {})
-        labels = data.get("labels", [])
-        sales = data.get("sales", [])
-        expenses = data.get("expenses", [])
-        self.performance_chart.setData(labels, sales, expenses)
+    def update_insurance_tax_card(self, response_data):
+        data = response_data.get("data", {})
+        combined_data = data.get("selling_industrial", []) + data.get("rent", [])
 
-    def create_performance_chart_card(self):
+        # Ensure exactly 4 items
+        items = list(combined_data)
+        while len(items) < 4:
+            items.append(
+                {
+                    "project_name": "لا يوجد",
+                    "insurance_tax_date": "----",
+                    "insurance_tax": 0.0,
+                }
+            )
+
+        # Limit to 4 if more
+        items = items[:4]
+
+        while self.insurance_tax_layout.count():
+            child = self.insurance_tax_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+            elif child.layout():
+                while child.layout().count():
+                    nested_child = child.layout().takeAt(0)
+                    if nested_child.widget():
+                        nested_child.widget().deleteLater()
+
+        for item in items:
+            project_name = item.get("project_name", "غير محدد")
+            tax_date = item.get("insurance_tax_date", "غير محدد")
+            amount = item.get("insurance_tax", 0)
+
+            item_widget = self.create_insurance_tax_item(project_name, tax_date, amount)
+            self.insurance_tax_layout.addWidget(item_widget)
+
+        self.insurance_tax_layout.addStretch()
+
+    def create_insurance_tax_card(self):
         card = QFrame()
         card.setObjectName("card")
         layout = QVBoxLayout(card)
-        layout.setSpacing(10)
-        header_layout = QHBoxLayout()
-        title = QLabel(
-            "                                  ملخص الأداء الشهري المبيعات والمصروفات"
-        )
+        layout.setSpacing(5)
+
+        title = QLabel("تذكير بضرائب التأمين المستحقة للعملاء")
         title.setObjectName("cardTitle")
-        legend_layout = QHBoxLayout()
-        legend_layout.setSpacing(20)
-        legend_layout.addWidget(self.create_chart_legend_item("المبيعات", "#00bc88"))
-        legend_layout.addWidget(self.create_chart_legend_item("المصروفات", "#ef4444"))
-        header_layout.addLayout(legend_layout)
-        header_layout.addStretch()
-        header_layout.addWidget(title)
+        title.setAlignment(Qt.AlignVCenter)
+        layout.addWidget(title)
+
+        # Add headers (RTL order: Date, Project, Amount)
+        header_layout = QHBoxLayout()
+        header_layout.setDirection(QHBoxLayout.RightToLeft)
+
+        date_h = QLabel("تاريخ الاستحقاق")
+        proj_h = QLabel("اسم المشروع")
+        amt_h = QLabel("القيمة")
+
+        header_layout.addWidget(date_h, 3)
+        header_layout.addWidget(proj_h, 5)
+        header_layout.addWidget(amt_h, 2)
+
+        # Style headers
+        for widget in [date_h, proj_h, amt_h]:
+            widget.setStyleSheet("color: #9ca3af; font-weight: bold; font-size: 14px;")
+            widget.setAlignment(Qt.AlignCenter)
+
         layout.addLayout(header_layout)
-        self.performance_chart = LineGraphWidget()
-        layout.addWidget(self.performance_chart)
+
+        self.insurance_tax_layout = QVBoxLayout()
+        self.insurance_tax_layout.setSpacing(5)
+        layout.addLayout(self.insurance_tax_layout)
         return card
+
+    def create_insurance_tax_item(self, project_name, tax_date, amount):
+        item = QWidget()
+        layout = QHBoxLayout(item)
+        layout.setDirection(QHBoxLayout.RightToLeft)
+        layout.setContentsMargins(0, 2, 0, 2)
+
+        date_lbl = QLabel(str(tax_date))
+        date_lbl.setStyleSheet("color: #e5e7eb; font-weight: bold; font-size: 14px;")
+        date_lbl.setAlignment(Qt.AlignCenter)
+
+        project_lbl = QLabel(str(project_name))
+        project_lbl.setStyleSheet("font-size: 14px; color: #d1d5db;")
+        project_lbl.setAlignment(Qt.AlignCenter)
+
+        # Highlight if placeholder
+        amt_color = "#ef4444" if amount > 0 else "#4b5563"
+        amount_lbl = QLabel(f"{amount:,.2f} ج.م" if amount > 0 else "----")
+        amount_lbl.setStyleSheet(
+            f"color: {amt_color}; font-weight: bold; font-size: 14px;"
+        )
+        amount_lbl.setAlignment(Qt.AlignCenter)
+
+        layout.addWidget(date_lbl, 3)
+        layout.addWidget(project_lbl, 5)
+        layout.addWidget(amount_lbl, 2)
+
+        return item
 
     def create_chart_legend_item(self, text, color):
         item_widget = QWidget()
@@ -388,26 +476,35 @@ class DashboardUI(QWidget):
         card = QFrame()
         card.setObjectName("card")
         layout = QVBoxLayout(card)
-        layout.setSpacing(15)
+        layout.setSpacing(5)
         title = QLabel("تذكير بشيكات الضمان")
         title.setObjectName("cardTitle")
+        title.setAlignment(Qt.AlignVCenter)
         layout.addWidget(title)
 
-        # Add headers
+        # Add headers (RTL order: Date, Project, Client, Amount)
         header_layout = QHBoxLayout()
-        header_layout.addWidget(QLabel("تاريخ الشيك"), 2)
-        header_layout.addWidget(QLabel("اسم المشروع"), 3)
-        header_layout.addWidget(QLabel("اسم العميل"), 3)
-        header_layout.addWidget(QLabel("القيمة"), 2)
+        header_layout.setDirection(QHBoxLayout.RightToLeft)
+
+        date_h = QLabel("تاريخ الشيك")
+        proj_h = QLabel("اسم المشروع")
+        cli_h = QLabel("اسم العميل")
+        amt_h = QLabel("القيمة")
+
+        header_layout.addWidget(date_h, 2)
+        header_layout.addWidget(proj_h, 3)
+        header_layout.addWidget(cli_h, 3)
+        header_layout.addWidget(amt_h, 2)
 
         # Style headers
-        for i in range(header_layout.count()):
-            widget = header_layout.itemAt(i).widget()
+        for widget in [date_h, proj_h, cli_h, amt_h]:
             widget.setStyleSheet("color: #9ca3af; font-weight: bold; font-size: 14px;")
+            widget.setAlignment(Qt.AlignCenter)
 
         layout.addLayout(header_layout)
 
         self.guarantee_checks_layout = QVBoxLayout()
+        self.guarantee_checks_layout.setSpacing(5)
         layout.addLayout(self.guarantee_checks_layout)
         return card
 
@@ -428,19 +525,29 @@ class DashboardUI(QWidget):
     ):
         item = QWidget()
         layout = QHBoxLayout(item)
-        layout.setContentsMargins(0, 5, 0, 5)
+        layout.setDirection(QHBoxLayout.RightToLeft)
+        layout.setContentsMargins(0, 2, 0, 2)
 
         date_lbl = QLabel(str(check_date))
         date_lbl.setStyleSheet("color: #e5e7eb; font-weight: bold; font-size: 14px;")
+        date_lbl.setAlignment(Qt.AlignCenter)
 
         project_lbl = QLabel(str(project_name))
-        project_lbl.setStyleSheet("font-size: 14px;")
+        project_lbl.setStyleSheet("font-size: 14px; color: #d1d5db;")
+        project_lbl.setAlignment(Qt.AlignCenter)
 
         client_lbl = QLabel(str(client_name))
-        client_lbl.setStyleSheet("font-size: 14px;")
+        client_lbl.setStyleSheet("font-size: 14px; color: #d1d5db;")
+        client_lbl.setAlignment(Qt.AlignCenter)
 
-        amount_lbl = QLabel(f"{amount:,.2f} ج.م")
-        amount_lbl.setStyleSheet("color: #f59e0b; font-weight: bold; font-size: 14px;")
+        # Highlight if placeholder
+        amt_color = "#f59e0b" if amount > 0 else "#4b5563"
+        amount_text = f"{amount:,.2f} ج.م" if amount > 0 else "----"
+        amount_lbl = QLabel(amount_text)
+        amount_lbl.setStyleSheet(
+            f"color: {amt_color}; font-weight: bold; font-size: 14px;"
+        )
+        amount_lbl.setAlignment(Qt.AlignCenter)
 
         layout.addWidget(date_lbl, 2)
         layout.addWidget(project_lbl, 3)

@@ -12,6 +12,8 @@ from .tasks import (
     # inventory_levels_tasks,
     # performance_graph_tasks,
     users_tasks,
+    insurance_tax_tasks,
+    guarantee_checks_tasks,
 )
 
 
@@ -30,35 +32,6 @@ class TopListsDataApiView(APIView):
     def get(self, request: Request):
         top_lists = top_lists_tasks.get_top_data()
         return Response({"status": "success", "data": top_lists}, status=HTTP_200_OK)
-
-
-# class TopListsDataApiView(APIView):
-#     def get(self, request: Request, format=None):
-#         top_lists = top_lists_tasks.get_top_data()
-
-#         return Response({"status": "success", "data": top_lists}, status=HTTP_200_OK)
-
-
-# class InventoryMaterialsLevelApiView(APIView):
-#     def get(self, request: Request, format=None):
-#         lowest_M_in_quantity = (
-#             inventory_levels_tasks.MaterialInventoryService.get_lowest_quantity_materials()
-#         )
-
-#         return Response(
-#             {"status": "success", "data": lowest_M_in_quantity}, status=HTTP_200_OK
-#         )
-
-
-# class PerformanceGraphApiView(APIView):
-#     def get(self, request: Request, format=None):
-#         performance_analysis = (
-#             performance_graph_tasks.PerformanceAnalysisService.get_current_year_performance()
-#         )
-
-#         return Response(
-#             {"status": "success", "data": performance_analysis}, status=HTTP_200_OK
-#         )
 
 
 class UsersStutsApiView(APIView):
@@ -91,3 +64,15 @@ class UsersApiView(APIView):
         user_instance = selectors.get_user_instance(user_uuid)
         user_instance.delete()
         return Response({"status": "success"}, status=204)
+
+
+class UpcomingInsuranceTaxApiView(APIView):
+    def get(self, request: Request, format=None):
+        data = insurance_tax_tasks.get_upcoming_insurance_tax_projects()
+        return Response({"status": "success", "data": data}, status=HTTP_200_OK)
+
+
+class GuaranteeChecksApiView(APIView):
+    def get(self, request: Request, format=None):
+        data = guarantee_checks_tasks.get_nearest_guarantee_checks()
+        return Response({"status": "success", "data": data}, status=HTTP_200_OK)
