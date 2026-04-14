@@ -1,6 +1,5 @@
 import sys
 import os
-import time
 from PyQt5.QtWidgets import QApplication, QSplashScreen
 from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtCore import Qt, QSettings, QLocale  # Added QLocale
@@ -11,6 +10,7 @@ from components.Main_Ui_Components.main_window import MainWindow
 from components.Main_Ui_Components.stylesheet import load_dark_theme
 from components.Main_Ui_Components.light_stylesheet import load_light_theme
 from components.Main_Ui_Components.constant import BASE_DIR  # Import BASE_DIR
+from components.utils.updater import UpdateManager
 
 
 class AppController:
@@ -83,13 +83,15 @@ if __name__ == "__main__":
     else:
         app.setStyleSheet(load_dark_theme())
 
-    # Simulate some loading time
-    time.sleep(3)
+    # --- Check for Updates ---
+    splash.showMessage(
+        "جاري التحقق من وجود تحديثات...", Qt.AlignBottom | Qt.AlignCenter, Qt.white
+    )
+    app.processEvents()
+    UpdateManager.check_for_updates()
 
     controller = AppController()
     controller.start()
 
-    # Close the splash screen once the main authentication window is ready
     splash.finish(controller.auth_win)
-
     sys.exit(app.exec_())

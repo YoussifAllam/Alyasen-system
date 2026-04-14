@@ -24,6 +24,7 @@ urlpatterns = [
     path("api/clients/", include("apps.Clients.urls")),
     path("api/dashboard/", include("apps.Dashboard.urls")),
     path("api/campaine/", include("apps.Campaine.urls")),
+    path("api/app-version/", include("apps.AppVersion.urls")),
     # Health check endpoint
     path("health/", lambda request: HttpResponse("OK")),
 ] + third_party_urls  # noqa

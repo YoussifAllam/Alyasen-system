@@ -2,14 +2,11 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 ; Non-commercial use only
 
-#define MyAppName "المهندس"
+#define MyAppName "Alyasen CRM"
 #define MyAppVersion "1.0.1"
 #define MyAppPublisher "NOVA DEV."
 #define MyAppURL "https://www.nova-dev-company.com/"
 #define MyAppExeName "start.exe"
-#define MyAppAssocName MyAppName + " File"
-#define MyAppAssocExt ".myp"
-#define MyAppAssocKey StringChange(MyAppAssocName, " ", "") + MyAppAssocExt
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
@@ -17,7 +14,7 @@
 AppId={{1CDB15B3-06B3-409E-9D9A-8BE09690A044}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-;AppVerName={#MyAppName} {#MyAppVersion}
+AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
@@ -26,22 +23,32 @@ DefaultDirName={autopf}\{#MyAppName}
 UninstallDisplayIcon={app}\{#MyAppExeName}
 UsePreviousAppDir=yes
 UpdateUninstallLogAppName=yes
-; "ArchitecturesAllowed=x64compatible" specifies that Setup cannot run
-; on anything but x64 and Windows 11 on Arm.
+
+; Architecture settings
 ArchitecturesAllowed=x64compatible
-; "ArchitecturesInstallIn64BitMode=x64compatible" requests that the
-; install be done in "64-bit mode" on x64 or Windows 11 on Arm,
-; meaning it should use the native 64-bit Program Files directory and
-; the 64-bit view of the registry.
 ArchitecturesInstallIn64BitMode=x64compatible
-ChangesAssociations=yes
+
+; Disable program group page (not needed)
 DisableProgramGroupPage=yes
-; Uncomment the following line to run in non administrative install mode (install for current user only).
-;PrivilegesRequired=lowest
-OutputBaseFilename=المهندس
+
+; Output setup file name
+OutputBaseFilename=Alyasen_Setup
+
+; TODO: Update this path to your actual icon file location
 SetupIconFile=D:\PyQt5\New Factory System\PyQt5\dist\start\_internal\resources\real_logo.ico
+
+; Compression
 SolidCompression=yes
+Compression=lzma2/ultra64
+
+; Wizard style
 WizardStyle=classic dark
+
+; --- Auto-Update Support ---
+; Close running application before installing update
+CloseApplications=yes
+CloseApplicationsFilter=*.exe
+RestartApplications=yes
 
 [Languages]
 Name: "arabic"; MessagesFile: "compiler:Languages\Arabic.isl"
@@ -50,15 +57,10 @@ Name: "arabic"; MessagesFile: "compiler:Languages\Arabic.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
+; TODO: Update these paths to your actual dist folder
 Source: "D:\PyQt5\New Factory System\PyQt5\dist\start\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "D:\PyQt5\New Factory System\PyQt5\dist\start\_internal\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
-
-[Registry]
-Root: HKA; Subkey: "Software\Classes\{#MyAppAssocExt}\OpenWithProgids"; ValueType: string; ValueName: "{#MyAppAssocKey}"; ValueData: ""; Flags: uninsdeletevalue
-Root: HKA; Subkey: "Software\Classes\{#MyAppAssocKey}"; ValueType: string; ValueName: ""; ValueData: "{#MyAppAssocName}"; Flags: uninsdeletekey
-Root: HKA; Subkey: "Software\Classes\{#MyAppAssocKey}\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#MyAppExeName},0"
-Root: HKA; Subkey: "Software\Classes\{#MyAppAssocKey}\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
@@ -66,4 +68,3 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
-

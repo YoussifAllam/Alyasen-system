@@ -58,6 +58,7 @@ LOCAL_APPS = [
     "apps.MaterialsSuppliers",
     "apps.Dashboard",
     "apps.Campaine",
+    "apps.AppVersion",
 ]
 
 
