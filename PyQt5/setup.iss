@@ -60,6 +60,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 ; TODO: Update these paths to your actual dist folder
 Source: "D:\PyQt5\New Factory System\PyQt5\dist\start\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "D:\PyQt5\New Factory System\PyQt5\dist\start\_internal\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "D:\PyQt5\New Factory System\PyQt5\.env"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
