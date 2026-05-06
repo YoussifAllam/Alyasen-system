@@ -27,6 +27,7 @@ url_Password = [
 
 urlpatterns = (
     [
+        path("", views.SignUPViewSet.as_view({"post": "create"})),
         path("", include(router.urls)),
     ]
     + url_Auth  # noqa
