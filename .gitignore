@@ -21,9 +21,12 @@ code
 venv
 backend_venv
 
-*.log
+
 # LOGS/*
 !LOGS/.gitkeep
+django.log
+debug.log
+cacheops.log
 
 build
 dist
@@ -33,8 +36,8 @@ dist
 **/migrations/**
 !**/migrations/__init__.py
 !**/migrations/
-LOGS/
-LOGS/
 
-.env*
-Backend/ENV/.env.*
+
+.env.local
+.env.prod
+.env.test
