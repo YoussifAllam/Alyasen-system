@@ -7,6 +7,9 @@
 #define MyAppPublisher "NOVA DEV."
 #define MyAppURL "https://www.nova-dev-company.com/"
 #define MyAppExeName "start.exe"
+#define MyBuildRoot "."
+#define MyDistDir MyBuildRoot + "\dist\start"
+#define MyIconFile MyDistDir + "\_internal\resources\real_logo.ico"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
@@ -32,22 +35,21 @@ ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
 
 ; Output setup file name
-OutputBaseFilename=Alyasen_Setup
+OutputBaseFilename=Alyasen_Setup_{#MyAppVersion}
 
-; TODO: Update this path to your actual icon file location
-SetupIconFile=D:\PyQt5\New Factory System\PyQt5\dist\start\_internal\resources\real_logo.ico
+SetupIconFile={#MyIconFile}
 
 ; Compression
 SolidCompression=yes
 Compression=lzma2/ultra64
 
 ; Wizard style
-WizardStyle=classic dark
+WizardStyle=modern
 
 ; --- Auto-Update Support ---
 ; Close running application before installing update
 CloseApplications=yes
-CloseApplicationsFilter=*.exe
+CloseApplicationsFilter={#MyAppExeName}
 RestartApplications=yes
 
 [Languages]
@@ -57,10 +59,9 @@ Name: "arabic"; MessagesFile: "compiler:Languages\Arabic.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-; TODO: Update these paths to your actual dist folder
-Source: "D:\PyQt5\New Factory System\PyQt5\dist\start\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "D:\PyQt5\New Factory System\PyQt5\dist\start\_internal\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "D:\PyQt5\New Factory System\PyQt5\.env"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#MyDistDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#MyDistDir}\_internal\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#MyBuildRoot}\.env"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]

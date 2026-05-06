@@ -77,13 +77,13 @@ redis-logs:
 	docker logs -f $(shell docker ps -q -f name=$(ENV)_ProjectName_redis)
 
 up:
-	docker-compose -f Docker/docker-compose.$(ENV).yml up -d
+	docker compose -f Docker/docker-compose.$(ENV).yml up -d
 
 down:
-	docker-compose -f Docker/docker-compose.$(ENV).yml down
+	docker compose -f Docker/docker-compose.$(ENV).yml down
 
 build:
-	docker-compose -f Docker/docker-compose.$(ENV).yml up --build -d
+	docker compose -f Docker/docker-compose.$(ENV).yml up --build -d
 
 restart:
-	docker-compose -f Docker/docker-compose.$(ENV).yml restart
+	docker compose -f Docker/docker-compose.$(ENV).yml restart
