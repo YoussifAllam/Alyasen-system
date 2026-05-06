@@ -50,16 +50,14 @@ def get_client_CPB(project_id: int, project_type: str):
 
         return CPB_obj
     except ClientProjectBalance.DoesNotExist:
-        raise NotFound({"الخطأ": "لا يوجد دفعات لهذا المشروع"})
+        raise NotFound({"الخطأ": "لا يوجد حساب لهذا المشروع"})
 
 
 def get_client_payments_instances_by_CPB(project_id: int, project_type: str):
     try:
         if project_type == "campaine" or project_type == "حملة":
-            print("campaine")
             CPB_obj = ClientProjectBalance.objects.get(campaine_fk=project_id)
         else:
-            print("project")
             CPB_obj = ClientProjectBalance.objects.get(project_fk=project_id)
 
         return CPB_obj.payments.all()
@@ -88,7 +86,13 @@ def get_BP_instance(id) -> BaseProject:
         raise NotFound({"الخطأ": "لا يوجد مشروع بهذا الكود"})
 
 
-def get_client_project_and_campaings():
+def get_project_and_campaings():
     projects = BaseProject.objects.all()
     campaigns = Campaine.objects.all()
+    return projects, campaigns
+
+
+def get_client_project_and_campaings(client_id):
+    projects = BaseProject.objects.filter(client_id=client_id)
+    campaigns = Campaine.objects.filter(client_id=client_id)
     return projects, campaigns

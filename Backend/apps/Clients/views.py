@@ -178,14 +178,14 @@ class InovicePaymentApiView(APIView):
 
 class SendFinancialReportEmailApiView(APIView):
     def post(self, request: Request):
-        client_id = request.data.get("client_id")
+        client_id = request.GET.get("client_id")
         msg, status_code = client_email_tasks.send_financial_report_email(client_id)
         return Response(msg, status=status_code)
 
 
 class ClientProjectAndCampaingsApiView(APIView):
     def get(self, request: Request):
-        projects, campaigns = selectors.get_client_project_and_campaings()
+        projects, campaigns = selectors.get_project_and_campaings()
 
         projects_serializer = OutputSerializers.BaseProjectSerializer(
             projects, many=True

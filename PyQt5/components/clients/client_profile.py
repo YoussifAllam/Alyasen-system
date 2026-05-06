@@ -178,6 +178,7 @@ class ClientProfileUI(QWidget):
         self.btn_edit_profile = QPushButton("تعديل البيانات الشخصية")
         self.btn_edit_profile.clicked.connect(self.handle_edit_profile)
         self.send_email = QPushButton("ارسال كشف حساب للعميل")
+        self.send_email.clicked.connect(self.handle_send_email)
         layout.addWidget(self.add_project_button)
         layout.addWidget(self.btn_show_client_projects)
         layout.addWidget(self.btn_show_invoice_payment_details)
@@ -463,6 +464,41 @@ class ClientProfileUI(QWidget):
     def handle_prev_page(self):
         if self.prev_page_url:
             self._start_projects_fetch(self.prev_page_url)
+
+    def handle_send_email(self):
+        if not self.client_id:
+            QMessageBox.warning(self, "خطأ", "لم يتم العثور على بيانات العميل.")
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "تأكيد",
+            "هل أنت متأكد من إرسال كشف الحساب عبر البريد الإلكتروني؟",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if reply == QMessageBox.No:
+            return
+
+        url = f"{BACKEND_BASE_URL}/clients/email-statement/?client_id={self.client_id}"
+
+        self._set_loading(True)
+        self.page_info_label.setText("جاري إرسال البريد الإلكتروني...")
+
+        self.email_thread = QThread()
+        self.email_worker = ApiWorker("POST", url)
+        self.email_worker.moveToThread(self.email_thread)
+        self.email_thread.started.connect(self.email_worker.run)
+        self.email_worker.success.connect(self.on_send_email_success)
+        self.email_worker.error.connect(self.show_error_message)
+        self.email_worker.finished.connect(self.email_thread.quit)
+        self.email_thread.start()
+
+    def on_send_email_success(self, response_data):
+        self._set_loading(False)
+        self.page_info_label.setText("تم إرسال البريد بنجاح")
+        QMessageBox.information(
+            self, "نجاح", "تم إرسال كشف الحساب إلى بريد العميل بنجاح."
+        )
 
     def _start_info_fetch_request(self, url):
         self.info_fetch_thread = QThread()
