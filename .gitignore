@@ -41,3 +41,4 @@ dist
 .env.local
 .env.prod
 .env.test
+.env

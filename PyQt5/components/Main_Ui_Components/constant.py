@@ -21,7 +21,12 @@ def load_dotenv():
                 line = line.strip()
                 if line and not line.startswith("#") and "=" in line:
                     key, value = line.split("=", 1)
-                    os.environ.setdefault(key.strip(), value.strip())
+                    value = value.strip()
+                    # Support inline comments in .env values, e.g. URL=... # prod
+                    if " #" in value:
+                        value = value.split(" #", 1)[0].strip()
+                    value = value.strip().strip("'").strip('"')
+                    os.environ.setdefault(key.strip(), value)
 
 
 load_dotenv()

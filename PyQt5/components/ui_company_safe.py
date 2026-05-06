@@ -50,8 +50,6 @@ class SafeApiWorker(QObject):
                         self.logs_success.emit(data["data"])
                     elif "results" in data:
                         self.logs_success.emit(data)
-                else:
-                    self.error.emit(f"خطأ في جلب السجلات: {resp.status_code}")
 
         except exceptions.RequestException as e:
             self.error.emit(f"فشل الاتصال بالخادم: {e}")
