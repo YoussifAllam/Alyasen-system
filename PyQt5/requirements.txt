@@ -17,3 +17,7 @@ reportlab==4.4.10
 requests==2.33.0
 setuptools==82.0.1
 urllib3==2.6.3
+
+
+
+#pyinstaller -D --noconfirm --clean --windowed --name "start" --icon "resources/real_logo.ico" --add-data "resources:resources" "main.py"

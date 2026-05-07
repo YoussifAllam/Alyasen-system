@@ -87,3 +87,6 @@ build:
 
 restart:
 	docker compose -f Docker/docker-compose.$(ENV).yml restart
+
+exic:
+	docker exec -it factory_sys_app /bin/bash

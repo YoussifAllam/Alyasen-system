@@ -6,10 +6,10 @@
 #define MyAppVersion "1.0.1"
 #define MyAppPublisher "NOVA DEV."
 #define MyAppURL "https://www.nova-dev-company.com/"
-#define MyAppExeName "start.exe"
+#define MyAppExeName "start"
 #define MyBuildRoot "."
 #define MyDistDir MyBuildRoot + "\dist\start"
-#define MyIconFile MyDistDir + "\_internal\resources\real_logo.ico"
+#define MyIconFile MyDistDir + "\_internal\resources\logo3.ico"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
