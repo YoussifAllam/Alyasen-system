@@ -18,8 +18,12 @@ class VersionCheckApiView(APIView):
     def get(self, request, format=None):
         app_version = AppVersion.objects.first()
 
-        if app_version and app_version.setup_file:
-            file_url = request.build_absolute_uri(app_version.setup_file.url)
+        if app_version and (app_version.download_url or app_version.setup_file):
+            file_url = (
+                app_version.download_url
+                if app_version.download_url
+                else request.build_absolute_uri(app_version.setup_file.url)
+            )
             return Response(
                 {
                     "version": app_version.version,

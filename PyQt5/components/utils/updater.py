@@ -2,12 +2,78 @@ import requests
 import os
 import sys
 import subprocess
+import re
+from urllib.parse import urlparse, parse_qs
 from PyQt5.QtWidgets import QMessageBox
 from components.Main_Ui_Components.constant import APP_VERSION, BACKEND_BASE_URL
 
 
 class UpdateManager:
     VERSION_CHECK_URL = f"{BACKEND_BASE_URL}/app-version/version-check/"
+
+    @staticmethod
+    def _normalize_drive_url(url: str) -> str:
+        """
+        Accepts Google Drive share links and converts them to a download URL.
+        Supports:
+          - https://drive.google.com/file/d/<ID>/view?...
+          - https://drive.google.com/open?id=<ID>
+          - https://drive.google.com/uc?id=<ID>&export=download
+        """
+        if not url:
+            return url
+
+        parsed = urlparse(url)
+        if "drive.google.com" not in parsed.netloc:
+            return url
+
+        # /file/d/<id>/view
+        m = re.search(r"/file/d/([^/]+)/", parsed.path)
+        file_id = m.group(1) if m else None
+
+        # open?id=<id> or uc?id=<id>
+        if not file_id:
+            qs = parse_qs(parsed.query)
+            if "id" in qs and qs["id"]:
+                file_id = qs["id"][0]
+
+        if not file_id:
+            return url
+
+        return f"https://drive.google.com/uc?export=download&id={file_id}"
+
+    @staticmethod
+    def _download_file(url: str, dest_path: str, timeout: int = 30):
+        """
+        Downloads a file. If the URL is a Google Drive link and requires confirmation,
+        it will retry with the confirmation token.
+        """
+        session = requests.Session()
+        session.headers.update({"User-Agent": "AlyasenCRM-Updater/1.0"})
+
+        url = UpdateManager._normalize_drive_url(url)
+        resp = session.get(url, stream=True, timeout=timeout, allow_redirects=True)
+
+        # Google Drive large file confirmation flow
+        if "drive.google.com" in urlparse(resp.url).netloc and "text/html" in (
+            resp.headers.get("Content-Type", "")
+        ):
+            confirm = None
+            for k, v in resp.cookies.items():
+                if k.startswith("download_warning"):
+                    confirm = v
+                    break
+            if confirm:
+                sep = "&" if "?" in url else "?"
+                url2 = f"{url}{sep}confirm={confirm}"
+                resp = session.get(url2, stream=True, timeout=timeout, allow_redirects=True)
+
+        resp.raise_for_status()
+
+        with open(dest_path, "wb") as f:
+            for chunk in resp.iter_content(chunk_size=1024 * 256):
+                if chunk:
+                    f.write(chunk)
 
     @staticmethod
     def check_for_updates(parent=None):
@@ -38,6 +104,10 @@ class UpdateManager:
     @staticmethod
     def download_and_install(url, parent=None):
         try:
+            if not url:
+                QMessageBox.critical(parent, "خطأ", "رابط التحميل غير متوفر.")
+                return
+
             # Show a message that download is starting
             progress_msg = QMessageBox(parent)
             progress_msg.setWindowTitle("جاري التحميل")
@@ -46,14 +116,9 @@ class UpdateManager:
             progress_msg.show()
 
             # Download the setup file
-            response = requests.get(url, stream=True)
             filename = "Alyasen_Setup.exe"
             temp_path = os.path.join(os.environ.get("TEMP", "/tmp"), filename)
-
-            with open(temp_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
+            UpdateManager._download_file(url, temp_path, timeout=60)
 
             progress_msg.close()
 

@@ -4,6 +4,12 @@ from django.core.exceptions import ValidationError
 
 class AppVersion(models.Model):
     version = models.CharField(max_length=20, verbose_name="رقم الإصدار")
+    download_url = models.URLField(
+        blank=True,
+        default="",
+        verbose_name="رابط التحميل",
+        help_text="ضع رابط التحميل المباشر (مثال: Google Drive link). إذا تم وضعه سيتم استخدامه بدل رفع الملف.",
+    )
     setup_file = models.FileField(
         upload_to="app_versions/",
         verbose_name="ملف التثبيت",
@@ -30,6 +36,9 @@ class AppVersion(models.Model):
             raise ValidationError(
                 "يوجد إصدار بالفعل. قم بتعديل الإصدار الموجود بدلاً من إنشاء واحد جديد."
             )
+
+        if not self.download_url and not self.setup_file:
+            raise ValidationError("يجب توفير رابط تحميل أو رفع ملف التثبيت.")
 
     def save(self, *args, **kwargs):
         self.full_clean()
