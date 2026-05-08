@@ -13,6 +13,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QPoint
 import qtawesome as qta
 
+from ..validation import attach_number_formatter, clean_number
+
 
 class PaymentDialog(QDialog):
     def __init__(self, supplier_id, parent=None):
@@ -64,6 +66,7 @@ class PaymentDialog(QDialog):
         form_layout.setLabelAlignment(Qt.AlignRight)
 
         self.amount_input = QLineEdit()
+        attach_number_formatter(self.amount_input)
         self.notes_input = QTextEdit()
         self.notes_input.setMaximumHeight(80)
 
@@ -98,7 +101,7 @@ class PaymentDialog(QDialog):
     def get_data(self):
         """Returns the data entered in the dialog."""
         return {
-            "payment_amount": self.amount_input.text().strip(),
+            "payment_amount": clean_number(self.amount_input.text()),
             "notes": self.notes_input.toPlainText().strip(),
         }
 

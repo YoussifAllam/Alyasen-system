@@ -24,6 +24,8 @@ from ..validation import (
     validate_non_negative_number,
     run_validations,
     _clear_errors,
+    attach_number_formatter,
+    clean_number,
 )
 
 
@@ -105,6 +107,7 @@ class UpdateWorkerDialog(QDialog):
         self.phone_input = QLineEdit(worker_data.get("phone", ""))
         self.job_input = QLineEdit(worker_data.get("job", ""))
         self.daily_salary_input = QLineEdit(str(worker_data.get("daily_salary", 0.0)))
+        attach_number_formatter(self.daily_salary_input)
 
         start_date_str = worker_data.get("work_start_date", "")
         self.start_date_input = QDateEdit(calendarPopup=True)
@@ -156,7 +159,7 @@ class UpdateWorkerDialog(QDialog):
         if not run_validations(self, validations):
             return
 
-        daily_salary = float(self.daily_salary_input.text().strip())
+        daily_salary = float(clean_number(self.daily_salary_input.text()))
 
         settings = QSettings("FactorySystem")
         username = settings.value("user_name", "unknown_user")

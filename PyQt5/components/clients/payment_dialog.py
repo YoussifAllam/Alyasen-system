@@ -32,6 +32,8 @@ from ..validation import (
     validate_combo_selected,
     run_validations,
     _clear_errors,
+    attach_number_formatter,
+    clean_number,
 )
 
 
@@ -149,6 +151,7 @@ class PaymentDialog(QDialog):
         self.check_date_input.hide()
 
         self.amount_input = QLineEdit()
+        attach_number_formatter(self.amount_input)
         self.notes_input = QTextEdit()
         self.notes_input.setMaximumHeight(80)
 
@@ -221,7 +224,7 @@ class PaymentDialog(QDialog):
         if not run_validations(self, validations):
             return
 
-        amount_str = self.amount_input.text().strip()
+        amount_str = clean_number(self.amount_input.text())
 
         settings = QSettings("FactorySystem")
         username = settings.value("user_name", "system")
@@ -277,7 +280,7 @@ class PaymentDialog(QDialog):
                 if self.payment_type_combo.currentData() == "check"
                 else None
             ),
-            "payment_amount": self.amount_input.text().strip(),
+            "payment_amount": clean_number(self.amount_input.text()),
             "notes": self.notes_input.toPlainText().strip(),
             "payment_date": self.date_input.date().toString("yyyy-MM-dd"),
             "portal_invoice_number": self.invoice_number_input.text().strip(),

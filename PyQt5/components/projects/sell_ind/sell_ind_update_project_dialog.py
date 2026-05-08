@@ -16,6 +16,8 @@ from ...Main_Ui_Components.constant import BACKEND_BASE_URL
 from ...validation import (
     validate_non_negative_number,
     run_validations,
+    attach_number_formatter,
+    clean_number,
 )
 import qtawesome as qta
 
@@ -79,22 +81,26 @@ class UpdateRentProjectDialog(QDialog):
         self.selling_price_input.setText(
             str(self.current_data.get("selling_price", ""))
         )
+        attach_number_formatter(self.selling_price_input)
 
         self.vat_input = QLineEdit()
         self.vat_input.setPlaceholderText("مثال: 2000")
         self.vat_input.setText(str(self.current_data.get("value_added_tax", "")))
+        attach_number_formatter(self.vat_input)
 
         self.profits_tax_input = QLineEdit()
         self.profits_tax_input.setPlaceholderText("مثال: 2000")
         self.profits_tax_input.setText(
             str(self.current_data.get("commercial_profits_tax", ""))
         )
+        attach_number_formatter(self.profits_tax_input)
 
         self.insurance_tax_input = QLineEdit()
         self.insurance_tax_input.setPlaceholderText("مثال: 2000")
         self.insurance_tax_input.setText(
             str(self.current_data.get("insurance_tax", ""))
         )
+        attach_number_formatter(self.insurance_tax_input)
 
         self.insurance_date_input = QDateEdit()
         self.insurance_date_input.setCalendarPopup(True)
@@ -167,16 +173,16 @@ class UpdateRentProjectDialog(QDialog):
         if not run_validations(self, validations):
             return
 
-        insurance_tax_val = self.insurance_tax_input.text().strip()
+        insurance_tax_val = clean_number(self.insurance_tax_input.text())
 
         settings = QSettings("FactorySystem")
         username = settings.value("user_name", "system")
 
         payload = {
             "CBP_id": str(self.project_id),
-            "selling_price": self.selling_price_input.text().strip(),
-            "value_added_tax": self.vat_input.text().strip(),
-            "commercial_profits_tax": self.profits_tax_input.text().strip(),
+            "selling_price": clean_number(self.selling_price_input.text()),
+            "value_added_tax": clean_number(self.vat_input.text()),
+            "commercial_profits_tax": clean_number(self.profits_tax_input.text()),
             "insurance_tax": insurance_tax_val,
             "user_name": username,
         }

@@ -19,6 +19,7 @@ from requests import request, exceptions
 from urllib.parse import urlencode
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..validation import attach_number_formatter, clean_number
 from .supplier_profile import SupplierProfileUI
 
 
@@ -128,6 +129,7 @@ class MaterialsSuppliersUI(QWidget):
         self.total_amount_due_input = QLineEdit(
             placeholderText="إجمالي المطلوب دفعة للمورد"
         )
+        attach_number_formatter(self.total_amount_due_input)
 
         self.profile_pic_label = QLabel("لم يتم اختيار صورة")
         self.profile_pic_label.setAlignment(Qt.AlignCenter)
@@ -284,8 +286,8 @@ class MaterialsSuppliersUI(QWidget):
         name = self.name_input.text().strip()
         phone = self.phone_input.text().strip()
         email = self.email_input.text().strip()
-        total_amount_due = self.total_amount_due_input.text().strip()
-        total_amount_payable = self.total_amount_due_input.text().strip()
+        total_amount_due = clean_number(self.total_amount_due_input.text())
+        total_amount_payable = clean_number(self.total_amount_due_input.text())
 
         if not name or not phone or not total_amount_due or not total_amount_payable:
             QMessageBox.warning(

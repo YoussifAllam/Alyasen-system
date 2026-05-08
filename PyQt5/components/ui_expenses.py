@@ -26,6 +26,8 @@ from .validation import (
     validate_positive_number,
     run_validations,
     _clear_errors,
+    attach_number_formatter,
+    clean_number,
 )
 
 
@@ -145,6 +147,7 @@ class ExpensesUI(QWidget):
         self.name_input = QLineEdit()
         # self.permit_input = QLineEdit()  <-- Removed
         self.amount_input = QLineEdit()
+        attach_number_formatter(self.amount_input)
         self.date_input = QDateEdit(calendarPopup=True, date=QDate.currentDate())
         self.notes_input = QTextEdit()
         self.notes_input.setMaximumHeight(100)
@@ -275,7 +278,7 @@ class ExpensesUI(QWidget):
             return
 
         transaction = self.name_input.text().strip()
-        amount = self.amount_input.text().strip()
+        amount = clean_number(self.amount_input.text())
         notes = self.notes_input.toPlainText().strip()
         payload = {
             "transaction": transaction,

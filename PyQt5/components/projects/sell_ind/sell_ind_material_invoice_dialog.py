@@ -17,6 +17,7 @@ import qtawesome as qta
 from requests import request, exceptions
 
 from ...Main_Ui_Components.constant import BACKEND_BASE_URL
+from ...validation import attach_number_formatter, clean_number
 
 
 class SupplierFetchWorker(QObject):
@@ -179,6 +180,7 @@ class CreateMaterialInvoiceDialog(QDialog):
 
         self.txt_amount = QLineEdit()
         self.txt_amount.setPlaceholderText("0.00")
+        attach_number_formatter(self.txt_amount)
 
         self.txt_notes = QLineEdit()
         self.txt_notes.setPlaceholderText("ملاحظات اختيارية...")
@@ -242,7 +244,7 @@ class CreateMaterialInvoiceDialog(QDialog):
             QMessageBox.warning(self, "تنبيه", "برجاء اختيار مورد.")
             return
 
-        amount_str = self.txt_amount.text().strip()
+        amount_str = clean_number(self.txt_amount.text())
         if not amount_str:
             QMessageBox.warning(self, "تنبيه", "برجاء إدخال مبلغ الفاتورة.")
             return

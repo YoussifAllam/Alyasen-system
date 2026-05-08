@@ -19,6 +19,7 @@ from requests import request, exceptions
 from urllib.parse import urlencode
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..validation import attach_number_formatter, clean_number
 
 
 class ProjectApiWorker(QObject):
@@ -108,6 +109,7 @@ class ProjectsUI(QWidget):
 
         self.name_input = QLineEdit(placeholderText="اسم المشروع")
         self.cost_input = QLineEdit(placeholderText="تكلفة المشروع")
+        attach_number_formatter(self.cost_input)
 
         self.type_combobox = QComboBox()
         self.type_combobox.addItems(["تأجير", "بيع", "صناعي"])
@@ -262,7 +264,7 @@ class ProjectsUI(QWidget):
             if pt_text == "تأجير"
             else "selling" if pt_text == "بيع" else "industrial"
         )
-        cost = float(self.cost_input.text().strip())
+        cost = float(clean_number(self.cost_input.text()))
         project_status = "active"
 
         if not name:
