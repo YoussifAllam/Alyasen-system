@@ -42,3 +42,8 @@ dist
 .env.prod
 .env.test
 .env
+
+Output/
+
+alyasen-setup/*
+alyasen-setup

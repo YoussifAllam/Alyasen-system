@@ -28,14 +28,14 @@ UsePreviousAppDir=yes
 UpdateUninstallLogAppName=yes
 
 ; Architecture settings
-ArchitecturesAllowed=x64compatible
-ArchitecturesInstallIn64BitMode=x64compatible
+;ArchitecturesAllowed=x64compatible
+;ArchitecturesInstallIn64BitMode=x64compatible
 
 ; Disable program group page (not needed)
 DisableProgramGroupPage=yes
 
 ; Output setup file name
-OutputBaseFilename=Alyasen_Setup_{#MyAppVersion}
+OutputBaseFilename=alyasen-setup/Alyasen_Setup_{#MyAppVersion}
 
 SetupIconFile={#MyIconFile}
 
