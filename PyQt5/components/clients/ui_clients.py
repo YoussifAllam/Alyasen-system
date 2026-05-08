@@ -162,9 +162,6 @@ class ClientsUI(QWidget):
         self.name_input = QLineEdit(placeholderText="اسم العميل")
         self.phone_input = QLineEdit(placeholderText="رقم الهاتف")
         self.email_input = QLineEdit(placeholderText="(اختياري) البريد الإلكتروني")
-        self.total_balance_owed_to_us_input = QLineEdit(
-            placeholderText=" مبلغ مدينية العميل"
-        )
 
         self.profile_pic_label = QLabel("لم يتم اختيار صورة")
         self.profile_pic_label.setAlignment(Qt.AlignCenter)
@@ -177,7 +174,6 @@ class ClientsUI(QWidget):
         form_layout.addWidget(self.name_input)
         form_layout.addWidget(self.phone_input)
         form_layout.addWidget(self.email_input)
-        form_layout.addWidget(self.total_balance_owed_to_us_input)
         form_layout.addWidget(self.profile_pic_label)
         form_layout.addWidget(btn_choose_pic)
 
@@ -287,7 +283,6 @@ class ClientsUI(QWidget):
             self.name_input,
             self.phone_input,
             self.email_input,
-            self.total_balance_owed_to_us_input,
         ]
         _clear_errors(fields)
 
@@ -295,9 +290,6 @@ class ClientsUI(QWidget):
             validate_not_empty(self.name_input, "اسم العميل"),
             validate_phone(self.phone_input, "رقم الهاتف"),
             validate_optional_email(self.email_input, "البريد الإلكتروني"),
-            validate_positive_number(
-                self.total_balance_owed_to_us_input, "مبلغ مدينية العميل"
-            ),
         ]
         if not run_validations(self, validations):
             return
@@ -305,18 +297,10 @@ class ClientsUI(QWidget):
         name = self.name_input.text().strip()
         phone = self.phone_input.text().strip()
         email = self.email_input.text().strip()
-        total_balance_owed_to_us = self.total_balance_owed_to_us_input.text().strip()
 
         username = self.settings.value("user_name", "unknown_user")
 
-        payload = {
-            "name": name,
-            "phone": phone,
-            "email": email,
-            "total_balance_owed_to_us": total_balance_owed_to_us,
-            "total_remaining_balance_owed_to_us": total_balance_owed_to_us,
-            "username": username,
-        }
+        payload = {"name": name, "phone": phone, "email": email, "username": username}
 
         files = None
         if self.profile_pic_path:
@@ -343,7 +327,6 @@ class ClientsUI(QWidget):
         self.name_input.clear()
         self.phone_input.clear()
         self.email_input.clear()
-        self.total_balance_owed_to_us_input.clear()
         self.profile_pic_label.setText("لم يتم اختيار صورة")
         self.profile_pic_path = None
         self.handle_view_all()
