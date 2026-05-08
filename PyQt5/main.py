@@ -13,6 +13,18 @@ from components.Main_Ui_Components.constant import BASE_DIR  # Import BASE_DIR
 from components.utils.updater import UpdateManager
 
 
+def configure_qt_scaling():
+    """Use one explicit scale factor so Linux can preview Windows sizing."""
+    scale_factor = os.getenv("APP_SCALE_FACTOR", "1.0").strip() or "1.0"
+    try:
+        float(scale_factor)
+    except ValueError:
+        scale_factor = "1.0"
+
+    os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "0"
+    os.environ.setdefault("QT_SCALE_FACTOR", scale_factor)
+
+
 class AppController:
     """Manages the flow between the auth window and the main application window."""
 
@@ -47,7 +59,7 @@ class AppController:
 
 
 if __name__ == "__main__":
-    os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
+    configure_qt_scaling()
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
     app = QApplication(sys.argv)
