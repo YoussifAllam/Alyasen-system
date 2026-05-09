@@ -1,5 +1,6 @@
 import environ  # ignore:E402
 from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
 from os.path import join
 from typing import Type, Any
 import enum
@@ -22,7 +23,10 @@ env_file_path = join(BASE_DIR, f"ENV/.env.{ENVIRONMENT}")
 if not os.path.exists(env_file_path):
     raise ImproperlyConfigured(f"Environment file '{env_file_path}' not found.")
 
-env.read_env(env_file_path)
+# Docker Compose injects env_file before Python starts; django-environ's read_env()
+# defaults to overwrite=False, so stale/truncated vars (e.g. POSTGRES_PASSWORD)
+# would win over ENV/.env.{ENVIRONMENT}. python-dotenv override=True matches that intent.
+load_dotenv(env_file_path, override=True)
 
 
 def env_to_enum(enum_cls: Type[enum.Enum], value: Any) -> enum.Enum:
