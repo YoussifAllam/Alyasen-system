@@ -11,7 +11,9 @@ if ENVIRONMENT == "test":
             "ENGINE": env("test_DATABASE_ENGINE"),
             "NAME": env("test_DATABASE_NAME"),
             "USER": env("test_DATABASE_USER"),
-            "PASSWORD": env("test_DATABASE_PASSWORD"),
+            # Same env key as the official Postgres image (docker-compose env_file).
+            # Avoids drift vs a separate test_DATABASE_PASSWORD.
+            "PASSWORD": env("POSTGRES_PASSWORD"),
             "HOST": env("test_DATABASE_HOST"),
             "PORT": env("test_DATABASE_PORT"),
             "OPTIONS": {
