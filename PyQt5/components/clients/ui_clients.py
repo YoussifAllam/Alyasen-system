@@ -23,7 +23,6 @@ from ..validation import (
     validate_not_empty,
     validate_phone,
     validate_optional_email,
-    validate_positive_number,
     run_validations,
     _clear_errors,
 )
@@ -33,6 +32,63 @@ from .client_profile import ClientProfileUI
 from ..projects.sell_ind.ui_sell_ind_project import (
     RentProjectPage as SellIndProjectPage,
 )
+
+
+def _safe_response_json(response):
+    try:
+        return response.json()
+    except ValueError:
+        return None
+
+
+def _flatten_drf_errors(errors, field_prefix=""):
+    """Turn nested DRF serializer.errors into readable lines."""
+    lines = []
+    if isinstance(errors, dict):
+        for key, val in errors.items():
+            label = f"{field_prefix}{key}" if field_prefix else key
+            if isinstance(val, list):
+                for item in val:
+                    if isinstance(item, dict):
+                        lines.extend(_flatten_drf_errors(item, f"{label}."))
+                    else:
+                        lines.append(f"{label}: {item}")
+            elif isinstance(val, dict):
+                lines.extend(_flatten_drf_errors(val, f"{label}."))
+            else:
+                lines.append(f"{label}: {val}")
+    elif isinstance(errors, list):
+        for item in errors:
+            lines.append(str(item))
+    return lines
+
+
+def _format_api_error_message(response, body):
+    """Build user-visible text for failed requests (e.g. status faild + errors)."""
+    if isinstance(body, dict):
+        if body.get("status") in ("faild", "failed") and body.get("errors") is not None:
+            flat = _flatten_drf_errors(body["errors"])
+            if flat:
+                return "\n".join(flat)
+        for key in ("detail", "message", "error"):
+            if body.get(key) not in (None, ""):
+                return str(body[key])
+    text = (response.text or "").strip()
+    if text:
+        return f"خطأ من الخادم ({response.status_code}):\n{text}"
+    return f"خطأ من الخادم: {response.status_code}"
+
+
+def _money_cell(val):
+    """Safe formatting for API floats that may be null."""
+    try:
+        if val is None or val == "":
+            num = 0.0
+        else:
+            num = float(val)
+        return f"{num:,.2f}"
+    except (TypeError, ValueError):
+        return "0.00"
 
 
 class ClientApiWorker(QObject):
@@ -63,17 +119,27 @@ class ClientApiWorker(QObject):
             else:
                 response = request(self.method, self.url, json=self.payload, timeout=15)
 
-            print("\n", response.json())
+            body = _safe_response_json(response)
 
             if response.status_code in [200, 201]:
-                self.success.emit(response.json())
+                self.success.emit(body if body is not None else {})
             else:
-                self.error.emit(
-                    f"خطأ من الخادم: {response.status_code}\n{response.text}"
-                )
+                try:
+                    msg = _format_api_error_message(response, body)
+                except Exception:
+                    msg = f"خطأ من الخادم: {response.status_code}"
+                self.error.emit(msg)
         except exceptions.RequestException:
             self.error.emit("فشل الاتصال بالخادم.")
+        except Exception as exc:
+            self.error.emit(f"خطأ غير متوقع: {exc}")
         finally:
+            if self.files:
+                for fh in self.files.values():
+                    try:
+                        fh.close()
+                    except Exception:
+                        pass
             self.finished.emit()
 
 
@@ -354,9 +420,9 @@ class ClientsUI(QWidget):
 
         # Use the provided success handler or the default one
         success_handler = on_success if on_success else self.handle_api_response
-        self.worker.success.connect(success_handler)
+        self.worker.success.connect(success_handler, Qt.QueuedConnection)
 
-        self.worker.error.connect(self.show_error_message)
+        self.worker.error.connect(self.show_error_message, Qt.QueuedConnection)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
@@ -368,20 +434,30 @@ class ClientsUI(QWidget):
         self.post_worker = ClientApiWorker("POST", url, payload, files)
         self.post_worker.moveToThread(self.post_thread)
         self.post_thread.started.connect(self.post_worker.run)
-        self.post_worker.success.connect(self.on_add_success)
-        self.post_worker.error.connect(self.show_error_message)
+        self.post_worker.success.connect(self.on_add_success, Qt.QueuedConnection)
+        self.post_worker.error.connect(self.show_error_message, Qt.QueuedConnection)
         self.post_worker.finished.connect(self.post_thread.quit)
         self.post_thread.start()
 
     def handle_api_response(self, response_data):
-        data_obj = response_data.get("data", {})
-        results = data_obj.get("results", [])
-        self.next_page_url = data_obj.get("next")
-        self.prev_page_url = data_obj.get("previous")
-        self.total_count = data_obj.get("count", 0)
-        self.populate_table(results)
-        self.update_pagination_controls()
-        self._set_loading(False)
+        try:
+            if not isinstance(response_data, dict):
+                response_data = {}
+            data_obj = response_data.get("data") or {}
+            results = data_obj.get("results") or []
+            self.next_page_url = data_obj.get("next")
+            self.prev_page_url = data_obj.get("previous")
+            self.total_count = data_obj.get("count", 0)
+            self.populate_table(results)
+            self.update_pagination_controls()
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "خطأ",
+                f"تعذر عرض بيانات العملاء:\n{exc}",
+            )
+        finally:
+            self._set_loading(False)
 
     def populate_table(self, clients):
         self.table.setRowCount(0)
@@ -393,11 +469,11 @@ class ClientsUI(QWidget):
                 QTableWidgetItem(client.get("name", "")),
                 QTableWidgetItem(client.get("phone", "")),
                 QTableWidgetItem(client.get("email", "")),
-                QTableWidgetItem(f"{client.get('total_balance_owed_to_us', 0):,.2f}"),
+                QTableWidgetItem(_money_cell(client.get("total_balance_owed_to_us"))),
                 QTableWidgetItem(
-                    f"{client.get('total_remaining_balance_owed_to_us', 0):,.2f}"
+                    _money_cell(client.get("total_remaining_balance_owed_to_us"))
                 ),
-                QTableWidgetItem(f"{client.get('total_paid_amount', 0):,.2f}"),
+                QTableWidgetItem(_money_cell(client.get("total_paid_amount"))),
             ]
             for item in items:
                 item.setTextAlignment(Qt.AlignCenter)
@@ -421,9 +497,10 @@ class ClientsUI(QWidget):
         if is_loading:
             self.page_info_label.setText("جاري التحميل...")
 
+    @pyqtSlot(str)
     def show_error_message(self, message):
-        # ... (This method remains the same)
-        pass
+        self._set_loading(False)
+        QMessageBox.critical(self, "خطأ", message or "حدث خطأ غير متوقع.")
 
     def show_main_page(self):
         """Switches the view back to the main client list."""
@@ -456,6 +533,14 @@ class ClientsUI(QWidget):
         self._start_fetch_request(url, on_success=self.on_profile_fetch_success)
 
     def on_profile_fetch_success(self, data):
-        self.profile_page.update_data(data)
-        self.stacked_widget.setCurrentIndex(1)
-        self._set_loading(False)
+        try:
+            self.profile_page.update_data(data)
+            self.stacked_widget.setCurrentIndex(1)
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "خطأ",
+                f"تعذر فتح ملف العميل:\n{exc}",
+            )
+        finally:
+            self._set_loading(False)

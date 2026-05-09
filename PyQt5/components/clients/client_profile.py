@@ -252,11 +252,17 @@ class ClientProfileUI(QWidget):
         self.current_client_data = data
         self.client_id = data.get("id")
         self.name_label.setText(f"ملف العميل: {data.get('name', '')}")
-        self.due_display.setText(f"{data.get('total_balance_owed_to_us', 0):,.2f} ج.م")
+        def _fmt(v):
+            try:
+                return f"{float(v if v not in (None, '') else 0):,.2f}"
+            except (TypeError, ValueError):
+                return "0.00"
+
+        self.due_display.setText(f"{_fmt(data.get('total_balance_owed_to_us'))} ج.م")
         self.payable_display.setText(
-            f"{data.get('total_remaining_balance_owed_to_us', 0):,.2f} ج.م"
+            f"{_fmt(data.get('total_remaining_balance_owed_to_us'))} ج.م"
         )
-        self.paid_display.setText(f"{data.get('total_paid_amount', 0):,.2f} ج.م")
+        self.paid_display.setText(f"{_fmt(data.get('total_paid_amount'))} ج.م")
         if fetch_pic:
             pic_url = data.get("profile_picture")
             if pic_url:
