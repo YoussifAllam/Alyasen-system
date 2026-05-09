@@ -63,6 +63,8 @@ class ClientApiWorker(QObject):
             else:
                 response = request(self.method, self.url, json=self.payload, timeout=15)
 
+            print("\n", response.json())
+
             if response.status_code in [200, 201]:
                 self.success.emit(response.json())
             else:

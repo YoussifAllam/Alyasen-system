@@ -17,9 +17,9 @@ services:
       - ../ENV/.env.test
     environment:
       ENVIRONMENT: test
-      POSTGRES_DB: ${TEST_DATABASE_NAME:-factory_system_db2}
-      POSTGRES_USER: ${TEST_DATABASE_USER:-factory_system_user}
-      POSTGRES_PASSWORD: ${TEST_DATABASE_PASSWORD:-Y_y100000}
+      POSTGRES_DB: ${test_DATABASE_NAME:-factory_system_db2}
+      POSTGRES_USER: ${test_DATABASE_USER:-factory_system_user}
+      POSTGRES_PASSWORD: ${test_DATABASE_PASSWORD:-Y_y100000}
     volumes:
       - factory_sys_postgres_data:/var/lib/postgresql/data
     networks:
