@@ -48,3 +48,6 @@ else:
             "NAME": join(BASE_DIR, "db.sqlite3"),
         }
     }
+
+
+print("\n", ENVIRONMENT, "\n", DATABASES)
