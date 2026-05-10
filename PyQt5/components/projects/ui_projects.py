@@ -48,6 +48,7 @@ class ProjectApiWorker(QObject):
     def run(self):
         try:
             if self.method in ["POST", "PATCH"] and self.files is not None:
+                print("--------", self.payload)
                 response = request(
                     self.method,
                     self.url,
