@@ -97,9 +97,6 @@ class UpdateRentProjectDialog(QDialog):
 
         self.insurance_tax_input = QLineEdit()
         self.insurance_tax_input.setPlaceholderText("مثال: 2000")
-        self.insurance_tax_input.setText(
-            str(self.current_data.get("insurance_tax", ""))
-        )
         attach_number_formatter(self.insurance_tax_input)
 
         self.insurance_date_input = QDateEdit()

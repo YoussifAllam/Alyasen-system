@@ -1,3 +1,4 @@
+from time import sleep
 from PyQt5.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -309,6 +310,7 @@ class ProjectSelectionDialog(QDialog):
         QMessageBox.warning(self, "خطأ", f"فشل تحميل المشاريع:\n{message}")
 
     def handle_next(self):
+        sleep(5)
         selected_row = self.table.currentRow()
         if selected_row >= 0 and selected_row < len(self.filtered_projects):
             selected_project = self.filtered_projects[selected_row]
