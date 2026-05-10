@@ -14,6 +14,8 @@ class AppVersion(models.Model):
         upload_to="app_versions/",
         verbose_name="ملف التثبيت",
         help_text="قم برفع ملف التثبيت (setup.exe)",
+        blank=True,
+        null=True,
     )
     notes = models.TextField(
         blank=True,
