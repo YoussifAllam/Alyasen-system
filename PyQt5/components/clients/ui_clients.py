@@ -13,8 +13,8 @@ from PyQt5.QtWidgets import (
     QTableWidgetItem,
     QStackedWidget,
 )
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal, pyqtSlot, QSettings
+from PyQt5.QtGui import QPixmap, QImageReader
+from PyQt5.QtCore import Qt, QObject, QThread, QSize, pyqtSignal, pyqtSlot, QSettings
 from requests import request, exceptions
 from urllib.parse import urlencode
 
@@ -34,51 +34,6 @@ from ..projects.sell_ind.ui_sell_ind_project import (
 )
 
 
-def _safe_response_json(response):
-    try:
-        return response.json()
-    except ValueError:
-        return None
-
-
-def _flatten_drf_errors(errors, field_prefix=""):
-    """Turn nested DRF serializer.errors into readable lines."""
-    lines = []
-    if isinstance(errors, dict):
-        for key, val in errors.items():
-            label = f"{field_prefix}{key}" if field_prefix else key
-            if isinstance(val, list):
-                for item in val:
-                    if isinstance(item, dict):
-                        lines.extend(_flatten_drf_errors(item, f"{label}."))
-                    else:
-                        lines.append(f"{label}: {item}")
-            elif isinstance(val, dict):
-                lines.extend(_flatten_drf_errors(val, f"{label}."))
-            else:
-                lines.append(f"{label}: {val}")
-    elif isinstance(errors, list):
-        for item in errors:
-            lines.append(str(item))
-    return lines
-
-
-def _format_api_error_message(response, body):
-    """Build user-visible text for failed requests (e.g. status faild + errors)."""
-    if isinstance(body, dict):
-        if body.get("status") in ("faild", "failed") and body.get("errors") is not None:
-            flat = _flatten_drf_errors(body["errors"])
-            if flat:
-                return "\n".join(flat)
-        for key in ("detail", "message", "error"):
-            if body.get(key) not in (None, ""):
-                return str(body[key])
-    text = (response.text or "").strip()
-    if text:
-        return f"خطأ من الخادم ({response.status_code}):\n{text}"
-    return f"خطأ من الخادم: {response.status_code}"
-
-
 def _money_cell(val):
     """Safe formatting for API floats that may be null."""
     try:
@@ -92,7 +47,7 @@ def _money_cell(val):
 
 
 class ClientApiWorker(QObject):
-    """Worker for handling API requests for clients (GET and POST with files)."""
+    """Generic worker for handling API requests for clients."""
 
     finished = pyqtSignal()
     success = pyqtSignal(dict)
@@ -119,27 +74,17 @@ class ClientApiWorker(QObject):
             else:
                 response = request(self.method, self.url, json=self.payload, timeout=15)
 
-            body = _safe_response_json(response)
-
             if response.status_code in [200, 201]:
-                self.success.emit(body if body is not None else {})
+                self.success.emit(response.json())
+
             else:
-                try:
-                    msg = _format_api_error_message(response, body)
-                except Exception:
-                    msg = f"خطأ من الخادم: {response.status_code}"
-                self.error.emit(msg)
+                self.error.emit(
+                    f"خطأ من الخادم: {response.status_code},{response.json()}"
+                )
+
         except exceptions.RequestException:
             self.error.emit("فشل الاتصال بالخادم.")
-        except Exception as exc:
-            self.error.emit(f"خطأ غير متوقع: {exc}")
         finally:
-            if self.files:
-                for fh in self.files.values():
-                    try:
-                        fh.close()
-                    except Exception:
-                        pass
             self.finished.emit()
 
 
@@ -335,7 +280,26 @@ class ClientsUI(QWidget):
         )
         if file_path:
             self.profile_pic_path = file_path
-            pixmap = QPixmap(file_path)
+            # Decode scaled preview only — full-resolution QPixmap(file_path) blocks the UI on large photos.
+            reader = QImageReader(file_path)
+            reader.setAutoTransform(True)
+            max_side = 800
+            size = reader.size()
+            if size.isValid():
+                w, h = size.width(), size.height()
+                m = max(w, h)
+                if m > max_side:
+                    if w >= h:
+                        nw = max_side
+                        nh = max(1, round(h * max_side / w))
+                    else:
+                        nw = max(1, round(w * max_side / h))
+                        nh = max_side
+                    reader.setScaledSize(QSize(nw, nh))
+            image = reader.read()
+            pixmap = (
+                QPixmap.fromImage(image) if not image.isNull() else QPixmap(file_path)
+            )
             self.profile_pic_label.setPixmap(
                 pixmap.scaled(
                     self.profile_pic_label.width(),
@@ -411,35 +375,45 @@ class ClientsUI(QWidget):
         if self.prev_page_url:
             self._start_fetch_request(self.prev_page_url)
 
-    def _start_fetch_request(self, url, on_success=None):
+    def _start_fetch_request(self, url, is_profile_fetch=False):
         self._set_loading(True)
-        self.thread = QThread()
-        self.worker = ClientApiWorker("GET", url)
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.run)
+        self.fetch_thread = QThread()
+        self.fetch_worker = ClientApiWorker("GET", url)
+        self.fetch_worker.moveToThread(self.fetch_thread)
+        self.fetch_thread.started.connect(self.fetch_worker.run)
+        self.fetch_worker.success.connect(
+            lambda data: self.handle_api_response(data, is_profile_fetch)
+        )
+        self.fetch_worker.error.connect(self.show_error_message)
+        self.fetch_worker.finished.connect(self.fetch_thread.quit)
+        self.fetch_thread.start()
 
-        # Use the provided success handler or the default one
-        success_handler = on_success if on_success else self.handle_api_response
-        self.worker.success.connect(success_handler, Qt.QueuedConnection)
-
-        self.worker.error.connect(self.show_error_message, Qt.QueuedConnection)
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.start()
-
-    def _start_post_request(self, url, payload, files):
+    def _start_post_request(self, url, payload, files=None):
         self._set_loading(True)
         self.post_thread = QThread()
         self.post_worker = ClientApiWorker("POST", url, payload, files)
         self.post_worker.moveToThread(self.post_thread)
         self.post_thread.started.connect(self.post_worker.run)
-        self.post_worker.success.connect(self.on_add_success, Qt.QueuedConnection)
-        self.post_worker.error.connect(self.show_error_message, Qt.QueuedConnection)
+        self.post_worker.success.connect(self.on_add_success)
+        self.post_worker.error.connect(self.show_error_message)
         self.post_worker.finished.connect(self.post_thread.quit)
         self.post_thread.start()
 
-    def handle_api_response(self, response_data):
+    def handle_api_response(self, response_data, is_profile_fetch=False):
+        if is_profile_fetch:
+            try:
+                self.profile_page.update_data(response_data)
+                self.stacked_widget.setCurrentIndex(1)
+            except Exception as exc:
+                QMessageBox.critical(
+                    self,
+                    "خطأ",
+                    f"تعذر فتح ملف العميل:\n{exc}",
+                )
+            finally:
+                self._set_loading(False)
+            return
+
         try:
             if not isinstance(response_data, dict):
                 response_data = {}
@@ -497,7 +471,6 @@ class ClientsUI(QWidget):
         if is_loading:
             self.page_info_label.setText("جاري التحميل...")
 
-    @pyqtSlot(str)
     def show_error_message(self, message):
         self._set_loading(False)
         QMessageBox.critical(self, "خطأ", message or "حدث خطأ غير متوقع.")
@@ -530,17 +503,4 @@ class ClientsUI(QWidget):
 
         client_id = self.table.item(selected_rows[0].row(), 0).text()
         url = f"{BACKEND_BASE_URL}/clients/info/?id={client_id}"
-        self._start_fetch_request(url, on_success=self.on_profile_fetch_success)
-
-    def on_profile_fetch_success(self, data):
-        try:
-            self.profile_page.update_data(data)
-            self.stacked_widget.setCurrentIndex(1)
-        except Exception as exc:
-            QMessageBox.critical(
-                self,
-                "خطأ",
-                f"تعذر فتح ملف العميل:\n{exc}",
-            )
-        finally:
-            self._set_loading(False)
+        self._start_fetch_request(url, is_profile_fetch=True)

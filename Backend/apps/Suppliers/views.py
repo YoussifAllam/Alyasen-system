@@ -87,7 +87,7 @@ class InovicePaymentApiView(APIView):
             payment_amount > supplier_instance.total_amount_payable
             or payment_amount > project_instance.remining  # noqa
         ):
-            return Response({"حطأ": "المبلغ المدفوع اكبر من المتبقي "}, 400)
+            return Response({"error": "المبلغ المدفوع اكبر من المتبقي "}, 400)
 
         services.pay_for_supplier(supplier_instance, payment_amount)
         services.pay_for_project(project_instance, payment_amount)
