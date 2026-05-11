@@ -42,3 +42,9 @@ dist
 .env.prod
 .env.test
 .env
+
+
+myenv
+
+Output/*
+Output/
