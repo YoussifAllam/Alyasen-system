@@ -66,7 +66,9 @@ class UpdateManager:
             if confirm:
                 sep = "&" if "?" in url else "?"
                 url2 = f"{url}{sep}confirm={confirm}"
-                resp = session.get(url2, stream=True, timeout=timeout, allow_redirects=True)
+                resp = session.get(
+                    url2, stream=True, timeout=timeout, allow_redirects=True
+                )
 
         resp.raise_for_status()
 

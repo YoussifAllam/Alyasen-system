@@ -1,14 +1,22 @@
+import logging
+import traceback
+
 from rest_framework.status import HTTP_200_OK, HTTP_204_NO_CONTENT
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.request import Request
+from rest_framework.exceptions import NotFound
 
 from .Tasks.pagenator import pagenator
+from .models import ClientProjectBalance
 from .db_queries import selectors, services
 from .serializers import InputSerializers, OutputSerializers, ParamsSerializers
 from .Tasks import celery_tasks, client_email_tasks
 
 from apps.TransactionsLog.tasks.celery_tasks import create_transaction_log
+
+
+logger = logging.getLogger(__name__)
 
 
 class ClientsApiView(APIView):
@@ -78,34 +86,121 @@ class ClientProjectsApiView(APIView):
         project_type = request.data.get("project_type")  # campaine , BaseProject
         project_id = request.data.get("project_id")
         client_id = request.data.get("client_id")
+        username = request.data.get("username") or "system"
 
-        client_instance = selectors.get_client_instance(client_id)
-        if project_type == "campaine":
-            campaine_instance = selectors.get_campaine_instance(project_id)
-            CBP_instance = services.create_CPB_instance(
-                client_instance=client_instance, campaine_instance=campaine_instance
+        missing = [
+            name
+            for name, val in (
+                ("project_type", project_type),
+                ("project_id", project_id),
+                ("client_id", client_id),
             )
-            services.create_rent_p_instnace(CBP_instance, campaine_instance.total_cost)
-        else:
-            base_project_instance = selectors.get_BP_instance(project_id)
-            CBP_instance = services.create_CPB_instance(
-                client_instance=client_instance,
-                base_project_instance=base_project_instance,
+            if not val
+        ]
+        if missing:
+            return Response(
+                {
+                    "status": "faild",
+                    "errors": {name: ["This field is required."] for name in missing},
+                },
+                status=400,
             )
-            if base_project_instance.project_type == "rent":
+
+        try:
+            client_instance = selectors.get_client_instance(client_id)
+            nav_project_type = None
+
+            if project_type == "campaine":
+                campaine_instance = selectors.get_campaine_instance(project_id)
+                CBP_instance = services.create_CPB_instance(
+                    client_instance=client_instance,
+                    campaine_instance=campaine_instance,
+                )
                 services.create_rent_p_instnace(
-                    CBP_instance, base_project_instance.cost
+                    CBP_instance, campaine_instance.total_cost
                 )
+                nav_project_type = "campaine"
             else:
-                services.create_sell_ind_p_instnace(
-                    CBP_instance, base_project_instance.cost
+                base_project_instance = selectors.get_BP_instance(project_id)
+                CBP_instance = services.create_CPB_instance(
+                    client_instance=client_instance,
+                    base_project_instance=base_project_instance,
                 )
+                if base_project_instance.project_type == "rent":
+                    services.create_rent_p_instnace(
+                        CBP_instance, base_project_instance.cost
+                    )
+                else:
+                    services.create_sell_ind_p_instnace(
+                        CBP_instance, base_project_instance.cost
+                    )
+                nav_project_type = base_project_instance.project_type
 
-        services.update_client_balance_using_CBP(
-            CBP_instance, client_instance, request.data["username"]
+            services.update_client_balance_using_CBP(
+                CBP_instance, client_instance, username
+            )
+        except NotFound:
+            raise
+        except Exception as exc:
+            logger.exception("Failed to link project to client")
+            return Response(
+                {
+                    "status": "faild",
+                    "errors": {"server": [str(exc)]},
+                    "trace": traceback.format_exc().splitlines()[-5:],
+                },
+                status=500,
+            )
+
+        return Response(
+            {
+                "status": "success",
+                "data": {
+                    "cbp_id": CBP_instance.id,
+                    "project_type": nav_project_type,
+                },
+            },
+            status=200,
         )
 
-        return Response({"status": "success"}, status=200)
+
+class ResolveCBPNavApiView(APIView):
+    """
+    GET ?cbp_id=
+    Returns canonical project_type for desktop routing (rent / industrial / selling / campaine).
+    """
+
+    def get(self, request: Request, format=None):
+        cbp_id = request.GET.get("cbp_id")
+        if not cbp_id:
+            return Response(
+                {"status": "faild", "errors": {"cbp_id": ["This field is required."]}},
+                status=400,
+            )
+        try:
+            cbp = ClientProjectBalance.objects.select_related(
+                "project_fk", "campaine_fk"
+            ).get(pk=cbp_id)
+        except ClientProjectBalance.DoesNotExist:
+            raise NotFound(detail="لا يوجد رصيد مشروع بهذا الكود")
+
+        if cbp.campaine_fk_id:
+            nav_type = "campaine"
+        elif cbp.project_fk_id:
+            nav_type = cbp.project_fk.project_type
+        else:
+            return Response(
+                {"status": "faild", "errors": {"cbp": ["invalid balance row"]}},
+                status=400,
+            )
+
+        return Response(
+            {
+                "status": "success",
+                "data": {"cbp_id": cbp.id, "project_type": nav_type},
+            },
+            status=HTTP_200_OK,
+        )
 
 
 class InovicePaymentApiView(APIView):

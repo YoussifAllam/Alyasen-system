@@ -24,6 +24,8 @@ from ..validation import (
     validate_optional_number,
     run_validations,
     _clear_errors,
+    attach_number_formatter,
+    clean_number,
 )
 
 # from .machien_profile import MachineProfileUI
@@ -141,6 +143,7 @@ class CompanyAssetsUI(QWidget):
 
         self.name_input = QLineEdit(placeholderText="اسم ")
         self.price_input = QLineEdit(placeholderText="سعر ")
+        attach_number_formatter(self.price_input)
         self.details_input = QLineEdit(placeholderText="تفاصيل إضافية ")
 
         self.attachments_label = QLabel("لم يتم اختيار مرفقات")
@@ -235,7 +238,7 @@ class CompanyAssetsUI(QWidget):
             return
 
         name = self.name_input.text().strip()
-        price = self.price_input.text().strip()
+        price = clean_number(self.price_input.text())
         details = self.details_input.text().strip()
             
         settings = QSettings("FactorySystem")

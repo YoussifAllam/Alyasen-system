@@ -24,6 +24,8 @@ from ..validation import (
     validate_positive_number,
     run_validations,
     _clear_errors,
+    attach_number_formatter,
+    clean_number,
 )
 
 
@@ -103,6 +105,7 @@ class AdvanceDialog(QDialog):
         form_layout = QGridLayout(form_group)
         self.date_input = QDateEdit(calendarPopup=True, date=QDate.currentDate())
         self.amount_input = QLineEdit(placeholderText="مبلغ السلفة")
+        attach_number_formatter(self.amount_input)
         self.reason_input = QLineEdit(placeholderText="سبب السلفة (اختياري)")
         self.add_button = QPushButton("إضافة")
         self.add_button.setObjectName("primaryButton")
@@ -151,7 +154,7 @@ class AdvanceDialog(QDialog):
         if not run_validations(self, validations):
             return
 
-        amount = float(self.amount_input.text().strip())
+        amount = float(clean_number(self.amount_input.text()))
 
         settings = QSettings("FactorySystem")
         username = settings.value("user_name", "unknown_user")

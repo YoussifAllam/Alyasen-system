@@ -171,9 +171,11 @@ class UpdateClientDataDialog(QDialog):
         self.worker = ClientUpdateWorker(url, payload)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
-        self.worker.success.connect(self.on_save_success)
-        self.worker.error.connect(self.on_save_error)
+        self.worker.success.connect(self.on_save_success, Qt.QueuedConnection)
+        self.worker.error.connect(self.on_save_error, Qt.QueuedConnection)
         self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
         self.thread.start()
 
     def on_save_success(self, response_data):

@@ -13,8 +13,8 @@ from PyQt5.QtWidgets import (
     QTableWidgetItem,
     QStackedWidget,
 )
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal, pyqtSlot, QSettings
+from PyQt5.QtGui import QPixmap, QImageReader
+from PyQt5.QtCore import Qt, QObject, QThread, QSize, pyqtSignal, pyqtSlot, QSettings
 from requests import request, exceptions
 from urllib.parse import urlencode
 
@@ -23,7 +23,6 @@ from ..validation import (
     validate_not_empty,
     validate_phone,
     validate_optional_email,
-    validate_positive_number,
     run_validations,
     _clear_errors,
 )
@@ -35,8 +34,20 @@ from ..projects.sell_ind.ui_sell_ind_project import (
 )
 
 
+def _money_cell(val):
+    """Safe formatting for API floats that may be null."""
+    try:
+        if val is None or val == "":
+            num = 0.0
+        else:
+            num = float(val)
+        return f"{num:,.2f}"
+    except (TypeError, ValueError):
+        return "0.00"
+
+
 class ClientApiWorker(QObject):
-    """Worker for handling API requests for clients (GET and POST with files)."""
+    """Generic worker for handling API requests for clients."""
 
     finished = pyqtSignal()
     success = pyqtSignal(dict)
@@ -65,10 +76,12 @@ class ClientApiWorker(QObject):
 
             if response.status_code in [200, 201]:
                 self.success.emit(response.json())
+
             else:
                 self.error.emit(
-                    f"خطأ من الخادم: {response.status_code}\n{response.text}"
+                    f"خطأ من الخادم: {response.status_code},{response.json()}"
                 )
+
         except exceptions.RequestException:
             self.error.emit("فشل الاتصال بالخادم.")
         finally:
@@ -162,9 +175,6 @@ class ClientsUI(QWidget):
         self.name_input = QLineEdit(placeholderText="اسم العميل")
         self.phone_input = QLineEdit(placeholderText="رقم الهاتف")
         self.email_input = QLineEdit(placeholderText="(اختياري) البريد الإلكتروني")
-        self.total_balance_owed_to_us_input = QLineEdit(
-            placeholderText=" مبلغ مدينية العميل"
-        )
 
         self.profile_pic_label = QLabel("لم يتم اختيار صورة")
         self.profile_pic_label.setAlignment(Qt.AlignCenter)
@@ -177,7 +187,6 @@ class ClientsUI(QWidget):
         form_layout.addWidget(self.name_input)
         form_layout.addWidget(self.phone_input)
         form_layout.addWidget(self.email_input)
-        form_layout.addWidget(self.total_balance_owed_to_us_input)
         form_layout.addWidget(self.profile_pic_label)
         form_layout.addWidget(btn_choose_pic)
 
@@ -271,7 +280,26 @@ class ClientsUI(QWidget):
         )
         if file_path:
             self.profile_pic_path = file_path
-            pixmap = QPixmap(file_path)
+            # Decode scaled preview only — full-resolution QPixmap(file_path) blocks the UI on large photos.
+            reader = QImageReader(file_path)
+            reader.setAutoTransform(True)
+            max_side = 800
+            size = reader.size()
+            if size.isValid():
+                w, h = size.width(), size.height()
+                m = max(w, h)
+                if m > max_side:
+                    if w >= h:
+                        nw = max_side
+                        nh = max(1, round(h * max_side / w))
+                    else:
+                        nw = max(1, round(w * max_side / h))
+                        nh = max_side
+                    reader.setScaledSize(QSize(nw, nh))
+            image = reader.read()
+            pixmap = (
+                QPixmap.fromImage(image) if not image.isNull() else QPixmap(file_path)
+            )
             self.profile_pic_label.setPixmap(
                 pixmap.scaled(
                     self.profile_pic_label.width(),
@@ -287,7 +315,6 @@ class ClientsUI(QWidget):
             self.name_input,
             self.phone_input,
             self.email_input,
-            self.total_balance_owed_to_us_input,
         ]
         _clear_errors(fields)
 
@@ -295,9 +322,6 @@ class ClientsUI(QWidget):
             validate_not_empty(self.name_input, "اسم العميل"),
             validate_phone(self.phone_input, "رقم الهاتف"),
             validate_optional_email(self.email_input, "البريد الإلكتروني"),
-            validate_positive_number(
-                self.total_balance_owed_to_us_input, "مبلغ مدينية العميل"
-            ),
         ]
         if not run_validations(self, validations):
             return
@@ -305,18 +329,10 @@ class ClientsUI(QWidget):
         name = self.name_input.text().strip()
         phone = self.phone_input.text().strip()
         email = self.email_input.text().strip()
-        total_balance_owed_to_us = self.total_balance_owed_to_us_input.text().strip()
 
         username = self.settings.value("user_name", "unknown_user")
 
-        payload = {
-            "name": name,
-            "phone": phone,
-            "email": email,
-            "total_balance_owed_to_us": total_balance_owed_to_us,
-            "total_remaining_balance_owed_to_us": total_balance_owed_to_us,
-            "username": username,
-        }
+        payload = {"name": name, "phone": phone, "email": email, "username": username}
 
         files = None
         if self.profile_pic_path:
@@ -343,7 +359,6 @@ class ClientsUI(QWidget):
         self.name_input.clear()
         self.phone_input.clear()
         self.email_input.clear()
-        self.total_balance_owed_to_us_input.clear()
         self.profile_pic_label.setText("لم يتم اختيار صورة")
         self.profile_pic_path = None
         self.handle_view_all()
@@ -360,24 +375,20 @@ class ClientsUI(QWidget):
         if self.prev_page_url:
             self._start_fetch_request(self.prev_page_url)
 
-    def _start_fetch_request(self, url, on_success=None):
+    def _start_fetch_request(self, url, is_profile_fetch=False):
         self._set_loading(True)
-        self.thread = QThread()
-        self.worker = ClientApiWorker("GET", url)
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.run)
+        self.fetch_thread = QThread()
+        self.fetch_worker = ClientApiWorker("GET", url)
+        self.fetch_worker.moveToThread(self.fetch_thread)
+        self.fetch_thread.started.connect(self.fetch_worker.run)
+        self.fetch_worker.success.connect(
+            lambda data: self.handle_api_response(data, is_profile_fetch)
+        )
+        self.fetch_worker.error.connect(self.show_error_message)
+        self.fetch_worker.finished.connect(self.fetch_thread.quit)
+        self.fetch_thread.start()
 
-        # Use the provided success handler or the default one
-        success_handler = on_success if on_success else self.handle_api_response
-        self.worker.success.connect(success_handler)
-
-        self.worker.error.connect(self.show_error_message)
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.start()
-
-    def _start_post_request(self, url, payload, files):
+    def _start_post_request(self, url, payload, files=None):
         self._set_loading(True)
         self.post_thread = QThread()
         self.post_worker = ClientApiWorker("POST", url, payload, files)
@@ -388,15 +399,39 @@ class ClientsUI(QWidget):
         self.post_worker.finished.connect(self.post_thread.quit)
         self.post_thread.start()
 
-    def handle_api_response(self, response_data):
-        data_obj = response_data.get("data", {})
-        results = data_obj.get("results", [])
-        self.next_page_url = data_obj.get("next")
-        self.prev_page_url = data_obj.get("previous")
-        self.total_count = data_obj.get("count", 0)
-        self.populate_table(results)
-        self.update_pagination_controls()
-        self._set_loading(False)
+    def handle_api_response(self, response_data, is_profile_fetch=False):
+        if is_profile_fetch:
+            try:
+                self.profile_page.update_data(response_data)
+                self.stacked_widget.setCurrentIndex(1)
+            except Exception as exc:
+                QMessageBox.critical(
+                    self,
+                    "خطأ",
+                    f"تعذر فتح ملف العميل:\n{exc}",
+                )
+            finally:
+                self._set_loading(False)
+            return
+
+        try:
+            if not isinstance(response_data, dict):
+                response_data = {}
+            data_obj = response_data.get("data") or {}
+            results = data_obj.get("results") or []
+            self.next_page_url = data_obj.get("next")
+            self.prev_page_url = data_obj.get("previous")
+            self.total_count = data_obj.get("count", 0)
+            self.populate_table(results)
+            self.update_pagination_controls()
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "خطأ",
+                f"تعذر عرض بيانات العملاء:\n{exc}",
+            )
+        finally:
+            self._set_loading(False)
 
     def populate_table(self, clients):
         self.table.setRowCount(0)
@@ -408,11 +443,11 @@ class ClientsUI(QWidget):
                 QTableWidgetItem(client.get("name", "")),
                 QTableWidgetItem(client.get("phone", "")),
                 QTableWidgetItem(client.get("email", "")),
-                QTableWidgetItem(f"{client.get('total_balance_owed_to_us', 0):,.2f}"),
+                QTableWidgetItem(_money_cell(client.get("total_balance_owed_to_us"))),
                 QTableWidgetItem(
-                    f"{client.get('total_remaining_balance_owed_to_us', 0):,.2f}"
+                    _money_cell(client.get("total_remaining_balance_owed_to_us"))
                 ),
-                QTableWidgetItem(f"{client.get('total_paid_amount', 0):,.2f}"),
+                QTableWidgetItem(_money_cell(client.get("total_paid_amount"))),
             ]
             for item in items:
                 item.setTextAlignment(Qt.AlignCenter)
@@ -437,8 +472,8 @@ class ClientsUI(QWidget):
             self.page_info_label.setText("جاري التحميل...")
 
     def show_error_message(self, message):
-        # ... (This method remains the same)
-        pass
+        self._set_loading(False)
+        QMessageBox.critical(self, "خطأ", message or "حدث خطأ غير متوقع.")
 
     def show_main_page(self):
         """Switches the view back to the main client list."""
@@ -468,9 +503,4 @@ class ClientsUI(QWidget):
 
         client_id = self.table.item(selected_rows[0].row(), 0).text()
         url = f"{BACKEND_BASE_URL}/clients/info/?id={client_id}"
-        self._start_fetch_request(url, on_success=self.on_profile_fetch_success)
-
-    def on_profile_fetch_success(self, data):
-        self.profile_page.update_data(data)
-        self.stacked_widget.setCurrentIndex(1)
-        self._set_loading(False)
+        self._start_fetch_request(url, is_profile_fetch=True)

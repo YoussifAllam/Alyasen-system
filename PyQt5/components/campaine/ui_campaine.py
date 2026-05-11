@@ -172,7 +172,7 @@ class CampaignsUI(QWidget):
                 QTableWidgetItem(str(camp.get("id", ""))),
                 QTableWidgetItem(camp.get("name", "")),
                 QTableWidgetItem(camp.get("client_name", "")),
-                QTableWidgetItem(f"{camp.get('total_cost', 0):,.2f} SAR"),
+                QTableWidgetItem(f"{camp.get('total_cost', 0):,.2f}"),
                 QTableWidgetItem(camp.get("created_date", "")),
             ]
 

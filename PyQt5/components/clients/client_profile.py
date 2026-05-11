@@ -13,10 +13,12 @@ from PyQt5.QtWidgets import (
     QTableWidgetItem,
     QDialog,
 )
-from PyQt5.QtGui import QPixmap, QImage
+from io import BytesIO
+
+from PyQt5.QtGui import QPixmap, QImage, QBrush, QColor
 from PyQt5.QtCore import Qt, pyqtSignal, QObject, QThread, QSettings, pyqtSlot
+from PIL import Image as PILImage
 from requests import request, get, exceptions
-from PyQt5.QtGui import QBrush, QColor
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
 from .update_client_data_dialog import UpdateClientDataDialog
@@ -25,12 +27,33 @@ from .invoice_payment_details_dialog import InvoicePaymentDetailsDialog
 from .payment_dialog import PaymentDialog
 
 
+def _pixmap_from_http_bytes(data: bytes):
+    """Build QPixmap from raw HTTP body. Qt often lacks WebP plugins; Pillow handles WebP."""
+    if not data:
+        return None
+    img = QImage()
+    if img.loadFromData(data):
+        pm = QPixmap.fromImage(img)
+        if not pm.isNull():
+            return pm
+    try:
+        pil_im = PILImage.open(BytesIO(data)).convert("RGBA")
+        w, h = pil_im.size
+        stride = w * 4
+        raw = pil_im.tobytes("raw", "RGBA")
+        qimg = QImage(raw, w, h, stride, QImage.Format_RGBA8888)
+        pm = QPixmap.fromImage(qimg.copy())
+        return pm if not pm.isNull() else None
+    except Exception:
+        return None
+
+
 class ApiWorker(QObject):
     """Worker for handling API requests."""
 
     finished = pyqtSignal()
     success = pyqtSignal(dict)
-    image_success = pyqtSignal(QPixmap)
+    image_success = pyqtSignal(str, QPixmap)
     error = pyqtSignal(str)
 
     def __init__(self, method, url, payload=None, response_type="json"):
@@ -52,9 +75,11 @@ class ApiWorker(QObject):
                 if self.response_type == "json":
                     self.success.emit(response.json())
                 else:
-                    image = QImage()
-                    image.loadFromData(response.content)
-                    self.image_success.emit(QPixmap.fromImage(image))
+                    pm = _pixmap_from_http_bytes(response.content)
+                    if pm is None or pm.isNull():
+                        self.error.emit("تعذر عرض الصورة (صيغة غير مدعومة أو ملف تالف).")
+                    else:
+                        self.image_success.emit(self.url, pm)
             else:
                 self.error.emit(f"{response.text}")
         except exceptions.RequestException:
@@ -252,11 +277,17 @@ class ClientProfileUI(QWidget):
         self.current_client_data = data
         self.client_id = data.get("id")
         self.name_label.setText(f"ملف العميل: {data.get('name', '')}")
-        self.due_display.setText(f"{data.get('total_balance_owed_to_us', 0):,.2f} ج.م")
+        def _fmt(v):
+            try:
+                return f"{float(v if v not in (None, '') else 0):,.2f}"
+            except (TypeError, ValueError):
+                return "0.00"
+
+        self.due_display.setText(f"{_fmt(data.get('total_balance_owed_to_us'))} ج.م")
         self.payable_display.setText(
-            f"{data.get('total_remaining_balance_owed_to_us', 0):,.2f} ج.م"
+            f"{_fmt(data.get('total_remaining_balance_owed_to_us'))} ج.م"
         )
-        self.paid_display.setText(f"{data.get('total_paid_amount', 0):,.2f} ج.م")
+        self.paid_display.setText(f"{_fmt(data.get('total_paid_amount'))} ج.م")
         if fetch_pic:
             pic_url = data.get("profile_picture")
             if pic_url:
@@ -270,16 +301,37 @@ class ClientProfileUI(QWidget):
         self.update_pagination_controls()
 
     def fetch_image(self, url):
+        self._pending_profile_pic_url = url
         self.image_thread = QThread()
         self.image_worker = ApiWorker("GET", url, response_type="image")
         self.image_worker.moveToThread(self.image_thread)
         self.image_thread.started.connect(self.image_worker.run)
-        self.image_worker.image_success.connect(self.set_image)
-        self.image_worker.error.connect(lambda msg: self.profile_pic.setText(msg))
+        self.image_worker.image_success.connect(
+            self._on_profile_image_ready, Qt.QueuedConnection
+        )
+        self.image_worker.error.connect(self._on_profile_image_error, Qt.QueuedConnection)
         self.image_worker.finished.connect(self.image_thread.quit)
+        self.image_worker.finished.connect(self.image_worker.deleteLater)
+        self.image_thread.finished.connect(self.image_thread.deleteLater)
         self.image_thread.start()
 
+    @pyqtSlot(str, QPixmap)
+    def _on_profile_image_ready(self, url, pixmap):
+        if url != getattr(self, "_pending_profile_pic_url", None):
+            return
+        self.set_image(pixmap)
+
+    @pyqtSlot(str)
+    def _on_profile_image_error(self, msg):
+        if msg:
+            self.profile_pic.setText(msg)
+        else:
+            self.profile_pic.setText("لا صورة")
+
     def set_image(self, pixmap):
+        if pixmap is None or pixmap.isNull():
+            self.profile_pic.setText("لا صورة")
+            return
         self.profile_pic.setPixmap(
             pixmap.scaled(
                 self.profile_pic.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
@@ -300,9 +352,15 @@ class ClientProfileUI(QWidget):
         self.projects_fetch_worker = ApiWorker("GET", url, response_type="json")
         self.projects_fetch_worker.moveToThread(self.projects_fetch_thread)
         self.projects_fetch_thread.started.connect(self.projects_fetch_worker.run)
-        self.projects_fetch_worker.success.connect(self.on_projects_fetch_success)
-        self.projects_fetch_worker.error.connect(self.show_error_message)
+        self.projects_fetch_worker.success.connect(
+            self.on_projects_fetch_success, Qt.QueuedConnection
+        )
+        self.projects_fetch_worker.error.connect(
+            self.show_error_message, Qt.QueuedConnection
+        )
         self.projects_fetch_worker.finished.connect(self.projects_fetch_thread.quit)
+        self.projects_fetch_worker.finished.connect(self.projects_fetch_worker.deleteLater)
+        self.projects_fetch_thread.finished.connect(self.projects_fetch_thread.deleteLater)
         self.projects_fetch_thread.start()
 
     def on_projects_fetch_success(self, response_data):
@@ -440,9 +498,11 @@ class ClientProfileUI(QWidget):
         self.post_worker = ApiWorker("POST", url, payload=payload)
         self.post_worker.moveToThread(self.post_thread)
         self.post_thread.started.connect(self.post_worker.run)
-        self.post_worker.success.connect(self.on_payment_success)
-        self.post_worker.error.connect(self.show_error_message)
+        self.post_worker.success.connect(self.on_payment_success, Qt.QueuedConnection)
+        self.post_worker.error.connect(self.show_error_message, Qt.QueuedConnection)
         self.post_worker.finished.connect(self.post_thread.quit)
+        self.post_worker.finished.connect(self.post_worker.deleteLater)
+        self.post_thread.finished.connect(self.post_thread.deleteLater)
         self.post_thread.start()
 
     def on_payment_success(self, response_data):
@@ -488,9 +548,11 @@ class ClientProfileUI(QWidget):
         self.email_worker = ApiWorker("POST", url)
         self.email_worker.moveToThread(self.email_thread)
         self.email_thread.started.connect(self.email_worker.run)
-        self.email_worker.success.connect(self.on_send_email_success)
-        self.email_worker.error.connect(self.show_error_message)
+        self.email_worker.success.connect(self.on_send_email_success, Qt.QueuedConnection)
+        self.email_worker.error.connect(self.show_error_message, Qt.QueuedConnection)
         self.email_worker.finished.connect(self.email_thread.quit)
+        self.email_worker.finished.connect(self.email_worker.deleteLater)
+        self.email_thread.finished.connect(self.email_thread.deleteLater)
         self.email_thread.start()
 
     def on_send_email_success(self, response_data):
@@ -505,9 +567,15 @@ class ClientProfileUI(QWidget):
         self.info_fetch_worker = ApiWorker("GET", url, response_type="json")
         self.info_fetch_worker.moveToThread(self.info_fetch_thread)
         self.info_fetch_thread.started.connect(self.info_fetch_worker.run)
-        self.info_fetch_worker.success.connect(self.on_client_info_update)
-        self.info_fetch_worker.error.connect(self.show_error_message)
+        self.info_fetch_worker.success.connect(
+            self.on_client_info_update, Qt.QueuedConnection
+        )
+        self.info_fetch_worker.error.connect(
+            self.show_error_message, Qt.QueuedConnection
+        )
         self.info_fetch_worker.finished.connect(self.info_fetch_thread.quit)
+        self.info_fetch_worker.finished.connect(self.info_fetch_worker.deleteLater)
+        self.info_fetch_thread.finished.connect(self.info_fetch_thread.deleteLater)
         self.info_fetch_thread.start()
 
     def update_pagination_controls(self):
@@ -536,6 +604,7 @@ class ClientProfileUI(QWidget):
         self.prev_button.setDisabled(is_loading)
         self.page_info_label.setText("جاري التحميل..." if is_loading else "")
 
+    @pyqtSlot(str)
     def show_error_message(self, message):
         self._set_loading(False)
         self.page_info_label.setText("فشل تحميل البيانات")

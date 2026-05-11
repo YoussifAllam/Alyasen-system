@@ -18,6 +18,8 @@ from ..validation import (
     validate_positive_number,
     run_validations,
     _clear_errors,
+    attach_number_formatter,
+    clean_number,
 )
 
 
@@ -71,6 +73,7 @@ class PaymentDialog(QDialog):
         form_layout.setLabelAlignment(Qt.AlignRight)
 
         self.amount_input = QLineEdit()
+        attach_number_formatter(self.amount_input)
         self.notes_input = QTextEdit()
         self.notes_input.setMaximumHeight(80)
 
@@ -135,7 +138,7 @@ class PaymentDialog(QDialog):
     def get_data(self):
         """Returns the data entered in the dialog."""
         return {
-            "payment_amount": self.amount_input.text().strip(),
+            "payment_amount": clean_number(self.amount_input.text()),
             "notes": self.notes_input.toPlainText().strip(),
             "payment_date": self.date_input.date().toString("yyyy-MM-dd"),
             "portal_invoice_number": self.invoice_number_input.text().strip(),

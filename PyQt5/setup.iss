@@ -35,7 +35,7 @@ UpdateUninstallLogAppName=yes
 DisableProgramGroupPage=yes
 
 ; Output setup file name
-OutputBaseFilename=Alyasen_Setup_{#MyAppVersion}
+OutputBaseFilename=alyasen-setup/Alyasen_Setup_{#MyAppVersion}
 
 SetupIconFile={#MyIconFile}
 

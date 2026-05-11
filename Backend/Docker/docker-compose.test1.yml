@@ -17,9 +17,9 @@ services:
       - ../ENV/.env.test
     environment:
       ENVIRONMENT: test
-      POSTGRES_DB: ${TEST_DATABASE_NAME:-factory_system_db2}
-      POSTGRES_USER: ${TEST_DATABASE_USER:-factory_system_user}
-      POSTGRES_PASSWORD: ${TEST_DATABASE_PASSWORD:-Y_y100000}
+      # POSTGRES_* must come from env_file (same file as Django DB_*), not from ${...}
+      # compose substitution — host env rarely defines test_DATABASE_*, so Postgres was
+      # getting the default password while Django used .env.test (password mismatch).
     volumes:
       - factory_sys_postgres_data:/var/lib/postgresql/data
     networks:

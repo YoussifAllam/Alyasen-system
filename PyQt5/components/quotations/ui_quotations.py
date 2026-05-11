@@ -23,6 +23,8 @@ from ..validation import (
     validate_positive_number,
     run_validations,
     _clear_errors,
+    attach_number_formatter,
+    clean_number,
 )
 
 
@@ -105,6 +107,7 @@ class QuotationsUI(QWidget):
         self.client_name_input = QLineEdit(placeholderText="اسم العميل")
         self.company_name_input = QLineEdit(placeholderText="اسم الشركة")
         self.price_input = QLineEdit(placeholderText="السعر")
+        attach_number_formatter(self.price_input)
 
         self.details_input = QTextEdit()
         self.details_input.setPlaceholderText("التفاصيل")
@@ -233,7 +236,7 @@ class QuotationsUI(QWidget):
         payload = {
             "client_name": self.client_name_input.text().strip(),
             "company_name": self.company_name_input.text().strip(),
-            "price": self.price_input.text().strip(),
+            "price": clean_number(self.price_input.text()),
             "details": self.details_input.toPlainText().strip(),
             "quotation_last_date": self.date_input.date().toString("yyyy-MM-dd"),
         }

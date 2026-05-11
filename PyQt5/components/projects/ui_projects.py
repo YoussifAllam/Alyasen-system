@@ -19,6 +19,15 @@ from requests import request, exceptions
 from urllib.parse import urlencode
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..validation import (
+    _clear_errors,
+    attach_number_formatter,
+    clean_number,
+    run_validations,
+    validate_combo_selected,
+    validate_not_empty,
+    validate_positive_number,
+)
 
 
 class ProjectApiWorker(QObject):
@@ -39,6 +48,7 @@ class ProjectApiWorker(QObject):
     def run(self):
         try:
             if self.method in ["POST", "PATCH"] and self.files is not None:
+                print("--------", self.payload)
                 response = request(
                     self.method,
                     self.url,
@@ -108,6 +118,7 @@ class ProjectsUI(QWidget):
 
         self.name_input = QLineEdit(placeholderText="اسم المشروع")
         self.cost_input = QLineEdit(placeholderText="تكلفة المشروع")
+        attach_number_formatter(self.cost_input)
 
         self.type_combobox = QComboBox()
         self.type_combobox.addItems(["تأجير", "بيع", "صناعي"])
@@ -255,19 +266,32 @@ class ProjectsUI(QWidget):
             self.supplier_combobox.addItem(supplier.get("name"), supplier.get("id"))
 
     def handle_add_project(self):
-        name = self.name_input.text().strip()
         pt_text = self.type_combobox.currentText()
         project_type = (
             "rent"
             if pt_text == "تأجير"
             else "selling" if pt_text == "بيع" else "industrial"
         )
-        cost = float(self.cost_input.text().strip())
-        project_status = "active"
 
-        if not name:
-            QMessageBox.warning(self, "خطأ", "الرجاء إدخال اسم المشروع.")
+        fields_to_clear = [self.name_input, self.cost_input]
+        if project_type in ["rent", "selling"]:
+            fields_to_clear.append(self.supplier_combobox)
+        _clear_errors(fields_to_clear)
+
+        validations = [
+            validate_not_empty(self.name_input, "اسم المشروع"),
+            validate_positive_number(self.cost_input, "تكلفة المشروع"),
+        ]
+        if project_type in ["rent", "selling"]:
+            validations.append(
+                validate_combo_selected(self.supplier_combobox, "المورد")
+            )
+        if not run_validations(self, validations):
             return
+
+        name = self.name_input.text().strip()
+        cost = float(clean_number(self.cost_input.text()))
+        project_status = "active"
 
         payload = {
             "name": name,
@@ -278,9 +302,6 @@ class ProjectsUI(QWidget):
 
         if project_type in ["rent", "selling"]:
             supplier_id = self.supplier_combobox.currentData()
-            if not supplier_id:
-                QMessageBox.warning(self, "خطأ", "الرجاء اختيار المورد.")
-                return
             payload["supplier"] = str(supplier_id)
 
         username = self.settings.value("user_name", "unknown_user")

@@ -347,8 +347,35 @@ class ProjectSelectionDialog(QDialog):
         else:
             QMessageBox.warning(self, "تنبيه", "الرجاء اختيار مشروع من الجدول أولاً.")
 
+    def _resolve_nav_project_type(self, cbp_id):
+        """Ask server for canonical type so industrial/selling don't open the rent page (would 404)."""
+        try:
+            url = f"{BACKEND_BASE_URL}/clients/projects/resolve/?cbp_id={cbp_id}"
+            r = get(url, timeout=15)
+            if r.status_code == 200:
+                body = r.json()
+                return (body.get("data") or {}).get("project_type")
+        except (exceptions.RequestException, ValueError, TypeError):
+            pass
+        return None
+
     def on_link_success(self, response_data, selected_project):
-        self.project_selected.emit(selected_project)
+        # Link API creates ClientProjectBalance; detail URLs expect CBP id, not BaseProject/Campaine id.
+        payload = dict(selected_project)
+        data = (response_data or {}).get("data") or {}
+        cbp_id = data.get("cbp_id")
+        api_project_type = data.get("project_type")
+        if cbp_id is not None:
+            payload["id"] = cbp_id
+
+        resolved = (
+            self._resolve_nav_project_type(cbp_id) if cbp_id is not None else None
+        )
+        nav_type = resolved or api_project_type or payload.get("project_type")
+        if nav_type:
+            payload["project_type"] = nav_type
+
+        self.project_selected.emit(payload)
         self.accept()
 
     def on_link_error(self, message):

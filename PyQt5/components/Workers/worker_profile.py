@@ -48,7 +48,13 @@ class ApiWorker(QObject):
             if self.method == "GET" and self.response_type == "image":
                 response = get(self.url, timeout=10)
             elif self.method in ["PATCH", "DELETE"] and self.files:
-                response = request(self.method, self.url, data=self.payload, files=self.files, timeout=15)
+                response = request(
+                    self.method,
+                    self.url,
+                    data=self.payload,
+                    files=self.files,
+                    timeout=15,
+                )
             else:
                 response = request(self.method, self.url, json=self.payload, timeout=15)
 
@@ -224,7 +230,9 @@ class WorkerProfileUI(QWidget):
             QMessageBox.warning(self, "خطأ", "لا يوجد عامل محدد لطباعة التقرير.")
             return
 
-        QMessageBox.information(self, "طباعة", f"سيتم طباعة تقرير للعامل ID: {self.worker_id}")
+        QMessageBox.information(
+            self, "طباعة", f"سيتم طباعة تقرير للعامل ID: {self.worker_id}"
+        )
 
     def handle_alternatives(self):
         """Opens the dialog for managing worker alternatives (payments)."""
@@ -253,7 +261,9 @@ class WorkerProfileUI(QWidget):
         if reply == QMessageBox.Yes:
             payload = {"worker_id": self.worker_id}
             url = f"{BACKEND_BASE_URL}/workers/finish-shift/"
-            self._start_api_request("POST", url, payload=payload, on_success=self.on_finalize_success)
+            self._start_api_request(
+                "POST", url, payload=payload, on_success=self.on_finalize_success
+            )
 
     def on_finalize_success(self, response_data):
         QMessageBox.information(self, "نجاح", "تمت تصفية حساب العامل بنجاح.")
@@ -329,7 +339,9 @@ class WorkerProfileUI(QWidget):
 
         payload = {"worker_id": self.worker_id, "is_in_vacation": is_checked}
         url = f"{BACKEND_BASE_URL}/workers/absence/"
-        self._start_api_request("PATCH", url, payload=payload, on_success=self.on_vacation_status_updated)
+        self._start_api_request(
+            "PATCH", url, payload=payload, on_success=self.on_vacation_status_updated
+        )
 
     def on_vacation_status_updated(self, response_data):
         QMessageBox.information(self, "نجاح", "تم تحديث حالة الأجازة للعامل.")
@@ -377,7 +389,9 @@ class WorkerProfileUI(QWidget):
 
             payload = {"worker_id": self.worker_id, "username": username}
             url = f"{BACKEND_BASE_URL}/workers/workers/"
-            self._start_api_request("DELETE", url, payload=payload, on_success=self.on_delete_success)
+            self._start_api_request(
+                "DELETE", url, payload=payload, on_success=self.on_delete_success
+            )
 
     def on_update_success(self, response_data):
         QMessageBox.information(self, "نجاح", "تم تحديث بيانات العامل بنجاح.")
@@ -403,7 +417,9 @@ class WorkerProfileUI(QWidget):
         self.daily_salary_display.setText(f"{data.get('daily_salary', 0):,.2f}")
         self.advances_display.setText(f"{data.get('total_advance', 0):,.2f}")
         self.deductions_display.setText(f"{data.get('total_deduction', 0):,.2f}")
-        self.alternatives_display.setText(f"{data.get('total_alternatives_amount', 0):,.2f}")
+        self.alternatives_display.setText(
+            f"{data.get('total_alternatives_amount', 0):,.2f}"
+        )
         self.final_salary_display.setText(f"{data.get('remaining_salary', 0):,.2f}")
         self.attendance_display.setText(str(data.get("total_days_of_work", 0)))
         self.absence_display.setText(str(data.get("total_days_of_absence", 0)))
@@ -429,10 +445,16 @@ class WorkerProfileUI(QWidget):
 
     def set_image(self, pixmap):
         self.profile_pic_label.setPixmap(
-            pixmap.scaled(self.profile_pic_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            pixmap.scaled(
+                self.profile_pic_label.size(),
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation,
+            )
         )
 
-    def _start_api_request(self, method, url, payload=None, files=None, on_success=None):
+    def _start_api_request(
+        self, method, url, payload=None, files=None, on_success=None
+    ):
         thread = QThread()
         worker = ApiWorker(method, url, payload, files)
         worker.moveToThread(thread)

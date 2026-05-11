@@ -133,9 +133,6 @@ class SuppliersUI(QWidget):
         self.name_input = QLineEdit(placeholderText="اسم المورد")
         self.phone_input = QLineEdit(placeholderText="رقم الهاتف")
         self.email_input = QLineEdit(placeholderText="(اختياري)البريد الإلكتروني")
-        self.total_amount_due_input = QLineEdit(
-            placeholderText="إجمالي المطلوب دفعة للمورد"
-        )
 
         self.profile_pic_label = QLabel("لم يتم اختيار صورة")
         self.profile_pic_label.setAlignment(Qt.AlignCenter)
@@ -148,7 +145,6 @@ class SuppliersUI(QWidget):
         form_layout.addWidget(self.name_input)
         form_layout.addWidget(self.phone_input)
         form_layout.addWidget(self.email_input)
-        form_layout.addWidget(self.total_amount_due_input)
         form_layout.addWidget(self.profile_pic_label)
         form_layout.addWidget(btn_choose_pic)
 
@@ -289,14 +285,17 @@ class SuppliersUI(QWidget):
             )
 
     def handle_add_supplier(self):
-        fields = [self.name_input, self.phone_input, self.email_input, self.total_amount_due_input]
+        fields = [
+            self.name_input,
+            self.phone_input,
+            self.email_input,
+        ]
         _clear_errors(fields)
 
         validations = [
             validate_not_empty(self.name_input, "اسم المورد"),
             validate_phone(self.phone_input, "رقم الهاتف"),
             validate_optional_email(self.email_input, "البريد الإلكتروني"),
-            validate_positive_number(self.total_amount_due_input, "إجمالي المطلوب دفعه"),
         ]
         if not run_validations(self, validations):
             return
@@ -304,20 +303,11 @@ class SuppliersUI(QWidget):
         name = self.name_input.text().strip()
         phone = self.phone_input.text().strip()
         email = self.email_input.text().strip()
-        total_amount_due = self.total_amount_due_input.text().strip()
-        total_amount_payable = self.total_amount_due_input.text().strip()
 
         settings = QSettings("FactorySystem")
         username = settings.value("user_name", "unknown_user")
 
-        payload = {
-            "name": name,
-            "phone": phone,
-            "email": email,
-            "username": username,
-            "total_amount_due": total_amount_due,
-            "total_amount_payable": total_amount_payable,
-        }
+        payload = {"name": name, "phone": phone, "email": email, "username": username}
 
         files = None
         if self.profile_pic_path:

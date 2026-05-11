@@ -5,15 +5,17 @@ from config.env import env, ENVIRONMENT, BASE_DIR
 # BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-if ENVIRONMENT == "TEST":
+if ENVIRONMENT == "test":
     DATABASES = {
         "default": {
-            "ENGINE": env("TEST_DATABASE_ENGINE"),
-            "NAME": env("TEST_DATABASE_NAME"),
-            "USER": env("TEST_DATABASE_USER"),
-            "PASSWORD": env("TEST_DATABASE_PASSWORD"),
-            "HOST": env("TEST_DATABASE_HOST"),
-            "PORT": env("TEST_DATABASE_PORT"),
+            "ENGINE": env("test_DATABASE_ENGINE"),
+            "NAME": env("test_DATABASE_NAME"),
+            "USER": env("test_DATABASE_USER"),
+            # Same env key as the official Postgres image (docker-compose env_file).
+            # Avoids drift vs a separate test_DATABASE_PASSWORD.
+            "PASSWORD": env("POSTGRES_PASSWORD"),
+            "HOST": env("test_DATABASE_HOST"),
+            "PORT": env("test_DATABASE_PORT"),
             "OPTIONS": {
                 "options": "-c search_path=public",
             },

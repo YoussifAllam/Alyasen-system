@@ -6,6 +6,7 @@ that highlights invalid fields with a red border and shows inline error messages
 """
 
 import re
+from PyQt5.QtCore import QSignalBlocker
 from PyQt5.QtWidgets import QLineEdit, QTextEdit, QComboBox, QMessageBox
 
 
@@ -26,6 +27,54 @@ def _clear_errors(fields):
     """Resets the error style on a list of widgets."""
     for field in fields:
         _set_error(field, False)
+
+
+def clean_number(value):
+    """Returns a numeric string without display separators."""
+    if value is None:
+        return ""
+    return str(value).replace(",", "").strip()
+
+
+def format_number_with_commas(value):
+    """Formats a numeric string with thousand separators while preserving decimals."""
+    value = clean_number(value)
+    if not value:
+        return ""
+
+    integer_part, dot, decimal_part = value.partition(".")
+    integer_digits = re.sub(r"\D", "", integer_part)
+    decimal_digits = re.sub(r"\D", "", decimal_part)
+
+    if not integer_digits:
+        integer_digits = "0" if dot else ""
+    if not integer_digits:
+        return ""
+
+    formatted = f"{int(integer_digits):,}"
+    if dot:
+        formatted += f".{decimal_digits}"
+    return formatted
+
+
+def attach_number_formatter(line_edit):
+    """Adds live comma formatting to a QLineEdit numeric input."""
+
+    def format_text(_text=None):
+        old_text = line_edit.text()
+        formatted_text = format_number_with_commas(old_text)
+        if old_text == formatted_text:
+            return
+
+        blocker = QSignalBlocker(line_edit)
+        try:
+            line_edit.setText(formatted_text)
+            line_edit.setCursorPosition(len(formatted_text))
+        finally:
+            del blocker
+
+    line_edit.textEdited.connect(format_text)
+    format_text()
 
 
 # --- Individual Validators ---
@@ -54,7 +103,7 @@ def validate_positive_number(widget, field_name):
     Checks that a QLineEdit contains a valid positive number (> 0).
     Returns (is_valid, error_message).
     """
-    value = widget.text().strip()
+    value = clean_number(widget.text())
     if not value:
         _set_error(widget, True)
         return False, f"حقل \"{field_name}\" مطلوب."
@@ -75,7 +124,7 @@ def validate_non_negative_number(widget, field_name):
     Checks that a QLineEdit contains a valid non-negative number (>= 0).
     Returns (is_valid, error_message).
     """
-    value = widget.text().strip()
+    value = clean_number(widget.text())
     if not value:
         _set_error(widget, True)
         return False, f"حقل \"{field_name}\" مطلوب."
@@ -97,7 +146,7 @@ def validate_optional_number(widget, field_name):
     An empty field is considered valid (optional).
     Returns (is_valid, error_message).
     """
-    value = widget.text().strip()
+    value = clean_number(widget.text())
     if not value:
         _set_error(widget, False)
         return True, ""

@@ -15,6 +15,7 @@ from PyQt5.QtCore import Qt, QThread, QPoint, QDate
 import qtawesome as qta
 from ..ui_projects import ProjectApiWorker
 from ...Main_Ui_Components.constant import BACKEND_BASE_URL
+from ...validation import attach_number_formatter, clean_number
 
 
 class RentProjectChequeDialog(QDialog):
@@ -169,6 +170,7 @@ class RentProjectChequeDialog(QDialog):
         self.date_input.setDisplayFormat("yyyy-MM-dd")
         self.date_input.setDate(QDate.currentDate())
         self.amount_input = QLineEdit()
+        attach_number_formatter(self.amount_input)
 
         form_layout.addRow("رقم الشيك:", self.num_input)
         form_layout.addRow("تاريخ الشيك:", self.date_input)
@@ -185,7 +187,7 @@ class RentProjectChequeDialog(QDialog):
     def handle_add(self):
         num = self.num_input.text().strip()
         date = self.date_input.date().toString("yyyy-MM-dd")
-        amount = self.amount_input.text().strip()
+        amount = clean_number(self.amount_input.text())
 
         if not num or not amount:
             QMessageBox.warning(self, "تنبيه", "يرجى ملء جميع الحقول.")

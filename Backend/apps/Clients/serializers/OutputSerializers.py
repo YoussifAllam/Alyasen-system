@@ -32,7 +32,7 @@ class BaseProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BaseProject
-        fields = ["id", "name", "supplier_name"]
+        fields = ["id", "name", "supplier_name", "project_type"]
 
 
 class CampaineSerializer(serializers.ModelSerializer):

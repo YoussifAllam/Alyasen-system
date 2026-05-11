@@ -278,7 +278,7 @@ class AddCampaignDialog(QDialog):
 
     def update_total(self):
         total = sum(row.get_data().get("amount", 0) for row in self.rows)
-        self.total_label.setText(f"إجمالي التكلفة: {total:,.2f} SAR")
+        self.total_label.setText(f"إجمالي التكلفة: {total:,.2f} ")
 
     def handle_save(self):
         _clear_errors([self.name_input, self.client_combo])

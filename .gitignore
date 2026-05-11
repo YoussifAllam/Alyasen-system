@@ -43,8 +43,4 @@ dist
 .env.test
 .env
 
-
 myenv
-
-Output/*
-Output/

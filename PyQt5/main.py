@@ -2,7 +2,7 @@ import sys
 import os
 from PyQt5.QtWidgets import QApplication, QSplashScreen
 from PyQt5.QtGui import QFont, QPixmap
-from PyQt5.QtCore import Qt, QSettings, QLocale  # Added QLocale
+from PyQt5.QtCore import Qt, QSettings, QLocale, QTimer  # Added QLocale
 
 # Import the window classes that the controller will manage
 from components.Auth.login_window import AuthWindow
@@ -11,6 +11,18 @@ from components.Main_Ui_Components.stylesheet import load_dark_theme
 from components.Main_Ui_Components.light_stylesheet import load_light_theme
 from components.Main_Ui_Components.constant import BASE_DIR  # Import BASE_DIR
 from components.utils.updater import UpdateManager
+
+
+def configure_qt_scaling():
+    """Use one explicit scale factor so Linux can preview Windows sizing."""
+    scale_factor = os.getenv("APP_SCALE_FACTOR", "1.0").strip() or "1.0"
+    try:
+        float(scale_factor)
+    except ValueError:
+        scale_factor = "1.0"
+
+    os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "0"
+    os.environ.setdefault("QT_SCALE_FACTOR", scale_factor)
 
 
 class AppController:
@@ -47,7 +59,7 @@ class AppController:
 
 
 if __name__ == "__main__":
-    os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
+    configure_qt_scaling()
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
     app = QApplication(sys.argv)
@@ -88,10 +100,23 @@ if __name__ == "__main__":
         "جاري التحقق من وجود تحديثات...", Qt.AlignBottom | Qt.AlignCenter, Qt.white
     )
     app.processEvents()
-    UpdateManager.check_for_updates()
+
+    # Hide the splash while checking for updates so any update prompt /
+    # error dialog is not covered by the always-on-top splash screen.
+    splash.hide()
+    app.processEvents()
+    UpdateManager.check_for_updates(parent=None)
+    splash.show()
+    splash.showMessage(
+        "جاري تحميل النظام...", Qt.AlignBottom | Qt.AlignCenter, Qt.white
+    )
+    app.processEvents()
 
     controller = AppController()
-    controller.start()
 
-    splash.finish(controller.auth_win)
+    def _finish_splash():
+        controller.start()
+        splash.finish(controller.auth_win)
+
+    QTimer.singleShot(4000, _finish_splash)
     sys.exit(app.exec_())

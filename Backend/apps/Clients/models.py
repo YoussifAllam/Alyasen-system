@@ -28,7 +28,9 @@ class Client(models.Model):
         default=0, help_text="Remaining amount to us"
     )
     total_paid_amount = models.FloatField(default=0)
-    profile_picture = models.ImageField(default="default.webp", upload_to="clients/")
+    profile_picture = models.ImageField(
+        default="clients/default.webp", upload_to="clients/"
+    )
 
     class Meta:
         db_table = "clients"
@@ -58,6 +60,7 @@ class ClientProjectBalance(models.Model):
     paid = models.FloatField(default=0)
     remining = models.FloatField(default=0)
     created_date = models.DateField(auto_now_add=True)
+
     class Meta:
         db_table = "client_project_balance"
         indexes = [
@@ -75,7 +78,7 @@ class ClientProjectBalance(models.Model):
         elif self.project_type == "campaine" and self.campaine_fk:
             return self.campaine_fk.name
         return "N/A"
-    
+
 
 class ProjectPayment(models.Model):
     client_project_balance_fk = models.ForeignKey(

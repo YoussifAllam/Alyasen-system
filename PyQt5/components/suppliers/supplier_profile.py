@@ -62,6 +62,7 @@ class ApiWorker(QObject):
                             files=opened_files if opened_files else None,
                             timeout=15,
                         )
+
                     finally:
                         for f in opened_files.values():
                             f.close()
@@ -80,7 +81,7 @@ class ApiWorker(QObject):
                     image.loadFromData(response.content)
                     self.image_success.emit(QPixmap.fromImage(image))
             else:
-                self.error.emit(f"خطأ من الخادم: {response.status_code}")
+                self.error.emit(f"خطأ من الخادم: {response.json()}")
         except exceptions.RequestException:
             self.error.emit("فشل الاتصال بالخادم.")
         finally:

@@ -265,43 +265,47 @@ class MainWindow(QMainWindow):
         self.old_pos = None
 
     def create_pages(self):
-        # Create all page instances
-        self.dashboard_page = DashboardUI()
-        self.clients_page = ClientsUI()
-        self.suppliers_page = SuppliersUI()
-        self.expenses_page = ExpensesUI()
-        # self.reports_page = ReportsUI()
-        self.program_log_page = ProgramLogUI()
-        self.company_assets_page = CompanyAssetsUI()
-        self.company_safe_page = CompanySafeUI()
-        self.projects_page = ProjectsUI()
-        self.quotations_page = QuotationsUI()
-        self.campaigns_page = CampaignsUI()
-        self.materials_suppliers_page = MaterialsSuppliersUI()
+        self.page_definitions = [
+            ("dashboard_page", DashboardUI, False),
+            ("clients_page", ClientsUI, True),
+            ("suppliers_page", SuppliersUI, True),
+            ("expenses_page", ExpensesUI, True),
+            # ("reports_page", ReportsUI, True),
+            ("program_log_page", ProgramLogUI, True),
+            ("company_assets_page", CompanyAssetsUI, True),
+            ("company_safe_page", CompanySafeUI, True),
+            ("projects_page", ProjectsUI, True),
+            ("quotations_page", QuotationsUI, True),
+            ("campaigns_page", CampaignsUI, True),
+            ("materials_suppliers_page", MaterialsSuppliersUI, True),
+        ]
+        self.page_widgets = []
 
-        # Dashboard already has scroll implemented, so skip wrapping it
-        self.stacked_widget.addWidget(self.dashboard_page)
+        for _ in self.page_definitions:
+            placeholder = QWidget()
+            self.page_widgets.append(placeholder)
+            self.stacked_widget.addWidget(placeholder)
 
-        # Wrap all other pages in scroll areas
-        self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.clients_page))
-        self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.suppliers_page))
-        self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.expenses_page))
-        # self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.reports_page))
-        self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.program_log_page))
-        self.stacked_widget.addWidget(
-            self.wrap_in_scroll_area(self.company_assets_page)
-        )
-        self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.company_safe_page))
-        self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.projects_page))
-        self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.quotations_page))
-        self.stacked_widget.addWidget(self.wrap_in_scroll_area(self.campaigns_page))
-        self.stacked_widget.addWidget(
-            self.wrap_in_scroll_area(self.materials_suppliers_page)
-        )
+    def create_page_widget(self, index):
+        page_attr, page_class, use_scroll_area = self.page_definitions[index]
+        page = page_class()
+        setattr(self, page_attr, page)
+        return self.wrap_in_scroll_area(page) if use_scroll_area else page
 
     @pyqtSlot(int)
     def change_page(self, index):
-        self.stacked_widget.setCurrentIndex(index)
+        if index < 0 or index >= len(self.page_definitions):
+            return
+
+        old_widget = self.page_widgets[index]
+        new_widget = self.create_page_widget(index)
+
+        self.stacked_widget.removeWidget(old_widget)
+        old_widget.deleteLater()
+        self.stacked_widget.insertWidget(index, new_widget)
+        self.page_widgets[index] = new_widget
+
+        self.stacked_widget.setCurrentWidget(new_widget)
         self.sidebar.set_active_button(index)
 
     def show_notifications(self):

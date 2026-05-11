@@ -17,6 +17,7 @@ from PyQt5.QtCore import Qt, QThread, QPoint, QSize
 import qtawesome as qta
 from ..ui_projects import ProjectApiWorker
 from ...Main_Ui_Components.constant import BACKEND_BASE_URL
+from ...validation import attach_number_formatter, clean_number
 
 
 class AddOpCostDialog(QDialog):
@@ -65,6 +66,7 @@ class AddOpCostDialog(QDialog):
 
         self.name_input = QLineEdit()
         self.amount_input = QLineEdit()
+        attach_number_formatter(self.amount_input)
 
         form_layout.addRow("الوصف/الاسم:", self.name_input)
         form_layout.addRow("المبلغ:", self.amount_input)
@@ -108,7 +110,7 @@ class AddOpCostDialog(QDialog):
 
     def handle_add(self):
         name = self.name_input.text().strip()
-        amount = self.amount_input.text().strip()
+        amount = clean_number(self.amount_input.text())
         if not name or not amount:
             QMessageBox.warning(self, "تنبيه", "يرجى ملء جميع الحقول.")
             return
