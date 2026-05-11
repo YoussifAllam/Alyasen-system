@@ -2,7 +2,7 @@ import sys
 import os
 from PyQt5.QtWidgets import QApplication, QSplashScreen
 from PyQt5.QtGui import QFont, QPixmap
-from PyQt5.QtCore import Qt, QSettings, QLocale  # Added QLocale
+from PyQt5.QtCore import Qt, QSettings, QLocale, QTimer  # Added QLocale
 
 # Import the window classes that the controller will manage
 from components.Auth.login_window import AuthWindow
@@ -100,10 +100,23 @@ if __name__ == "__main__":
         "جاري التحقق من وجود تحديثات...", Qt.AlignBottom | Qt.AlignCenter, Qt.white
     )
     app.processEvents()
-    UpdateManager.check_for_updates()
+
+    # Hide the splash while checking for updates so any update prompt /
+    # error dialog is not covered by the always-on-top splash screen.
+    splash.hide()
+    app.processEvents()
+    UpdateManager.check_for_updates(parent=None)
+    splash.show()
+    splash.showMessage(
+        "جاري تحميل النظام...", Qt.AlignBottom | Qt.AlignCenter, Qt.white
+    )
+    app.processEvents()
 
     controller = AppController()
-    controller.start()
 
-    splash.finish(controller.auth_win)
+    def _finish_splash():
+        controller.start()
+        splash.finish(controller.auth_win)
+
+    QTimer.singleShot(4000, _finish_splash)
     sys.exit(app.exec_())
