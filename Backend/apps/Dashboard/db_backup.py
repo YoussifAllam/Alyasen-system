@@ -4,22 +4,7 @@ import tempfile
 from datetime import datetime
 
 from django.conf import settings
-from django.http import FileResponse
-
-
-class _TempFileResponse(FileResponse):
-    """FileResponse that removes the temp backup file when the stream closes."""
-
-    def __init__(self, temp_path: str, *args, **kwargs):
-        self._temp_path = temp_path
-        super().__init__(open(temp_path, "rb"), *args, **kwargs)
-
-    def close(self):
-        super().close()
-        try:
-            os.unlink(self._temp_path)
-        except OSError:
-            pass
+from django.http import HttpResponse
 
 
 def build_sqlite_backup_response():
@@ -44,10 +29,14 @@ def build_sqlite_backup_response():
         src_conn.close()
         dest_conn.close()
 
+    try:
+        with open(tmp_path, "rb") as backup_file:
+            data = backup_file.read()
+    finally:
+        os.unlink(tmp_path)
+
     filename = f"db-backup-{datetime.now().strftime('%Y%m%d-%H%M%S')}.sqlite3"
-    return _TempFileResponse(
-        tmp_path,
-        as_attachment=True,
-        filename=filename,
-        content_type="application/x-sqlite3",
-    )
+    response = HttpResponse(data, content_type="application/x-sqlite3")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    response["Content-Length"] = len(data)
+    return response

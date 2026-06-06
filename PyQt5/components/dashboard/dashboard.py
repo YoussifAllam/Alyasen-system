@@ -13,11 +13,13 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal, pyqtSlot
 from requests import request, exceptions
+import requests.exceptions as requests_exceptions
 import qtawesome as qta
 from datetime import datetime
 
 from ..utils.api_errors import (
     format_request_exception,
+    parse_api_error_payload,
     parse_api_error_response,
     parse_api_response,
 )
@@ -56,6 +58,12 @@ class ApiFetcherWorker(QObject):
             self.finished.emit()
 
 
+import os
+import sqlite3
+
+_SQLITE_MAGIC = b"SQLite format 3\x00"
+
+
 class DatabaseBackupDownloadWorker(QObject):
     finished = pyqtSignal()
     success = pyqtSignal(str)
@@ -69,32 +77,62 @@ class DatabaseBackupDownloadWorker(QObject):
     @pyqtSlot()
     def run(self):
         try:
-            response = request("GET", self.url, timeout=120, stream=True)
-            print("--------", response.json())
-            content_type = (response.headers.get("Content-Type") or "").lower()
-            content_disposition = (
-                response.headers.get("Content-Disposition") or ""
-            ).lower()
-
-            is_file_download = response.status_code == 200 and (
-                "attachment" in content_disposition
-                or "sqlite" in content_type
-                or "octet-stream" in content_type
-                or ("json" not in content_type and "html" not in content_type)
-            )
-
-            if is_file_download:
-                with open(self.save_path, "wb") as outfile:
-                    for chunk in response.iter_content(chunk_size=1024 * 64):
-                        if chunk:
-                            outfile.write(chunk)
-                self.success.emit(self.save_path)
-            else:
+            response = request("GET", self.url, timeout=300, stream=True)
+            if response.status_code != 200:
                 self.error.emit(parse_api_error_response(response))
+                return
+
+            content_type = (response.headers.get("Content-Type") or "").lower()
+            if "json" in content_type:
+                try:
+                    payload = response.json()
+                except requests_exceptions.JSONDecodeError:
+                    payload = {}
+                self.error.emit(parse_api_error_payload(payload))
+                return
+
+            expected_size = response.headers.get("Content-Length")
+            expected_bytes = int(expected_size) if expected_size else None
+            downloaded = 0
+
+            with open(self.save_path, "wb") as outfile:
+                for chunk in response.iter_content(chunk_size=1024 * 128):
+                    if not chunk:
+                        continue
+                    outfile.write(chunk)
+                    downloaded += len(chunk)
+
+            if expected_bytes is not None and downloaded != expected_bytes:
+                os.remove(self.save_path)
+                self.error.emit(
+                    f"التحميل غير مكتمل ({downloaded:,} من {expected_bytes:,} بايت). "
+                    "حاول مرة أخرى."
+                )
+                return
+
+            with open(self.save_path, "rb") as infile:
+                if infile.read(len(_SQLITE_MAGIC)) != _SQLITE_MAGIC:
+                    os.remove(self.save_path)
+                    self.error.emit(
+                        "تعذر تحميل ملف قاعدة البيانات. "
+                        "تأكد أن الخادم يعمل على أحدث نسخة وأن الرابط صحيح."
+                    )
+                    return
+
+            try:
+                conn = sqlite3.connect(self.save_path)
+                conn.execute("PRAGMA quick_check")
+                conn.close()
+            except sqlite3.DatabaseError:
+                os.remove(self.save_path)
+                self.error.emit("الملف المحمّل تالف أو غير مكتمل. حاول مرة أخرى.")
+                return
+
+            self.success.emit(self.save_path)
         except exceptions.RequestException as e:
+            if os.path.exists(self.save_path):
+                os.remove(self.save_path)
             self.error.emit(format_request_exception(e))
-        except (ValueError, TypeError) as e:
-            self.error.emit(str(e))
         finally:
             self.finished.emit()
 
