@@ -9,7 +9,7 @@ from ..db_queries import selectors, services
 from ..tasks.pagenator import pagenator
 
 from apps.TransactionsLog.tasks.celery_tasks import create_transaction_log
-from apps.Safe.tasks.celery_tasks import reduce_safe_balance, increase_safe_balance
+from apps.Safe.db_queries.services import adjust_safe_balance
 
 
 class RentProjectsApiView(APIView):
@@ -35,10 +35,17 @@ class RentProjectsApiView(APIView):
         if "selling_price" in request.data:
             services.update_project_info(CBP_id, target_project)
         if "insurance_tax" in request.data:
-            transaction = f"تم دفع تأمين بملغ {request.data['insurance_tax']} لمشروع {target_project.CPB_fk.project_name}"  # noqa
-            reduce_safe_balance.delay(
-                request.data["insurance_tax"], transaction, request.data["user_name"]
-            )
+            try:
+                adjust_safe_balance(
+                    process="subtract",
+                    amount=float(request.data["insurance_tax"]),
+                    note=f"تم دفع تأمين لمشروع {target_project.CPB_fk.project_name}",
+                    username=request.data["user_name"],
+                )
+            except ValueError as exc:
+                return Response(
+                    {"status": "failed", "errors": str(exc)}, status=HTTP_400_BAD_REQUEST
+                )
         return Response({"status": "success"}, status=HTTP_200_OK)
 
 
@@ -159,8 +166,10 @@ class RentProjectInsuranceTaxApiView(APIView):
         amount = r_p_instance.insurance_tax
         r_p_instance.insurance_tax_cleared = True
         r_p_instance.save()
-        transaction = (
-            f"تم استرداد تأمين بقيمة {amount} لمشروع {r_p_instance.CPB_fk.project_name}"
+        adjust_safe_balance(
+            process="add",
+            amount=float(amount),
+            note=f"تم استرداد تأمين لمشروع {r_p_instance.CPB_fk.project_name}",
+            username=request.data["user_name"],
         )
-        increase_safe_balance.delay(amount, transaction, request.data["user_name"])
         return Response({"status": "success"}, status=HTTP_200_OK)

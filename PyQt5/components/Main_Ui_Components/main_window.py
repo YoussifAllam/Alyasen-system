@@ -28,7 +28,7 @@ from ..ui_expenses import ExpensesUI
 from ..reports import ReportsUI
 from ..program_log import ProgramLogUI
 from ..Company_assets.ui_company_assets import CompanyAssetsUI
-from ..ui_company_safe import CompanySafeUI
+from ..Safe.ui_company_safe import CompanySafeUI
 
 # from ..Segmental_Selling.Segmental_invoices_page import SegmentalInvoicesUI
 

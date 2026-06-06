@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.request import Request
 
-from apps.Safe.tasks.celery_tasks import reduce_safe_balance
+from apps.Safe.db_queries.services import adjust_safe_balance
 
 from .tasks.pagenator import pagenator
 from .db_queries import selectors
@@ -23,8 +23,15 @@ class ExpensesApiView(APIView):
         if serializer.is_valid():
             expense = serializer.save()
             username = request.data.get("user_name") or request.data.get("username") or "system"
-            transaction = f"تم تسجيل مصروف: {expense.transaction} بمبلغ {expense.amount}"
-            reduce_safe_balance.delay(expense.amount, transaction, username)
+            try:
+                adjust_safe_balance(
+                    process="subtract",
+                    amount=float(expense.amount),
+                    note=f"تم تسجيل مصروف: {expense.transaction}",
+                    username=username,
+                )
+            except ValueError as exc:
+                return Response({"status": "faild", "errors": str(exc)}, status=400)
             return Response({"status": "success"}, status=HTTP_200_OK)
 
         return Response({"status": "faild", "errors": serializer.errors}, status=400)

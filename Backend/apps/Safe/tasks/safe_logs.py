@@ -1,7 +1,16 @@
 from ..models import SafeLogs
-from celery import shared_task
 
 
-@shared_task(name="create_safe_log")
-def add_safe_log(transaction: str):
-    SafeLogs.objects.create(trnasaction=transaction)
+def add_safe_log(
+    transaction: str,
+    *,
+    amount=None,
+    operation_type="",
+    balance_after=None,
+):
+    SafeLogs.objects.create(
+        trnasaction=transaction,
+        amount=amount,
+        operation_type=operation_type or "",
+        balance_after=balance_after,
+    )

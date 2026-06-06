@@ -1,26 +1,17 @@
-from ..models import Safe
 from celery import shared_task
 
-from .safe_logs import add_safe_log
-
-from apps.TransactionsLog.tasks.celery_tasks import create_transaction_log
+from ..db_queries.services import adjust_safe_balance
 
 
 @shared_task(name="reduce_safe_balance")
-def reduce_safe_balance(amount: float, transaction: str, username: str):
-    safe, _ = Safe.objects.get_or_create(id=1)
-    safe.balance -= amount
-    safe.save()
-
-    add_safe_log.delay(transaction)
-    create_transaction_log.delay(transaction_data=transaction, username=username)
+def reduce_safe_balance(amount: float, note: str, username: str = ""):
+    return adjust_safe_balance(
+        process="subtract", amount=amount, note=note, username=username
+    )
 
 
-@shared_task(name="add_safe_balance")
-def increase_safe_balance(amount: float, transaction: str, username: str):
-    safe, _ = Safe.objects.get_or_create(id=1)
-    safe.balance += amount
-    safe.save()
-
-    add_safe_log.delay(transaction)
-    create_transaction_log.delay(transaction_data=transaction, username=username)
+@shared_task(name="increase_safe_balance")
+def increase_safe_balance(amount: float, note: str, username: str = ""):
+    return adjust_safe_balance(
+        process="add", amount=amount, note=note, username=username
+    )

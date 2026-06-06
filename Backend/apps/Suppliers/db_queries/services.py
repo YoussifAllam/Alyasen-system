@@ -1,17 +1,7 @@
 from ..models import Supplier, ProjectPayment, SupplierProjectBalance
 from ..tasks import celery_tasks
 
-from apps.Safe.models import Safe
-from apps.Safe.tasks.safe_logs import add_safe_log
-
-
-def reduce_safe_balance(amount: float, supplier_name: str):
-    safe_instance, created = Safe.objects.get_or_create(id=1)
-    safe_instance.balance -= amount
-    safe_instance.save()
-    add_safe_log.delay(
-        transaction=f" تم سحب دفعه للمورد {supplier_name} بمبلغ {amount}"
-    )
+from apps.Safe.db_queries.services import adjust_safe_balance
 
 
 def update_supplier_balance(
@@ -32,7 +22,11 @@ def pay_for_supplier(SupplierInstance: Supplier, payment_amount: float):
     SupplierInstance.total_amount_payable -= payment_amount
     SupplierInstance.save()
 
-    reduce_safe_balance(payment_amount, SupplierInstance.name)
+    adjust_safe_balance(
+        process="subtract",
+        amount=payment_amount,
+        note=f"تم سحب دفعه للمورد {SupplierInstance.name}",
+    )
 
 
 def pay_for_project(project_instance: SupplierProjectBalance, payment_amount: float):

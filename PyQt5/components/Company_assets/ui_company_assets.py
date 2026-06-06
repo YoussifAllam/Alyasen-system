@@ -212,10 +212,13 @@ class CompanyAssetsUI(QWidget):
 
         grid.addWidget(_lbl("بحث"), 0, 0)
         grid.addWidget(self.search_input, 0, 1)
+        grid.setSpacing(10)
         grid.addWidget(_lbl("فئة الأصل"), 0, 2)
         grid.addWidget(self.category_filter, 0, 3)
+        grid.setSpacing(10)
         grid.addWidget(_lbl("حالة الأصل"), 1, 0)
         grid.addWidget(self.status_filter, 1, 1)
+        grid.setSpacing(10)
 
         actions = QHBoxLayout()
         actions.addWidget(self.show_all_button)

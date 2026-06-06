@@ -10,7 +10,7 @@ from .serializers import InputSerializers, OutputSerializers, ParamsSerializers
 from .tasks import celery_tasks
 
 from apps.TransactionsLog.tasks.celery_tasks import create_transaction_log
-from apps.Safe.tasks.celery_tasks import reduce_safe_balance
+from apps.Safe.db_queries.services import adjust_safe_balance
 from apps.Projects.tasks.projects_tasks import increase_project_materials_cost
 
 
@@ -69,9 +69,16 @@ class InovicePaymentApiView(APIView):
         celery_tasks.create_material_supplier_payment_record.delay(
             supplier_id, payment_amount, notes
         )
-        reduce_safe_balance.delay(
-            payment_amount, f"تم دفع دفعه للمقاول {supplier_instance.name}", username
-        )
+        try:
+            adjust_safe_balance(
+                process="subtract",
+                amount=payment_amount,
+                note=f"تم دفع دفعه للمقاول {supplier_instance.name}",
+                username=username,
+            )
+        except ValueError as exc:
+            return Response({"status": "faild", "errors": str(exc)}, status=400)
+
         create_transaction_log.delay(
             username=username,
             transaction_data=f"تم تسديد دفعه للمورد {supplier_instance.name} بمبلغ {payment_amount}",

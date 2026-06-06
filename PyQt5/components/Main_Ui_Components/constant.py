@@ -5,8 +5,17 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+# Re-export for backward compatibility
+__all__ = [
+    "BASE_DIR",
+    "BACKEND_BASE_URL",
+    "APP_VERSION",
+    "get_logo_display_size",
+    "get_large_logo_display_size",
+    "DATE_DISPLAY_FORMAT",
+]
 
-# Quick .env loader (to avoid adding python-dotenv dependency)
+
 def load_dotenv():
     if getattr(sys, "frozen", False):
         # If running as an EXE, look for .env in the same folder as the EXE
@@ -33,3 +42,21 @@ load_dotenv()
 
 BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL")
 APP_VERSION = os.getenv("APP_VERSION", "V1.0.0")
+
+LOGO_DISPLAY_SIZE = 200
+LARGE_LOGO_DISPLAY_SIZE = 200
+
+
+def get_logo_display_size() -> int:
+    from .ui_scale import scale_int
+
+    return scale_int(LOGO_DISPLAY_SIZE)
+
+
+def get_large_logo_display_size() -> int:
+    from .ui_scale import scale_int
+
+    return scale_int(LARGE_LOGO_DISPLAY_SIZE)
+
+
+DATE_DISPLAY_FORMAT = "yyyy-MM-dd"

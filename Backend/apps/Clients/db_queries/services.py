@@ -1,20 +1,10 @@
 from ..models import Client, ClientProjectBalance
 from . import selectors
 
-from apps.Safe.models import Safe
-from apps.Safe.tasks.safe_logs import add_safe_log
+from apps.Safe.db_queries.services import adjust_safe_balance
 from apps.TransactionsLog.tasks.celery_tasks import create_transaction_log
 
 from apps.Projects.models import rent_projects_models, industrial_projects_models
-
-
-def increase_safe_balance(amount: float, client_name: str):
-    safe_instance, created = Safe.objects.get_or_create(id=1)
-    safe_instance.balance += amount
-    safe_instance.save()
-    add_safe_log.delay(
-        transaction=f" تم تحصيل دفعه من العميل {client_name} بمبلغ {amount}"
-    )
 
 
 # def update_client_balance(
@@ -36,7 +26,12 @@ def client_payment(client_id: int, payment_amount: float, username: str):
     client_instance.total_remaining_balance_owed_to_us -= payment_amount
     client_instance.save()
 
-    increase_safe_balance(payment_amount, client_instance.name)
+    adjust_safe_balance(
+        process="add",
+        amount=payment_amount,
+        note=f"تم تحصيل دفعه من العميل {client_instance.name}",
+        username=username,
+    )
     create_transaction_log.delay(
         username=username,
         transaction_data=f"تم تحصيل دفعه من العميل {client_instance.name} بمبلغ {payment_amount}",

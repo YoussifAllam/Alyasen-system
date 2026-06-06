@@ -9,7 +9,6 @@ from ..db_queries import selectors, services
 from ..tasks.pagenator import pagenator
 
 from apps.TransactionsLog.tasks.celery_tasks import create_transaction_log
-from apps.Safe.tasks.celery_tasks import reduce_safe_balance, increase_safe_balance
 
 
 class ProjectApiView(APIView):
