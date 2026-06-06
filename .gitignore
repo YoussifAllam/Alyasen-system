@@ -43,10 +43,4 @@ dist
 .env.test
 .env
 
-Output/
-
-alyasen-setup/*
-alyasen-setup
-
-
-.vscode
+myenv

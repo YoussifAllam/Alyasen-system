@@ -3,10 +3,10 @@
 ; Non-commercial use only
 
 #define MyAppName "Alyasen CRM"
-#define MyAppVersion "1.0.1"
+#define MyAppVersion "1.0.2"
 #define MyAppPublisher "NOVA DEV."
 #define MyAppURL "https://www.nova-dev-company.com/"
-#define MyAppExeName "start"
+#define MyAppExeName "start.exe"
 #define MyBuildRoot "."
 #define MyDistDir MyBuildRoot + "\dist\start"
 #define MyIconFile MyDistDir + "\_internal\resources\logo3.ico"
@@ -53,7 +53,7 @@ CloseApplicationsFilter={#MyAppExeName}
 RestartApplications=yes
 
 [Languages]
-Name: "arabic"; MessagesFile: "compiler:Languages\Arabic.isl"
+;Name: "arabic"; MessagesFile: "compiler:Languages\Arabic.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
