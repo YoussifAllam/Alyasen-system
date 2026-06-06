@@ -1,4 +1,4 @@
-from requests import request
+from requests import request, exceptions
 import qtawesome as qta
 from PyQt5.QtWidgets import (
     QApplication,
@@ -29,6 +29,7 @@ from PyQt5.QtCore import (
 
 from .signup_widget import SignupWidget
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL, BASE_DIR
+from ..utils.api_errors import format_request_exception, parse_api_response
 from ..validation import (
     validate_email,
     validate_min_length,
@@ -176,17 +177,13 @@ class LoginWidget(QFrame):
                     resp = request(
                         "POST", self.url_value, json=self.payload_value, timeout=10
                     )
-                    if resp.status_code == 200:
-                        self.success.emit(
-                            resp.json()
-                        )  # UPDATED: Emit the JSON response
+                    ok, data = parse_api_response(resp)
+                    if ok:
+                        self.success.emit(data)
                     else:
-                        # ... (error handling remains the same)
-                        self.error.emit(f" {resp.text}")
-                except Exception:
-                    self.error.emit(
-                        "فشل الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى."
-                    )
+                        self.error.emit(data)
+                except exceptions.RequestException as e:
+                    self.error.emit(format_request_exception(e))
                 finally:
                     self.finished.emit()
 

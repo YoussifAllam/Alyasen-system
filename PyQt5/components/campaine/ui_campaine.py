@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QObject, pyqtSlot
 from requests import request, exceptions
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..utils.api_errors import format_request_exception, parse_api_response
 from .add_campaine_dialog import AddCampaignDialog
 
 
@@ -32,12 +33,13 @@ class CampaignApiWorker(QObject):
     def run(self):
         try:
             response = request(self.method, self.url, json=self.payload, timeout=15)
-            if response.status_code == 200:
-                self.success.emit(response.json())
+            ok, data = parse_api_response(response)
+            if ok:
+                self.success.emit(data)
             else:
-                self.error.emit(f"خطأ: {response.status_code}")
-        except exceptions.RequestException:
-            self.error.emit("فشل الاتصال بالخادم.")
+                self.error.emit(data)
+        except exceptions.RequestException as e:
+            self.error.emit(format_request_exception(e))
         finally:
             self.finished.emit()
 

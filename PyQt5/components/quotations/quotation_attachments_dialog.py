@@ -14,6 +14,7 @@ from PyQt5.QtCore import Qt, QThread, QUrl, QObject, pyqtSignal, pyqtSlot, QPoin
 from PyQt5.QtGui import QDesktopServices
 from requests import request, exceptions
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..utils.api_errors import format_request_exception, parse_api_response
 import qtawesome as qta
 
 
@@ -43,14 +44,13 @@ class QuotationApiWorker(QObject):
             else:
                 response = request(self.method, self.url, json=self.payload, timeout=15)
 
-            if response.status_code in [200, 201]:
-                self.success.emit(response.json())
+            ok, data = parse_api_response(response)
+            if ok:
+                self.success.emit(data)
             else:
-                self.error.emit(
-                    f"خطأ من الخادم: {response.status_code}\n{response.text}"
-                )
-        except exceptions.RequestException:
-            self.error.emit("فشل الاتصال بالخادم.")
+                self.error.emit(data)
+        except exceptions.RequestException as e:
+            self.error.emit(format_request_exception(e))
         finally:
             self.finished.emit()
 

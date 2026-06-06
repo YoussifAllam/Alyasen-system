@@ -21,6 +21,12 @@ from PIL import Image as PILImage
 from requests import request, get, exceptions
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..utils.api_errors import (
+    format_request_exception,
+    is_http_success,
+    parse_api_error_response,
+    parse_api_response,
+)
 from .update_client_data_dialog import UpdateClientDataDialog
 from .select_project_dialog import ProjectSelectionDialog
 from .invoice_payment_details_dialog import InvoicePaymentDetailsDialog
@@ -71,19 +77,22 @@ class ApiWorker(QObject):
             else:
                 response = request(self.method, self.url, json=self.payload, timeout=15)
 
-            if response.status_code in [200, 201]:
-                if self.response_type == "json":
-                    self.success.emit(response.json())
+            if self.response_type == "json":
+                ok, result = parse_api_response(response)
+                if ok:
+                    self.success.emit(result)
                 else:
-                    pm = _pixmap_from_http_bytes(response.content)
-                    if pm is None or pm.isNull():
-                        self.error.emit("تعذر عرض الصورة (صيغة غير مدعومة أو ملف تالف).")
-                    else:
-                        self.image_success.emit(self.url, pm)
+                    self.error.emit(result)
+            elif is_http_success(response.status_code):
+                pm = _pixmap_from_http_bytes(response.content)
+                if pm is None or pm.isNull():
+                    self.error.emit("تعذر عرض الصورة (صيغة غير مدعومة أو ملف تالف).")
+                else:
+                    self.image_success.emit(self.url, pm)
             else:
-                self.error.emit(f"{response.text}")
-        except exceptions.RequestException:
-            self.error.emit("فشل الاتصال بالخادم.")
+                self.error.emit(parse_api_error_response(response))
+        except exceptions.RequestException as e:
+            self.error.emit(format_request_exception(e))
         finally:
             self.finished.emit()
 

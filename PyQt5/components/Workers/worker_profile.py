@@ -16,6 +16,11 @@ from requests import request, get, exceptions
 import os
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL, BASE_DIR
+from ..utils.api_errors import (
+    format_request_exception,
+    is_http_success,
+    parse_api_response,
+)
 from .update_info_dialog import UpdateWorkerDialog
 from .absence_dialog import AbsenceDialog
 from .deduction_dialog import DeductionDialog
@@ -58,19 +63,22 @@ class ApiWorker(QObject):
             else:
                 response = request(self.method, self.url, json=self.payload, timeout=15)
 
-            if response.status_code in [200, 201]:
+            if is_http_success(response.status_code):
                 if self.response_type == "json":
-                    self.success.emit(response.json())
+                    ok, data = parse_api_response(response)
+                    if ok:
+                        self.success.emit(data)
+                    else:
+                        self.error.emit(data)
                 else:
                     image = QImage()
                     image.loadFromData(response.content)
                     self.image_success.emit(QPixmap.fromImage(image))
-            elif response.status_code == 204 and self.method == "DELETE":
-                self.success.emit({"status": "deleted"})
             else:
-                self.error.emit(f"خطأ من الخادم: {response.text}")
-        except exceptions.RequestException as e:
-            self.error.emit(f"فشل الاتصال بالخادم: {e}")
+                _, msg = parse_api_response(response)
+                self.error.emit(msg)
+        except exceptions.RequestException as exc:
+            self.error.emit(format_request_exception(exc))
         finally:
             self.finished.emit()
 

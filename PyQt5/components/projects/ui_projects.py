@@ -28,6 +28,7 @@ from ..validation import (
     validate_not_empty,
     validate_positive_number,
 )
+from ..utils.api_errors import format_request_exception, parse_api_response
 
 
 class ProjectApiWorker(QObject):
@@ -48,7 +49,6 @@ class ProjectApiWorker(QObject):
     def run(self):
         try:
             if self.method in ["POST", "PATCH"] and self.files is not None:
-                print("--------", self.payload)
                 response = request(
                     self.method,
                     self.url,
@@ -59,14 +59,13 @@ class ProjectApiWorker(QObject):
             else:
                 response = request(self.method, self.url, json=self.payload, timeout=15)
 
-            if response.status_code in [200, 201]:
-                self.success.emit(response.json())
+            ok, result = parse_api_response(response)
+            if ok:
+                self.success.emit(result if isinstance(result, dict) else {})
             else:
-                self.error.emit(
-                    f"خطأ من الخادم: {response.status_code}\n{response.text}"
-                )
-        except exceptions.RequestException:
-            self.error.emit("فشل الاتصال بالخادم.")
+                self.error.emit(result)
+        except exceptions.RequestException as e:
+            self.error.emit(format_request_exception(e))
         finally:
             self.finished.emit()
 

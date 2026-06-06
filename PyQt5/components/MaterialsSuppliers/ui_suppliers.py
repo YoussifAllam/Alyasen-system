@@ -19,6 +19,7 @@ from requests import request, exceptions
 from urllib.parse import urlencode
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..utils.api_errors import format_request_exception, parse_api_response
 from ..validation import attach_number_formatter, clean_number
 from .supplier_profile import SupplierProfileUI
 
@@ -51,12 +52,13 @@ class SupplierApiWorker(QObject):
             else:
                 response = request(self.method, self.url, json=self.payload, timeout=15)
 
-            if response.status_code in [200, 201]:
-                self.success.emit(response.json())
+            ok, data = parse_api_response(response)
+            if ok:
+                self.success.emit(data)
             else:
-                self.error.emit(f"خطأ من الخادم: {response.status_code}")
-        except exceptions.RequestException:
-            self.error.emit("فشل الاتصال بالخادم.")
+                self.error.emit(data)
+        except exceptions.RequestException as exc:
+            self.error.emit(format_request_exception(exc))
         finally:
             self.finished.emit()
 

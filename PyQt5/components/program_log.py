@@ -18,6 +18,7 @@ from requests import request, exceptions
 
 # We'll assume the base URL is in a constant file for good practice
 from .Main_Ui_Components.constant import BACKEND_BASE_URL
+from .utils.api_errors import format_request_exception, parse_api_response
 
 
 class LogFetcherWorker(QObject):
@@ -37,20 +38,13 @@ class LogFetcherWorker(QObject):
     def run(self):
         try:
             response = request("GET", self.url, timeout=15)
-            if response.status_code == 200:
-                self.success.emit(response.json())
+            ok, data = parse_api_response(response)
+            if ok:
+                self.success.emit(data)
             else:
-                try:
-                    error_data = response.json()
-                    detail = error_data.get("detail", str(error_data))
-                    self.error.emit(f"خطأ من الخادم: {response.status_code}\n\n{detail}")
-                except Exception:
-                    self.error.emit(f"خطأ من الخادم: {response.status_code}\n\n{response.text}")
-
+                self.error.emit(data)
         except exceptions.RequestException as e:
-            self.error.emit(f"فشل الاتصال بالخادم: {e}")
-        except Exception as e:
-            self.error.emit(f"حدث خطأ غير متوقع: {e}")
+            self.error.emit(format_request_exception(e))
         finally:
             self.finished.emit()
 

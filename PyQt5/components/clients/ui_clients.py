@@ -26,6 +26,7 @@ from ..validation import (
     run_validations,
     _clear_errors,
 )
+from ..utils.api_errors import format_request_exception, parse_api_response
 
 from ..projects.rent.ui_rent_project import RentProjectPage
 from .client_profile import ClientProfileUI
@@ -74,16 +75,14 @@ class ClientApiWorker(QObject):
             else:
                 response = request(self.method, self.url, json=self.payload, timeout=15)
 
-            if response.status_code in [200, 201]:
-                self.success.emit(response.json())
-
+            ok, result = parse_api_response(response)
+            if ok:
+                self.success.emit(result)
             else:
-                self.error.emit(
-                    f"خطأ من الخادم: {response.status_code},{response.json()}"
-                )
+                self.error.emit(result)
 
-        except exceptions.RequestException:
-            self.error.emit("فشل الاتصال بالخادم.")
+        except exceptions.RequestException as e:
+            self.error.emit(format_request_exception(e))
         finally:
             self.finished.emit()
 

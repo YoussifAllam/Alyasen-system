@@ -11,6 +11,7 @@ from PyQt5.QtCore import pyqtSignal, Qt, QObject, QThread, pyqtSlot
 from requests import request, exceptions
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..utils.api_errors import format_request_exception, parse_api_response
 from ..validation import (
     validate_not_empty,
     validate_email,
@@ -208,25 +209,13 @@ class SignupWidget(QFrame):
                         json=self.payload_value,
                         timeout=10,
                     )
-                    if resp.status_code == 201:
+                    ok, data = parse_api_response(resp)
+                    if ok:
                         self.success.emit()
                     else:
-                        try:
-                            data_dict = resp.json()
-                            # Get first error message
-                            msg = next(iter(data_dict.values()))
-                            if isinstance(msg, list):
-                                msg = msg[0]
-                            msg = str(msg)
-                        except Exception:
-                            msg = f"HTTP {resp.status_code}"
-                        self.error.emit(msg)
-                except exceptions.RequestException:
-                    self.error.emit(
-                        "فشل الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى."
-                    )
-                except Exception as exc:
-                    self.error.emit(str(exc))
+                        self.error.emit(data)
+                except exceptions.RequestException as e:
+                    self.error.emit(format_request_exception(e))
                 finally:
                     self.finished.emit()
 

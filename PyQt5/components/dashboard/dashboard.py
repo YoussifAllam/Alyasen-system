@@ -13,6 +13,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal, pyqtSlot
 from requests import request, exceptions
 
+from ..utils.api_errors import format_request_exception, parse_api_response
+
 # Import the custom chart and dialog widgets
 from .donut_chart import DonutChartWidget
 from .user_management_dialog import UserManagementDialog
@@ -36,12 +38,13 @@ class ApiFetcherWorker(QObject):
         # return  # todo  remove
         try:
             response = request("GET", self.url, timeout=15)
-            if response.status_code == 200:
-                self.success.emit(response.json())
+            ok, data = parse_api_response(response)
+            if ok:
+                self.success.emit(data)
             else:
-                self.error.emit(f"خطأ من الخادم: {response.status_code}")
+                self.error.emit(data)
         except exceptions.RequestException as e:
-            self.error.emit(f"فشل الاتصال بالخادم: {e}")
+            self.error.emit(format_request_exception(e))
         finally:
             self.finished.emit()
 

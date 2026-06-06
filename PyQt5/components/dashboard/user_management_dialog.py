@@ -17,6 +17,7 @@ import qtawesome as qta
 from requests import request, exceptions
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..utils.api_errors import format_request_exception, parse_api_response
 
 
 class UserApiWorker(QObject):
@@ -36,22 +37,13 @@ class UserApiWorker(QObject):
     def run(self):
         try:
             response = request(self.method, self.url, json=self.payload, timeout=15)
-
-            # Handle different success codes
-            if response.status_code in [200, 201]:  # OK or Created
-                self.success.emit(response.json())
-            elif response.status_code == 204:  # No Content (successful DELETE)
-                self.success.emit({"status": "deleted"})
+            ok, data = parse_api_response(response)
+            if ok:
+                self.success.emit(data)
             else:
-                try:
-                    error_data = response.json()
-                    # Extract the first error message from the dictionary
-                    error_msg = next(iter(error_data.values()), [f"HTTP {response.status_code}"])[0]
-                    self.error.emit(str(error_msg))
-                except Exception:
-                    self.error.emit(response.text or f"خطأ من الخادم: {response.status_code}")
-        except exceptions.RequestException:
-            self.error.emit("فشل الاتصال بالخادم.")
+                self.error.emit(data)
+        except exceptions.RequestException as e:
+            self.error.emit(format_request_exception(e))
         finally:
             self.finished.emit()
 

@@ -35,6 +35,7 @@ from requests import request, exceptions
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
 from ..Main_Ui_Components.date_edit import configure_date_edit, format_date
+from ..utils.api_errors import format_request_exception, parse_api_response
 from .safe_transaction_dialog import SafeTransactionDialog
 
 DEPOSIT_COLOR = QColor("#10b981")
@@ -68,46 +69,43 @@ class SafeApiWorker(QObject):
             if self.put_payload is not None:
                 balance_url = f"{BACKEND_BASE_URL}/safe/safe/"
                 resp = request("PUT", balance_url, json=self.put_payload, timeout=8)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    if data.get("status") == "success":
-                        self.mutation_success.emit(data.get("data", {}))
-                    else:
-                        self.error.emit(str(data.get("errors", "فشل تنفيذ العملية")))
+                ok, result = parse_api_response(resp)
+                if ok:
+                    payload = result.get("data", {}) if isinstance(result, dict) else {}
+                    self.mutation_success.emit(payload)
                 else:
-                    try:
-                        detail = resp.json().get("errors", resp.status_code)
-                    except Exception:
-                        detail = resp.status_code
-                    self.error.emit(f"خطأ: {detail}")
+                    self.error.emit(result)
                 return
 
             if self.fetch_balance:
                 balance_url = f"{BACKEND_BASE_URL}/safe/safe/"
                 resp = request("GET", balance_url, timeout=8)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    if data.get("status") == "success":
-                        payload = data.get("data", {})
-                        if isinstance(payload, (int, float)):
-                            payload = {"balance": float(payload)}
-                        self.balance_success.emit(payload)
+                ok, result = parse_api_response(resp)
+                if ok:
+                    payload = result.get("data", {}) if isinstance(result, dict) else {}
+                    if isinstance(payload, (int, float)):
+                        payload = {"balance": float(payload)}
+                    self.balance_success.emit(payload)
                 else:
-                    self.error.emit(f"خطأ في جلب الرصيد: {resp.status_code}")
+                    self.error.emit(result)
 
             if self.logs_url:
                 resp = request("GET", self.logs_url, timeout=8)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    if "data" in data and isinstance(data["data"], dict):
-                        self.logs_success.emit(data["data"])
-                    elif "results" in data:
-                        self.logs_success.emit(data)
+                ok, result = parse_api_response(resp)
+                if ok:
+                    if isinstance(result, dict) and "data" in result and isinstance(
+                        result["data"], dict
+                    ):
+                        self.logs_success.emit(result["data"])
+                    elif isinstance(result, dict) and "results" in result:
+                        self.logs_success.emit(result)
+                    else:
+                        self.logs_success.emit(result if isinstance(result, dict) else {})
                 else:
-                    self.error.emit(f"خطأ في جلب السجلات: {resp.status_code}")
+                    self.error.emit(result)
 
         except exceptions.RequestException as e:
-            self.error.emit(f"فشل الاتصال بالخادم: {e}")
+            self.error.emit(format_request_exception(e))
         except Exception as e:
             self.error.emit(f"حدث خطأ غير متوقع: {e}")
         finally:

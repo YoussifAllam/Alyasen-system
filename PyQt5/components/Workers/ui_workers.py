@@ -19,6 +19,7 @@ from requests import request, exceptions
 from urllib.parse import urlencode
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..utils.api_errors import format_request_exception, parse_api_response
 from .worker_profile import WorkerProfileUI
 from ..validation import (
     validate_not_empty,
@@ -50,24 +51,13 @@ class WorkerApiWorker(QObject):
             else:
                 response = request(self.method, self.url, json=self.payload, timeout=15)
 
-            if response.status_code in [200, 201]:
-                self.success.emit(response.json())
+            ok, data = parse_api_response(response)
+            if ok:
+                self.success.emit(data)
             else:
-                try:
-                    error_data = response.json()
-                    if "الخطاء" in error_data:
-                        error_msg = error_data["الخطاء"]
-                    elif "error" in error_data:
-                        error_msg = error_data["error"]
-                    else:
-                        error_msg = next(iter(error_data.values()), f"HTTP {response.status_code}")
-                        if isinstance(error_msg, list):
-                            error_msg = error_msg[0]
-                    self.error.emit(str(error_msg))
-                except Exception:
-                    self.error.emit(response.text or f"خطأ من الخادم: {response.status_code}")
-        except exceptions.RequestException as e:
-            self.error.emit(f"فشل الاتصال بالخادم: {e}")
+                self.error.emit(data)
+        except exceptions.RequestException as exc:
+            self.error.emit(format_request_exception(exc))
         finally:
             self.finished.emit()
 

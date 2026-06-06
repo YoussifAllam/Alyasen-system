@@ -16,6 +16,7 @@ import qtawesome as qta
 from requests import request, exceptions
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..utils.api_errors import format_request_exception, parse_api_response
 
 
 class PaymentDetailsWorker(QObject):
@@ -33,12 +34,13 @@ class PaymentDetailsWorker(QObject):
     def run(self):
         try:
             response = request("GET", self.url, timeout=15)
-            if response.status_code == 200:
-                self.success.emit(response.json())
+            ok, data = parse_api_response(response)
+            if ok:
+                self.success.emit(data)
             else:
-                self.error.emit(f"خطأ من الخادم: {response.status_code}")
-        except exceptions.RequestException:
-            self.error.emit("فشل الاتصال بالخادم.")
+                self.error.emit(data)
+        except exceptions.RequestException as exc:
+            self.error.emit(format_request_exception(exc))
         finally:
             self.finished.emit()
 

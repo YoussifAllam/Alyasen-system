@@ -29,6 +29,7 @@ from .validation import (
     attach_number_formatter,
     clean_number,
 )
+from .utils.api_errors import format_request_exception, parse_api_response
 
 
 class ExpenseFetcherWorker(QObject):
@@ -46,12 +47,13 @@ class ExpenseFetcherWorker(QObject):
     def run(self):
         try:
             response = request("GET", self.url, timeout=15)
-            if response.status_code == 200:
-                self.success.emit(response.json())
+            ok, result = parse_api_response(response)
+            if ok:
+                self.success.emit(result)
             else:
-                self.error.emit(f"خطأ من الخادم: {response.status_code}")
+                self.error.emit(result)
         except exceptions.RequestException as e:
-            self.error.emit(f"فشل الاتصال بالخادم: {e}")
+            self.error.emit(format_request_exception(e))
         finally:
             self.finished.emit()
 
@@ -71,12 +73,13 @@ class ExpenseSummaryFetcherWorker(QObject):
     def run(self):
         try:
             response = request("GET", self.url, timeout=15)
-            if response.status_code == 200:
-                self.success.emit(response.json())
+            ok, result = parse_api_response(response)
+            if ok:
+                self.success.emit(result)
             else:
-                self.error.emit(f"خطأ من الخادم: {response.status_code}")
+                self.error.emit(result)
         except exceptions.RequestException as e:
-            self.error.emit(f"فشل الاتصال بالخادم: {e}")
+            self.error.emit(format_request_exception(e))
         finally:
             self.finished.emit()
 
@@ -97,19 +100,13 @@ class ExpensePosterWorker(QObject):
     def run(self):
         try:
             response = request("POST", self.url, json=self.payload, timeout=15)
-            if response.status_code == 201 or response.status_code == 200:
+            ok, result = parse_api_response(response)
+            if ok:
                 self.success.emit()
             else:
-                try:
-                    error_data = response.json()
-                    detail = next(iter(error_data.values()), f"HTTP {response.status_code}")
-                    if isinstance(detail, list):
-                        detail = detail[0]
-                    self.error.emit(str(detail))
-                except Exception:
-                    self.error.emit(f"خطأ من الخادم: {response.status_code}")
+                self.error.emit(result)
         except exceptions.RequestException as e:
-            self.error.emit(f"فشل الاتصال بالخادم: {e}")
+            self.error.emit(format_request_exception(e))
         finally:
             self.finished.emit()
 
@@ -217,7 +214,9 @@ class ExpensesUI(QWidget):
         headers = ["الاسم", "التاريخ", "المبلغ", "ملاحظات"]  # Removed Permit
         self.table.setHorizontalHeaderLabels(headers)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)  # Adjusted index
+        self.table.horizontalHeader().setSectionResizeMode(
+            3, QHeaderView.ResizeToContents
+        )  # Adjusted index
 
         pagination_layout = QHBoxLayout()
         self.prev_button = QPushButton("السابق")
@@ -370,11 +369,19 @@ class ExpensesUI(QWidget):
         for expense in expenses:
             row_pos = self.table.rowCount()
             self.table.insertRow(row_pos)
-            self.table.setItem(row_pos, 0, QTableWidgetItem(expense.get("transaction", "")))
-            self.table.setItem(row_pos, 1, QTableWidgetItem(expense.get("created_date", "")))
+            self.table.setItem(
+                row_pos, 0, QTableWidgetItem(expense.get("transaction", ""))
+            )
+            self.table.setItem(
+                row_pos, 1, QTableWidgetItem(expense.get("created_date", ""))
+            )
             # self.table.setItem(row_pos, 2, QTableWidgetItem(expense.get("permit_number", ""))) <-- Removed
-            self.table.setItem(row_pos, 2, QTableWidgetItem(str(expense.get("amount", ""))))  # Adjusted index
-            self.table.setItem(row_pos, 3, QTableWidgetItem(str(expense.get("notes", ""))))  # Adjusted index
+            self.table.setItem(
+                row_pos, 2, QTableWidgetItem(str(expense.get("amount", "")))
+            )  # Adjusted index
+            self.table.setItem(
+                row_pos, 3, QTableWidgetItem(str(expense.get("notes", "")))
+            )  # Adjusted index
 
     def update_pagination_controls(self):
         self.next_button.setEnabled(self.next_page_url is not None)
@@ -387,7 +394,9 @@ class ExpensesUI(QWidget):
                 end_item = start_item + page_size - 1
                 if end_item > self.total_count:
                     end_item = self.total_count
-                self.page_info_label.setText(f"عرض {start_item}-{end_item} من {self.total_count} سجل")
+                self.page_info_label.setText(
+                    f"عرض {start_item}-{end_item} من {self.total_count} سجل"
+                )
             except:  # noqa
                 self.page_info_label.setText(f"إجمالي السجلات: {self.total_count}")
         else:

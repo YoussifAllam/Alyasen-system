@@ -24,9 +24,10 @@ from PyQt5.QtCore import (
     QThread,
     QSettings,
 )
-from requests import request
+from requests import request, exceptions
 import qtawesome as qta
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..utils.api_errors import format_request_exception, parse_api_response
 from ..validation import (
     validate_positive_number,
     validate_combo_selected,
@@ -71,12 +72,15 @@ class ApiWorker(QObject):
             for file_obj in opened_files.values():
                 file_obj.close()
 
-            if response.status_code in [200, 201]:
-                self.success.emit(response.json())
+            ok, result = parse_api_response(response)
+            if ok:
+                self.success.emit(result)
             else:
-                self.error.emit(f"خطأ: {response.text}")
+                self.error.emit(result)
+        except exceptions.RequestException as e:
+            self.error.emit(format_request_exception(e))
         except Exception as e:
-            self.error.emit(f"{e}")
+            self.error.emit(str(e))
         finally:
             self.finished.emit()
 

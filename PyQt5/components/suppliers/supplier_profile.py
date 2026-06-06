@@ -18,6 +18,11 @@ from PyQt5.QtCore import Qt, pyqtSignal, QObject, QThread, pyqtSlot, QSettings
 from requests import request, get, exceptions
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..utils.api_errors import (
+    format_request_exception,
+    is_http_success,
+    parse_api_response,
+)
 from .payment_dialog import PaymentDialog
 from .invoice_payment_details_dialog import InvoicePaymentDetailsDialog
 
@@ -71,9 +76,13 @@ class ApiWorker(QObject):
                         self.method, self.url, json=self.payload, timeout=15
                     )
 
-            if response.status_code in [200, 201]:
+            if is_http_success(response.status_code):
                 if self.response_type == "json":
-                    self.success.emit(response.json())
+                    ok, data = parse_api_response(response)
+                    if ok:
+                        self.success.emit(data)
+                    else:
+                        self.error.emit(data)
                 elif self.response_type == "text":
                     self.text_success.emit(response.text)
                 else:  # Image
@@ -81,9 +90,10 @@ class ApiWorker(QObject):
                     image.loadFromData(response.content)
                     self.image_success.emit(QPixmap.fromImage(image))
             else:
-                self.error.emit(f"خطأ من الخادم: {response.json()}")
-        except exceptions.RequestException:
-            self.error.emit("فشل الاتصال بالخادم.")
+                _, msg = parse_api_response(response)
+                self.error.emit(msg)
+        except exceptions.RequestException as exc:
+            self.error.emit(format_request_exception(exc))
         finally:
             self.finished.emit()
 

@@ -19,6 +19,12 @@ from PyQt5.QtGui import QPixmap, QImage
 import qtawesome as qta
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..utils.api_errors import (
+    format_request_exception,
+    is_http_success,
+    parse_api_error_response,
+    parse_api_response,
+)
 
 
 class ApiWorker(QObject):
@@ -48,17 +54,20 @@ class ApiWorker(QObject):
 
             response = request(self.method, self.url, **kwargs)
 
-            if response.status_code in [200, 201]:
-                if self.response_type == "json":
-                    self.success.emit(response.json())
+            if self.response_type == "json":
+                ok, result = parse_api_response(response)
+                if ok:
+                    self.success.emit(result)
                 else:
-                    image = QImage()
-                    image.loadFromData(response.content)
-                    self.image_success.emit(QPixmap.fromImage(image))
+                    self.error.emit(result)
+            elif is_http_success(response.status_code):
+                image = QImage()
+                image.loadFromData(response.content)
+                self.image_success.emit(QPixmap.fromImage(image))
             else:
-                self.error.emit(f"{response.text}")
-        except exceptions.RequestException:
-            self.error.emit("فشل الاتصال بالخادم.")
+                self.error.emit(parse_api_error_response(response))
+        except exceptions.RequestException as e:
+            self.error.emit(format_request_exception(e))
         finally:
             self.finished.emit()
 

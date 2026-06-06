@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QPoint
 from requests import request, exceptions
 from .Main_Ui_Components.constant import BACKEND_BASE_URL
+from .utils.api_errors import format_request_exception, parse_api_response
 
 
 class NotificationApiWorker(QThread):
@@ -46,22 +47,13 @@ class NotificationApiWorker(QThread):
                     timeout=15,
                 )
 
-            if response.status_code in [200, 201]:
-                self.success.emit(response.json())
+            ok, data = parse_api_response(response)
+            if ok:
+                self.success.emit(data)
             else:
-                try:
-                    error_data = response.json()
-                    error_msg = error_data.get(
-                        "error",
-                        getattr(error_data, "message", f"HTTP {response.status_code}"),
-                    )
-                    self.error.emit(str(error_msg))
-                except ValueError:
-                    self.error.emit(
-                        response.text or f"Server error: {response.status_code}"
-                    )
+                self.error.emit(data)
         except exceptions.RequestException as e:
-            self.error.emit(f"Connection failed: {e}")
+            self.error.emit(format_request_exception(e))
 
 
 class NotificationsDialog(QDialog):
