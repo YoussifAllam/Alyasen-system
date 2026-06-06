@@ -128,6 +128,7 @@ class CompanySafeUI(QWidget):
         self.prev_page_url = None
         self.total_count = 0
         self._balance_loaded = False
+        self._initial_load_done = False
         self._safe_pending_load = False
         self._last_request_was_mutation = False
 
@@ -190,6 +191,11 @@ class CompanySafeUI(QWidget):
         self.show_today_button.clicked.connect(self.handle_show_today)
         self.next_button.clicked.connect(self.handle_next_page)
         self.prev_button.clicked.connect(self.handle_prev_page)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if not self._initial_load_done and not self._safe_pending_load:
+            QTimer.singleShot(0, self.refresh_data)
 
     def _build_balance_card(self):
         page = QWidget()
@@ -449,6 +455,20 @@ class CompanySafeUI(QWidget):
         self._api_thread.finished.connect(self._api_thread.deleteLater)
         self._api_thread.start()
 
+    def _reload_logs_after_mutation(self):
+        try:
+            if (
+                hasattr(self, "_api_thread")
+                and self._api_thread is not None
+                and self._api_thread.isRunning()
+            ):
+                QTimer.singleShot(50, self._reload_logs_after_mutation)
+                return
+        except RuntimeError:
+            pass
+        self._last_request_was_mutation = False
+        self._start_fetch_request(fetch_balance=False, logs_url=self._build_logs_url())
+
     def update_balance_summary(self, data: dict):
         balance = float(data.get("balance", 0))
         self.balance_amount_label.setText(f"{balance:,.2f}")
@@ -489,7 +509,8 @@ class CompanySafeUI(QWidget):
 
     def _on_mutation_success(self, data: dict):
         self.update_balance_summary(data)
-        self.apply_filters()
+        self._show_table_skeleton(True)
+        QTimer.singleShot(0, self._reload_logs_after_mutation)
 
     def handle_logs_response(self, data_obj):
         results = data_obj.get("results", [])
@@ -499,6 +520,7 @@ class CompanySafeUI(QWidget):
         self.populate_table(results)
         self._set_controls_enabled(True)
         self._safe_pending_load = False
+        self._initial_load_done = True
         if results:
             self.table_stack.setCurrentIndex(0)
         else:

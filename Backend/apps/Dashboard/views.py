@@ -5,6 +5,7 @@ from rest_framework.request import Request
 
 from .serializers import OutputSerializers
 from .db_queries import selectors
+from .db_backup import build_sqlite_backup_response
 
 from .tasks import (
     expenses_graph_tasks,
@@ -76,3 +77,18 @@ class GuaranteeChecksApiView(APIView):
     def get(self, request: Request, format=None):
         data = guarantee_checks_tasks.get_nearest_guarantee_checks()
         return Response({"status": "success", "data": data}, status=HTTP_200_OK)
+
+
+class DatabaseBackupApiView(APIView):
+    def get(self, request: Request, format=None):
+        try:
+            return build_sqlite_backup_response()
+        except FileNotFoundError as exc:
+            return Response({"status": "faild", "errors": str(exc)}, status=404)
+        except ValueError as exc:
+            return Response({"status": "faild", "errors": str(exc)}, status=400)
+        except Exception:
+            return Response(
+                {"status": "faild", "errors": "تعذر إنشاء نسخة احتياطية من قاعدة البيانات"},
+                status=500,
+            )

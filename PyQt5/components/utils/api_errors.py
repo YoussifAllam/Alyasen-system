@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from requests import exceptions as requests_exceptions
+
 _FIELD_LABELS = {
     "client_id": "كود العميل",
     "payment_amount": "المبلغ المدفوع",
@@ -126,7 +128,7 @@ def parse_api_error_response(response) -> str:
         msg = parse_api_error_payload(data)
         if msg:
             return msg
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, requests_exceptions.JSONDecodeError):
         pass
 
     text = (getattr(response, "text", None) or "").strip()

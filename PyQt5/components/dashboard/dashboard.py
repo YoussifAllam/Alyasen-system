@@ -9,11 +9,18 @@ from PyQt5.QtWidgets import (
     QProgressBar,
     QPushButton,
     QMessageBox,
+    QFileDialog,
 )
 from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal, pyqtSlot
 from requests import request, exceptions
+import qtawesome as qta
+from datetime import datetime
 
-from ..utils.api_errors import format_request_exception, parse_api_response
+from ..utils.api_errors import (
+    format_request_exception,
+    parse_api_error_response,
+    parse_api_response,
+)
 
 # Import the custom chart and dialog widgets
 from .donut_chart import DonutChartWidget
@@ -45,6 +52,49 @@ class ApiFetcherWorker(QObject):
                 self.error.emit(data)
         except exceptions.RequestException as e:
             self.error.emit(format_request_exception(e))
+        finally:
+            self.finished.emit()
+
+
+class DatabaseBackupDownloadWorker(QObject):
+    finished = pyqtSignal()
+    success = pyqtSignal(str)
+    error = pyqtSignal(str)
+
+    def __init__(self, url: str, save_path: str):
+        super().__init__()
+        self.url = url
+        self.save_path = save_path
+
+    @pyqtSlot()
+    def run(self):
+        try:
+            response = request("GET", self.url, timeout=120, stream=True)
+            print("--------", response.json())
+            content_type = (response.headers.get("Content-Type") or "").lower()
+            content_disposition = (
+                response.headers.get("Content-Disposition") or ""
+            ).lower()
+
+            is_file_download = response.status_code == 200 and (
+                "attachment" in content_disposition
+                or "sqlite" in content_type
+                or "octet-stream" in content_type
+                or ("json" not in content_type and "html" not in content_type)
+            )
+
+            if is_file_download:
+                with open(self.save_path, "wb") as outfile:
+                    for chunk in response.iter_content(chunk_size=1024 * 64):
+                        if chunk:
+                            outfile.write(chunk)
+                self.success.emit(self.save_path)
+            else:
+                self.error.emit(parse_api_error_response(response))
+        except exceptions.RequestException as e:
+            self.error.emit(format_request_exception(e))
+        except (ValueError, TypeError) as e:
+            self.error.emit(str(e))
         finally:
             self.finished.emit()
 
@@ -94,6 +144,13 @@ class DashboardUI(QWidget):
         header_text_layout.addWidget(subheader)
         header_layout.addLayout(header_text_layout)
         header_layout.addStretch()
+
+        self.backup_db_button = QPushButton("  تحميل نسخة قاعدة البيانات")
+        self.backup_db_button.setObjectName("primaryButton")
+        self.backup_db_button.setIcon(qta.icon("fa5s.database", color="#111827"))
+        self.backup_db_button.clicked.connect(self.handle_download_database_backup)
+        header_layout.addWidget(self.backup_db_button)
+
         content_layout.addLayout(header_layout)
 
         # --- Main Content Grid ---
@@ -167,6 +224,51 @@ class DashboardUI(QWidget):
         )
         worker.finished.connect(thread.quit)
         thread.start()
+
+    def handle_download_database_backup(self):
+        default_name = f"db-backup-{datetime.now().strftime('%Y%m%d-%H%M%S')}.sqlite3"
+        save_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "حفظ نسخة قاعدة البيانات",
+            default_name,
+            "SQLite Database (*.sqlite3);;All Files (*)",
+        )
+        if not save_path:
+            return
+        if not save_path.lower().endswith(".sqlite3"):
+            save_path = f"{save_path}.sqlite3"
+
+        self.backup_db_button.setEnabled(False)
+        self.backup_db_button.setText("جاري التحميل...")
+
+        url = f"{BACKEND_BASE_URL}/dashboard/database-backup/"
+        thread = QThread()
+        worker = DatabaseBackupDownloadWorker(url, save_path)
+        setattr(self, "db_backup_thread", thread)
+        setattr(self, "db_backup_worker", worker)
+
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.success.connect(self._on_database_backup_saved)
+        worker.error.connect(
+            lambda msg: QMessageBox.critical(self, "خطأ في التحميل", msg)
+        )
+        worker.finished.connect(thread.quit)
+        worker.finished.connect(worker.deleteLater)
+        thread.finished.connect(thread.deleteLater)
+        thread.finished.connect(self._reset_database_backup_button)
+        thread.start()
+
+    def _on_database_backup_saved(self, save_path: str):
+        QMessageBox.information(
+            self,
+            "تم التحميل",
+            f"تم حفظ نسخة قاعدة البيانات بنجاح:\n{save_path}",
+        )
+
+    def _reset_database_backup_button(self):
+        self.backup_db_button.setEnabled(True)
+        self.backup_db_button.setText("  تحميل نسخة قاعدة البيانات")
 
     def handle_fetch_top_lists(self):
         url = f"{BACKEND_BASE_URL}/dashboard/top-lists-data/"
