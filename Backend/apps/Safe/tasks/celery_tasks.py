@@ -8,7 +8,7 @@ from apps.TransactionsLog.tasks.celery_tasks import create_transaction_log
 
 @shared_task(name="reduce_safe_balance")
 def reduce_safe_balance(amount: float, transaction: str, username: str):
-    safe = Safe.objects.first()
+    safe, _ = Safe.objects.get_or_create(id=1)
     safe.balance -= amount
     safe.save()
 
@@ -18,7 +18,7 @@ def reduce_safe_balance(amount: float, transaction: str, username: str):
 
 @shared_task(name="add_safe_balance")
 def increase_safe_balance(amount: float, transaction: str, username: str):
-    safe = Safe.objects.first()
+    safe, _ = Safe.objects.get_or_create(id=1)
     safe.balance += amount
     safe.save()
 

@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QTableWidgetItem,
     QFrame,
 )
-from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot, QDate, Qt
+from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot, QDate
 from requests import request, exceptions
 
 from .Main_Ui_Components.constant import BACKEND_BASE_URL
@@ -39,6 +39,8 @@ class SafeApiWorker(QObject):
                     data = resp.json()
                     if data.get("status") == "success":
                         self.balance_success.emit(float(data.get("data", 0.0)))
+                    else:
+                        self.error.emit("فشل جلب الرصيد من الخادم.")
                 else:
                     self.error.emit(f"خطأ في جلب الرصيد: {resp.status_code}")
 
@@ -50,6 +52,10 @@ class SafeApiWorker(QObject):
                         self.logs_success.emit(data["data"])
                     elif "results" in data:
                         self.logs_success.emit(data)
+                    else:
+                        self.error.emit("تنسيق بيانات السجلات غير متوقع.")
+                else:
+                    self.error.emit(f"خطأ في جلب السجلات: {resp.status_code}")
 
         except exceptions.RequestException as e:
             self.error.emit(f"فشل الاتصال بالخادم: {e}")
@@ -63,6 +69,8 @@ class CompanySafeUI(QWidget):
     def __init__(self):
         super().__init__()
         self.setObjectName("mainContent")
+        self._thread = None
+        self._worker = None
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(40, 30, 40, 30)
@@ -141,9 +149,9 @@ class CompanySafeUI(QWidget):
 
         self.load_initial_data()
 
-    def showEvent(self, event):
-        super().showEvent(event)
-        self.load_initial_data()
+    def hideEvent(self, event):
+        self._stop_thread()
+        super().hideEvent(event)
 
     def load_initial_data(self):
         url = f"{BACKEND_BASE_URL}/safe/logs/"
@@ -166,21 +174,40 @@ class CompanySafeUI(QWidget):
         if self.prev_page_url:
             self._start_fetch_request(fetch_balance=False, logs_url=self.prev_page_url)
 
+    def _stop_thread(self):
+        if self._thread is None:
+            return
+        if self._thread.isRunning():
+            self._thread.quit()
+            self._thread.wait(5000)
+        self._thread = None
+        self._worker = None
+
     def _start_fetch_request(self, fetch_balance=False, logs_url=None):
+        self._stop_thread()
         self._set_loading(True)
-        self.thread = QThread()
-        self.worker = SafeApiWorker(fetch_balance=fetch_balance, logs_url=logs_url)
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.run)
 
-        self.worker.balance_success.connect(self.update_balance)
-        self.worker.logs_success.connect(self.handle_logs_response)
-        self.worker.error.connect(self.show_error_message)
+        self._thread = QThread(self)
+        self._worker = SafeApiWorker(fetch_balance=fetch_balance, logs_url=logs_url)
+        self._worker.moveToThread(self._thread)
+        self._thread.started.connect(self._worker.run)
 
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.start()
+        self._worker.balance_success.connect(self.update_balance)
+        self._worker.logs_success.connect(self.handle_logs_response)
+        self._worker.error.connect(self.show_error_message)
+        self._worker.finished.connect(self._on_worker_finished)
+        self._thread.start()
+
+    def _on_worker_finished(self):
+        if self._thread is not None:
+            self._thread.quit()
+            self._thread.wait()
+        if self._worker is not None:
+            self._worker.deleteLater()
+            self._worker = None
+        if self._thread is not None:
+            self._thread.deleteLater()
+            self._thread = None
 
     def update_balance(self, balance):
         self.balance_label.setText(f"الرصيد الحالي: {balance:,.2f} جنيه")

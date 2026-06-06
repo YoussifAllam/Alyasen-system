@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
     QTableWidgetItem,
     QCheckBox,
 )
-from PyQt5.QtCore import Qt, QDate, QObject, QThread, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import Qt, QDate, QObject, QThread, pyqtSignal, pyqtSlot, QSettings
 from urllib.parse import urlencode
 
 # We'll assume the base URL is in a constant file for good practice
@@ -280,10 +280,12 @@ class ExpensesUI(QWidget):
         transaction = self.name_input.text().strip()
         amount = clean_number(self.amount_input.text())
         notes = self.notes_input.toPlainText().strip()
+        username = QSettings("FactorySystem").value("user_name", "system")
         payload = {
             "transaction": transaction,
             "amount": amount,
             "notes": notes,
+            "user_name": username,
             # "permit_number": permit_number, <-- Removed
             "created_date": self.date_input.date().toString(
                 "yyyy-MM-dd"
