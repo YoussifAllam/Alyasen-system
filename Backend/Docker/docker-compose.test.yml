@@ -5,25 +5,10 @@ networks:
 volumes:
   factory_sys_django_db_data: {}
   factory_sys_media_data: {}
-  factory_sys_postgres_data: {}
   factory_sys_static_vol: {}
   factory_sys_redis_data: {}
 
 services:
-
-  factory_sys_postgres_db:
-    image: postgres:13
-    env_file:
-      - ../ENV/.env.test
-    environment:
-      ENVIRONMENT: test
-      # POSTGRES_* must come from env_file (same file as Django DB_*), not from ${...}
-      # compose substitution — host env rarely defines test_DATABASE_*, so Postgres was
-      # getting the default password while Django used .env.test (password mismatch).
-    volumes:
-      - factory_sys_postgres_data:/var/lib/postgresql/data
-    networks:
-      - factory_sys_backend
 
   factory_sys_django:
     build:
@@ -46,7 +31,6 @@ services:
       - PYTHONDONTWRITEBYTECODE=1
     depends_on:
       - factory_sys_redis
-      - factory_sys_postgres_db
     networks:
       - factory_sys_backend
 
@@ -110,8 +94,8 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - /var/lib/letsencrypt:/var/lib/letsencrypt:ro
     ports:
-      - "83:80"      # Changed from 82 to 83
-      - "9444:443"   # Changed from 9443 to 9444
+      - "80:80"
+      - "9444:443"
     depends_on:
       - factory_sys_django
     networks:
