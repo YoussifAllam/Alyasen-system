@@ -1,30 +1,42 @@
-from rest_framework.request import Request
-from cacheops import cached_as
-from django.db.models import Q
+from django.db.models import Count, Q, Sum
 from rest_framework.exceptions import NotFound
+from rest_framework.request import Request
 
 from ..models import CompanyAssets, CompanyAssetsAttachments
 
 
 def get_CompanyAssets_instances(request: Request):
-    # Get parameters with proper cleaning
-    company_asset_name = request.GET.get("q", "").strip() or None
-    print(company_asset_name)
-    # Build cache key from non-None parameters
-    cache_key = f"company_asset_{company_asset_name}"
+    queryset = CompanyAssets.objects.all()
 
-    @cached_as(CompanyAssets, extra=cache_key, timeout=3600)
-    def _get_cached_query():
-        # Build the query
-        query = Q()
+    search = request.GET.get("q", "").strip()
+    if search:
+        queryset = queryset.filter(
+            Q(name__icontains=search)
+            | Q(location__icontains=search)
+            | Q(responsible_person__icontains=search)
+            | Q(details__icontains=search)
+        )
 
-        if company_asset_name:
-            query &= Q(name__icontains=company_asset_name)
-            return CompanyAssets.objects.filter(query)
+    category = request.GET.get("category", "").strip()
+    if category:
+        queryset = queryset.filter(category=category)
 
-        return CompanyAssets.objects.all()
+    status = request.GET.get("status", "").strip()
+    if status:
+        queryset = queryset.filter(status=status)
 
-    return _get_cached_query()
+    return queryset.order_by("-id")
+
+
+def get_company_assets_summary(queryset):
+    aggregated = queryset.aggregate(
+        count=Count("id"),
+        total_value=Sum("price"),
+    )
+    return {
+        "count": aggregated["count"] or 0,
+        "total_value": float(aggregated["total_value"] or 0),
+    }
 
 
 def get_specific_company_asset_instance(company_asset_id: int):

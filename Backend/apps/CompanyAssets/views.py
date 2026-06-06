@@ -1,21 +1,22 @@
+from django.db import transaction
+from rest_framework.request import Request
+from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED, HTTP_204_NO_CONTENT
 from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.request import Request
 
-from .tasks import pagenator
-from .db_queries import selectors
+from .db_queries import selectors, services
 from .serializers import InputSerializers, OutputSerializers
-from .models import CompanyAssetsAttachments
+from .tasks import pagenator, log_tasks
 
 
 class CompanyAssetsView(APIView):
     def get(self, request: Request, format=None):
         company_assets = selectors.get_CompanyAssets_instances(request)
-
+        summary = selectors.get_company_assets_summary(company_assets)
         response_data = pagenator.pagenator(
             company_assets, request, OutputSerializers.CompanyAssetsSerializer
         )
+        response_data["summary"] = summary
         return Response(
             {"status": "success", "data": response_data}, status=HTTP_200_OK
         )
@@ -29,11 +30,36 @@ class CompanyAssetsView(APIView):
         serializer.save()
         return Response({"status": "success", "id": serializer.instance.id}, status=201)
 
+    def patch(self, request: Request, format=None):
+        asset_id = request.data.get("id") or request.data.get("machine_id")
+        if not asset_id:
+            return Response(
+                {"status": "faild", "errors": "معرّف الأصل مطلوب"}, status=400
+            )
+        instance = selectors.get_specific_company_asset_instance(asset_id)
+        serializer = InputSerializers.MachineSerializer(
+            instance, data=request.data, partial=True
+        )
+        if not serializer.is_valid():
+            return Response(
+                {"status": "faild", "errors": serializer.errors}, status=400
+            )
+        services.update_company_asset(
+            instance=instance, validated_data=serializer.validated_data
+        )
+        return Response(
+            {
+                "status": "success",
+                "data": OutputSerializers.CompanyAssetsSerializer(instance).data,
+            },
+            status=HTTP_200_OK,
+        )
+
     def delete(self, request: Request, format=None):
-        machine_id = request.data["machine_id"]
-        machine_instance = selectors.get_specific_company_asset_instance(machine_id)
+        asset_id = request.data.get("machine_id") or request.data.get("id")
+        machine_instance = selectors.get_specific_company_asset_instance(asset_id)
         machine_instance.delete()
-        return Response({"status": "success"}, status=204)
+        return Response({"status": "success"}, status=HTTP_204_NO_CONTENT)
 
 
 class CompanyAssetsAttachmentsApiView(APIView):
@@ -48,14 +74,13 @@ class CompanyAssetsAttachmentsApiView(APIView):
     def post(self, request: Request, format=None):
         asset_id = request.data.get("asset_id")
         attachments = request.FILES.getlist("attachments")
-
-        objs_to_create = []
-
-        for file in attachments:
-            objs_to_create.append(
-                CompanyAssetsAttachments(asset_id=asset_id, file=file)
+        if not asset_id:
+            return Response(
+                {"status": "faild", "errors": "معرّف الأصل مطلوب"}, status=400
             )
-
-        CompanyAssetsAttachments.objects.bulk_create(objs_to_create)
-
+        if not attachments:
+            return Response(
+                {"status": "faild", "errors": "لم يتم إرسال مرفقات"}, status=400
+            )
+        services.create_asset_attachments(asset_id=asset_id, files=attachments)
         return Response({"status": "success"}, status=HTTP_200_OK)

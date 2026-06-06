@@ -1,368 +1,479 @@
-from PyQt5.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QPushButton,
-    QLabel,
-    QLineEdit,
-    QTableWidget,
-    QHeaderView,
-    QGroupBox,
-    QFileDialog,
-    QMessageBox,
-    QTableWidgetItem,
-    QStackedWidget,
-)
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal, pyqtSlot, QSettings
-from requests import request, exceptions
+import os
 from urllib.parse import urlencode
 
-from ..Main_Ui_Components.constant import BACKEND_BASE_URL
-from ..validation import (
-    validate_not_empty,
-    validate_optional_number,
-    run_validations,
-    _clear_errors,
-    attach_number_formatter,
-    clean_number,
+import qtawesome as qta
+from PyQt5.QtCore import QSettings, QThread, Qt, QTimer
+from PyQt5.QtGui import QColor
+from PyQt5.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QStackedWidget,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
 )
+from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from .asset_attachments_dialog import AssetAttachmentsDialog
+from .asset_form_dialog import ASSET_CATEGORIES, ASSET_STATUSES, AssetFormDialog
+from .company_assets_api_worker import MachineApiWorker
 
-# from .machien_profile import MachineProfileUI
+CATEGORY_COLORS = {
+    "equipment": QColor("#60a5fa"),
+    "vehicle": QColor("#a78bfa"),
+    "furniture": QColor("#f59e0b"),
+    "electronics": QColor("#22d3ee"),
+    "other": QColor("#9ca3af"),
+}
+STATUS_COLORS = {
+    "working": QColor("#10b981"),
+    "maintenance": QColor("#fbbf24"),
+    "retired": QColor("#ef4444"),
+}
+MUTED_COLOR = QColor("#9ca3af")
+
+CATEGORY_LABELS = dict(ASSET_CATEGORIES)
+STATUS_LABELS = dict(ASSET_STATUSES)
 
 
-class MachineApiWorker(QObject):
-    """Worker for handling API requests for workers."""
-
-    finished = pyqtSignal()
-    success = pyqtSignal(dict)
-    error = pyqtSignal(str)
-
-    def __init__(self, method, url, payload=None, files=None):
-        super().__init__()
-        self.method = method
-        self.url = url
-        self.payload = payload
-        self.files = files
-
-    @pyqtSlot()
-    def run(self):
-        try:
-            if self.method == "POST" and self.files:
-                response = request(
-                    self.method,
-                    self.url,
-                    data=self.payload,
-                    files=self.files,
-                    timeout=15,
-                )
-            else:
-                response = request(self.method, self.url, json=self.payload, timeout=15)
-            if response.status_code in [200, 201]:
-                self.success.emit(response.json())
-            else:
-                try:
-                    error_data = response.json()
-                    if "الخطاء" in error_data:
-                        error_msg = error_data["الخطاء"]
-                    elif "error" in error_data:
-                        error_msg = error_data["error"]
-                    else:
-                        error_msg = next(
-                            iter(error_data.values()), f"HTTP {response.status_code}"
-                        )
-                        if isinstance(error_msg, list):
-                            error_msg = error_msg[0]
-                    self.error.emit(str(error_msg))
-                except Exception:
-                    self.error.emit(
-                        response.text or f"خطأ من الخادم: {response.status_code}"
-                    )
-        except exceptions.RequestException as e:
-            self.error.emit(f"فشل الاتصال بالخادم: {e}")
-        finally:
-            self.finished.emit()
+def _create_stat_card(title: str, variant: str):
+    card = QFrame()
+    card.setObjectName(f"assetStatCard{variant}")
+    layout = QVBoxLayout(card)
+    layout.setContentsMargins(14, 12, 14, 12)
+    layout.setSpacing(4)
+    title_label = QLabel(title)
+    title_label.setObjectName("assetStatTitle")
+    value_label = QLabel("—")
+    value_label.setObjectName(f"assetStatValue{variant}")
+    layout.addWidget(title_label)
+    layout.addWidget(value_label)
+    return card, value_label
 
 
 class CompanyAssetsUI(QWidget):
     def __init__(self):
         super().__init__()
-
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-
-        self.stacked_widget = QStackedWidget()
-        main_layout.addWidget(self.stacked_widget)
-
-        self.main_page = self.create_main_page()
-        # self.profile_page = MachineProfileUI()
-
-        self.stacked_widget.addWidget(self.main_page)
-        # self.stacked_widget.addWidget(self.profile_page)
-
-        # self.profile_page.back_to_list_requested.connect(self.show_main_page)
-
-    def create_main_page(self):
-        main_widget = QWidget()
-        main_widget.setObjectName("mainContent")
-        self.profile_pic_path = None
+        self.setObjectName("mainContent")
         self.next_page_url = None
         self.prev_page_url = None
         self.total_count = 0
+        self._initial_load_done = False
+        self._pending_load = False
+        self._last_request_was_mutation = False
+        self._feedback_timer = QTimer(self)
+        self._feedback_timer.setSingleShot(True)
+        self._feedback_timer.timeout.connect(self._hide_feedback)
 
-        main_layout = QHBoxLayout(main_widget)
+        main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(40, 30, 40, 30)
-        main_layout.setSpacing(25)
+        main_layout.setSpacing(20)
 
-        left_panel = self.create_form_panel()
-        main_layout.addWidget(left_panel, 1)
-
-        right_panel = self.create_table_panel()
-        main_layout.addWidget(right_panel, 2)
-
-        return main_widget
-
-    def create_form_panel(self):
-        """Creates the left panel for adding a new worker."""
-        container = QWidget()
-        layout = QVBoxLayout(container)
-        layout.setSpacing(20)
-        layout.setAlignment(Qt.AlignTop)
-
-        header = QLabel("إدارة أصول الشركة")
+        header_row = QHBoxLayout()
+        titles = QVBoxLayout()
+        header = QLabel("أصول الشركة")
         header.setObjectName("mainHeader")
-        subheader = QLabel("إضافة أصل جديد أو البحث عن أصل.")
+        subheader = QLabel(
+            "سجل الأصول الثابتة: المعدات، المركبات، الأثاث، والإلكترونيات."
+        )
         subheader.setObjectName("mainSubheader")
+        titles.addWidget(header)
+        titles.addWidget(subheader)
+        header_row.addLayout(titles)
+        header_row.addStretch()
 
-        layout.addWidget(header)
-        layout.addWidget(subheader)
+        self.btn_add_asset = QPushButton("  إضافة أصل")
+        self.btn_add_asset.setIcon(qta.icon("fa5s.plus", color="#111827"))
+        self.btn_add_asset.setObjectName("primaryButton")
+        header_row.addWidget(self.btn_add_asset)
+        main_layout.addLayout(header_row)
 
-        form_groupbox = QGroupBox("اضافة أصل جديد")
-        form_layout = QVBoxLayout(form_groupbox)
-        form_layout.setSpacing(15)
+        self.feedback_banner = self._build_feedback_banner()
+        main_layout.addWidget(self.feedback_banner)
 
-        self.name_input = QLineEdit(placeholderText="اسم ")
-        self.price_input = QLineEdit(placeholderText="سعر ")
-        attach_number_formatter(self.price_input)
-        self.details_input = QLineEdit(placeholderText="تفاصيل إضافية ")
+        summary_row = QHBoxLayout()
+        summary_row.setSpacing(16)
+        count_card, self.count_display = _create_stat_card("عدد الأصول", "Count")
+        value_card, self.value_display = _create_stat_card(
+            "إجمالي قيمة الأصول", "Value"
+        )
+        summary_row.addWidget(count_card)
+        summary_row.addWidget(value_card)
+        summary_row.addStretch()
+        main_layout.addLayout(summary_row)
 
-        self.attachments_label = QLabel("لم يتم اختيار مرفقات")
-        self.attachments_label.setAlignment(Qt.AlignCenter)
-        self.attachments_label.setMinimumHeight(40)
+        main_layout.addWidget(self._build_filter_bar())
 
-        btn_choose_att = QPushButton("اختيار مرفقات")
-        btn_choose_att.clicked.connect(self.choose_attachments)
+        self.table_stack = QStackedWidget()
+        self.table_stack.addWidget(self._build_table())
+        self.table_stack.addWidget(self._build_table_skeleton())
+        self.table_stack.addWidget(self._build_empty_state())
+        main_layout.addWidget(self.table_stack, 1)
 
-        form_layout.addWidget(self.name_input)
-        form_layout.addWidget(self.price_input)
-        form_layout.addWidget(self.details_input)
-        form_layout.addWidget(self.attachments_label)
-        form_layout.addWidget(btn_choose_att)
+        pagination_layout = QHBoxLayout()
+        self.prev_button = QPushButton("السابق")
+        self.next_button = QPushButton("التالي")
+        self.page_info_label = QLabel("")
+        pagination_layout.addWidget(self.next_button)
+        pagination_layout.addWidget(self.prev_button)
+        pagination_layout.addStretch()
+        pagination_layout.addWidget(self.page_info_label)
+        main_layout.addLayout(pagination_layout)
 
-        self.btn_add_machine = QPushButton("إضافة ")
-        self.btn_add_machine.setObjectName("primaryButton")
-        self.btn_add_machine.clicked.connect(self.handle_add_machine)
-        form_layout.addWidget(self.btn_add_machine)
+        self.btn_add_asset.clicked.connect(self._open_add_dialog)
+        self.search_input.returnPressed.connect(self.apply_filters)
+        self.btn_apply_filters.clicked.connect(self.apply_filters)
+        self.btn_reset_filters.clicked.connect(self.reset_filters)
+        self.show_all_button.clicked.connect(self.reset_filters)
+        self.next_button.clicked.connect(self.handle_next_page)
+        self.prev_button.clicked.connect(self.handle_prev_page)
 
-        layout.addWidget(form_groupbox)
-        return container
+    def _build_feedback_banner(self):
+        frame = QFrame()
+        frame.setObjectName("assetFeedbackBanner")
+        frame.hide()
+        layout = QHBoxLayout(frame)
+        layout.setContentsMargins(14, 10, 14, 10)
+        layout.setSpacing(10)
+        self.feedback_icon = QLabel()
+        self.feedback_icon.setFixedSize(22, 22)
+        self.feedback_label = QLabel()
+        self.feedback_label.setWordWrap(True)
+        self.feedback_label.setObjectName("assetFeedbackText")
+        layout.addWidget(self.feedback_icon)
+        layout.addWidget(self.feedback_label, 1)
+        return frame
 
-    def create_table_panel(self):
-        container = QWidget()
-        layout = QVBoxLayout(container)
-        layout.setSpacing(20)
-        actions_layout = QHBoxLayout()
-        self.search_input = QLineEdit(placeholderText="ابحث بالاسم...")
-        actions_layout.addWidget(self.search_input, 1)
-        self.search_button = QPushButton("بحث")
-        self.search_button.clicked.connect(self.handle_search)
-        actions_layout.addWidget(self.search_button)
-        self.view_all_button = QPushButton("عرض الكل")
-        self.view_all_button.clicked.connect(self.handle_view_all)
-        actions_layout.addWidget(self.view_all_button)
-        self.show_attachments_button = QPushButton("عرض المرفقات")
-        self.show_attachments_button.clicked.connect(self.handle_show_attachments)
-        actions_layout.addWidget(self.show_attachments_button)
+    @staticmethod
+    def _refresh_widget_style(widget):
+        widget.style().unpolish(widget)
+        widget.style().polish(widget)
+        widget.update()
 
-        layout.addLayout(actions_layout)
+    def _hide_feedback(self):
+        self.feedback_banner.hide()
+
+    def _show_feedback(
+        self, message: str, *, variant: str = "success", auto_hide_ms=6000
+    ):
+        icons = {
+            "success": ("fa5s.check-circle", "#10b981"),
+            "error": ("fa5s.exclamation-circle", "#ef4444"),
+            "info": ("fa5s.sync", "#60a5fa"),
+        }
+        icon_name, color = icons.get(variant, icons["info"])
+        self.feedback_banner.setProperty("variant", variant)
+        self.feedback_label.setText(message)
+        self.feedback_icon.setPixmap(qta.icon(icon_name, color=color).pixmap(22, 22))
+        self.feedback_banner.show()
+        self._refresh_widget_style(self.feedback_banner)
+        self._feedback_timer.stop()
+        if auto_hide_ms and variant != "info":
+            self._feedback_timer.start(auto_hide_ms)
+
+    def _build_filter_bar(self):
+        bar = QFrame()
+        bar.setObjectName("safeFilterBar")
+        grid = QGridLayout(bar)
+        grid.setContentsMargins(16, 14, 16, 14)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(10)
+
+        def _lbl(text):
+            label = QLabel(text)
+            label.setObjectName("safeFilterLabel")
+            return label
+
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("بحث بالاسم، الموقع، المسؤول...")
+
+        self.category_filter = QComboBox()
+        self.category_filter.addItem("كل الفئات", "")
+        for value, label in ASSET_CATEGORIES:
+            self.category_filter.addItem(label, value)
+
+        self.status_filter = QComboBox()
+        self.status_filter.addItem("كل الحالات", "")
+        for value, label in ASSET_STATUSES:
+            self.status_filter.addItem(label, value)
+
+        self.show_all_button = QPushButton("عرض الكل")
+        self.btn_apply_filters = QPushButton("تطبيق")
+        self.btn_apply_filters.setObjectName("primaryButton")
+        self.btn_reset_filters = QPushButton("مسح الفلاتر")
+
+        grid.addWidget(_lbl("بحث"), 0, 0)
+        grid.addWidget(self.search_input, 0, 1)
+        grid.addWidget(_lbl("فئة الأصل"), 0, 2)
+        grid.addWidget(self.category_filter, 0, 3)
+        grid.addWidget(_lbl("حالة الأصل"), 1, 0)
+        grid.addWidget(self.status_filter, 1, 1)
+
+        actions = QHBoxLayout()
+        actions.addWidget(self.show_all_button)
+        actions.addWidget(self.btn_reset_filters)
+        actions.addStretch()
+        actions.addWidget(self.btn_apply_filters)
+        grid.addLayout(actions, 1, 2, 1, 2)
+        return bar
+
+    def _build_table(self):
         self.table = QTableWidget()
-        self.table.setColumnCount(3)
-        headers = ["اسم ", "سعر", "تفاصيل إضافية"]
+        self.table.setColumnCount(10)
+        headers = [
+            "الاسم",
+            "الفئة",
+            "السعر",
+            "تاريخ الشراء",
+            "الحالة",
+            "القيمة الدفترية",
+            "الموقع",
+            "المسؤول",
+            "تفاصيل",
+            "إجراءات",
+        ]
         self.table.setHorizontalHeaderLabels(headers)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(
             0, QHeaderView.ResizeToContents
         )
-        self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.table.selectionModel().selectionChanged.connect(self.on_selection_changed)
-        pagination_layout = QHBoxLayout()
-        self.prev_button = QPushButton("السابق")
-        self.next_button = QPushButton("التالي")
-        self.page_info_label = QLabel("لم يتم تحميل بيانات")
-        self.prev_button.clicked.connect(self.handle_prev_page)
-        self.next_button.clicked.connect(self.handle_next_page)
-        pagination_layout.addWidget(self.next_button)
-        pagination_layout.addWidget(self.prev_button)
-        pagination_layout.addStretch()
-        pagination_layout.addWidget(self.page_info_label)
-        layout.addWidget(self.table, 1)
-        layout.addLayout(pagination_layout)
-        return container
-
-    def on_selection_changed(self):
-        """Enables buttons when a table row is selected."""
-        is_selected = bool(self.table.selectionModel().selectedRows())  # noqa
-
-    def show_main_page(self):
-        self.stacked_widget.setCurrentIndex(0)
-
-    def choose_attachments(self):
-        file_paths, _ = QFileDialog.getOpenFileNames(
-            self, "اختر المرفقات", "", "All Files (*)"
+        self.table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeToContents
         )
-        if file_paths:
-            self.attachments_paths = file_paths
-            self.attachments_label.setText(
-                f"تم اختيار {len(self.attachments_paths)} ملفات/صور"
-            )
+        self.table.horizontalHeader().setSectionResizeMode(
+            2, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            3, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            4, QHeaderView.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            9, QHeaderView.ResizeToContents
+        )
+        self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.table.setAlternatingRowColors(True)
+        self.table.setShowGrid(False)
+        self.table.verticalHeader().setVisible(False)
+        self.table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        return self.table
 
-    def handle_add_machine(self):
-        fields = [self.name_input, self.price_input]
-        _clear_errors(fields)
+    def _build_table_skeleton(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setSpacing(10)
+        layout.setContentsMargins(0, 12, 0, 0)
+        for _ in range(6):
+            bar = QFrame()
+            bar.setObjectName("safeSkeletonBar")
+            layout.addWidget(bar)
+        layout.addStretch()
+        return page
 
-        validations = [
-            validate_not_empty(self.name_input, "الاسم"),
-            validate_optional_number(self.price_input, "السعر"),
-        ]
-        if not run_validations(self, validations):
+    def _build_empty_state(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setAlignment(Qt.AlignCenter)
+        icon = QLabel()
+        icon.setPixmap(qta.icon("fa5s.box-open", color="#6b7280").pixmap(48, 48))
+        icon.setAlignment(Qt.AlignCenter)
+        label = QLabel("لا توجد أصول مطابقة\nأضف أصلًا جديدًا أو غيّر معايير البحث")
+        label.setObjectName("emptyStateLabel")
+        label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(icon)
+        layout.addWidget(label)
+        return page
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if not self._initial_load_done and not self._pending_load:
+            QTimer.singleShot(0, self.load_initial_data)
+
+    def load_initial_data(self):
+        if self._initial_load_done or self._pending_load:
             return
+        self._pending_load = True
+        self._show_table_skeleton(True)
+        self._start_api_request("GET", self._build_list_url())
 
-        name = self.name_input.text().strip()
-        price = clean_number(self.price_input.text())
-        details = self.details_input.text().strip()
-            
-        settings = QSettings("FactorySystem")
-        username = settings.value("user_name", "unknown_user")
-        
-        payload = {"name": name, "username": username}
-        if price:
-            payload["price"] = price
-        if details:
-            payload["details"] = details
+    def _build_list_url(self, page_url=None):
+        if page_url:
+            return page_url
+        params = {}
+        search = self.search_input.text().strip()
+        if search:
+            params["q"] = search
+        category = self.category_filter.currentData()
+        if category:
+            params["category"] = category
+        status = self.status_filter.currentData()
+        if status:
+            params["status"] = status
+        query = urlencode(params)
+        base = f"{BACKEND_BASE_URL}/company_assets/"
+        return f"{base}?{query}" if query else base
 
-        url = f"{BACKEND_BASE_URL}/company_assets/"
-        self._set_loading(True)
+    def apply_filters(self):
+        self._show_table_skeleton(True)
+        self._start_api_request("GET", self._build_list_url())
 
-        self.post_thread = QThread()
-        self.post_worker = MachineApiWorker("POST", url, payload=payload)
-        self.post_worker.moveToThread(self.post_thread)
-        self.post_thread.started.connect(self.post_worker.run)
-
-        self.post_worker.success.connect(self.on_asset_added)
-        self.post_worker.error.connect(self.show_error_message)
-        self.post_worker.finished.connect(self.post_thread.quit)
-        self.post_thread.start()
-
-    def on_asset_added(self, response_data):
-        asset_id = response_data.get("id")
-        
-        if not asset_id:
-            self.show_error_message("حدث خطأ غير متوقع: لم يتم إرجاع كود الأصل.")
-            return
-
-        if hasattr(self, 'attachments_paths') and self.attachments_paths:
-            self._upload_attachments(asset_id)
-        else:
-            self.finalize_add_machine()
-
-    def _upload_attachments(self, asset_id):
-        payload = {"asset_id": str(asset_id)}
-        files = []
-        for path in self.attachments_paths:
-            files.append(("attachments", open(path, "rb")))
-
-        url = f"{BACKEND_BASE_URL}/company_assets/attachments/"
-        
-        self.att_thread = QThread()
-        self.att_worker = MachineApiWorker("POST", url, payload, files)
-        self.att_worker.moveToThread(self.att_thread)
-        self.att_thread.started.connect(self.att_worker.run)
-
-        self.att_worker.success.connect(lambda _: self.finalize_add_machine())
-        self.att_worker.error.connect(self.show_error_message)
-        self.att_worker.finished.connect(self.att_thread.quit)
-        self.att_thread.start()
-
-    def finalize_add_machine(self):
-        self._set_loading(False)
-        QMessageBox.information(self, "نجاح", "تمت إضافة الأصل بنجاح.")
-        self.name_input.clear()
-        self.price_input.clear()
-        self.details_input.clear()
-        self.attachments_paths = []
-        if hasattr(self, 'attachments_label'):
-            self.attachments_label.setText("لم يتم اختيار مرفقات")
-        self.handle_view_all()
-
-    def handle_view_all(self):
-        url = f"{BACKEND_BASE_URL}/company_assets/"
-        self._start_api_request("GET", url, on_success=self.handle_api_response)
-
-    def handle_search(self):
-        query = self.search_input.text().strip()
-        if not query:
-            self.handle_view_all()
-            return
-        params = urlencode({"q": query})
-        url = f"{BACKEND_BASE_URL}/company_assets/?{params}"
-        self._start_api_request("GET", url, on_success=self.handle_api_response)
-
-    def handle_show_attachments(self):
-        selected_rows = self.table.selectionModel().selectedRows()
-        if not selected_rows:
-            QMessageBox.warning(self, "تنبيه", "الرجاء اختيار أصل من الجدول أولاً.")
-            return
-
-        selected_row = selected_rows[0].row()
-        item = self.table.item(selected_row, 0)
-        
-        if item:
-            asset_id = item.data(Qt.UserRole)
-            if not asset_id:
-                asset_id = item.text().strip()
-                
-            from .asset_attachments_dialog import AssetAttachmentsDialog
-            dialog = AssetAttachmentsDialog(asset_id, parent=self)
-            dialog.exec_()
-        else:
-            QMessageBox.warning(self, "خطأ", "لم يتم العثور على كود للأصل المختار.")
+    def reset_filters(self):
+        self.search_input.clear()
+        self.category_filter.setCurrentIndex(0)
+        self.status_filter.setCurrentIndex(0)
+        self.apply_filters()
 
     def handle_next_page(self):
         if self.next_page_url:
-            self._start_api_request(
-                "GET", self.next_page_url, on_success=self.handle_api_response
-            )
+            self._show_table_skeleton(True)
+            self._start_api_request("GET", self.next_page_url)
 
     def handle_prev_page(self):
         if self.prev_page_url:
-            self._start_api_request(
-                "GET", self.prev_page_url, on_success=self.handle_api_response
+            self._show_table_skeleton(True)
+            self._start_api_request("GET", self.prev_page_url)
+
+    def _open_add_dialog(self):
+        dialog = AssetFormDialog(parent=self)
+        if dialog.exec_() != QDialog.Accepted:
+            return
+        payload = dialog.get_payload()
+        settings = QSettings("FactorySystem")
+        payload["username"] = settings.value("user_name", "unknown_user")
+        self._set_controls_enabled(False)
+        self._show_feedback("جاري إضافة الأصل...", variant="info", auto_hide_ms=0)
+        has_attachments = bool(dialog.attachments_paths)
+        self._start_api_request(
+            "POST",
+            f"{BACKEND_BASE_URL}/company_assets/",
+            payload=payload,
+            reenable_on_finish=not has_attachments,
+            on_success=lambda data: self._on_asset_created(
+                data, dialog.attachments_paths
+            ),
+        )
+
+    def _on_asset_created(self, response_data, attachment_paths):
+        asset_id = response_data.get("id")
+        if not asset_id:
+            self._show_feedback("لم يتم إرجاع معرّف الأصل من الخادم.", variant="error")
+            self._set_controls_enabled(True)
+            return
+        if attachment_paths:
+            self._show_feedback("جاري رفع المرفقات...", variant="info", auto_hide_ms=0)
+            QTimer.singleShot(
+                0, lambda: self._upload_attachments(asset_id, attachment_paths)
             )
+        else:
+            self._finalize_mutation("تمت إضافة الأصل بنجاح.")
+
+    def _upload_attachments(self, asset_id, paths):
+        payload = {"asset_id": str(asset_id)}
+        files = [
+            ("attachments", (os.path.basename(path), open(path, "rb")))
+            for path in paths
+        ]
+        url = f"{BACKEND_BASE_URL}/company_assets/attachments/"
+        self._start_api_request(
+            "POST",
+            url,
+            payload=payload,
+            files=files,
+            on_success=lambda _: self._finalize_mutation(
+                "تمت إضافة الأصل والمرفقات بنجاح."
+            ),
+        )
+
+    def _open_edit_dialog(self, asset_data):
+        dialog = AssetFormDialog(asset_data=asset_data, parent=self)
+        if dialog.exec_() != QDialog.Accepted:
+            return
+        payload = dialog.get_payload()
+        self._set_controls_enabled(False)
+        self._show_feedback("جاري حفظ التعديلات...", variant="info", auto_hide_ms=0)
+        self._start_api_request(
+            "PATCH",
+            f"{BACKEND_BASE_URL}/company_assets/",
+            payload=payload,
+            on_success=lambda _: self._finalize_mutation("تم تحديث الأصل بنجاح."),
+        )
+
+    def _open_attachments_dialog(self, asset_id, asset_name):
+        dialog = AssetAttachmentsDialog(asset_id, asset_name=asset_name, parent=self)
+        dialog.exec_()
+
+    def _confirm_delete(self, asset_id, asset_name):
+        reply = QMessageBox.question(
+            self,
+            "تأكيد الحذف",
+            f"هل تريد حذف الأصل «{asset_name}»؟\nلا يمكن التراجع عن هذا الإجراء.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+        self._set_controls_enabled(False)
+        self._show_feedback("جاري حذف الأصل...", variant="info", auto_hide_ms=0)
+        self._start_api_request(
+            "DELETE",
+            f"{BACKEND_BASE_URL}/company_assets/",
+            payload={"id": asset_id},
+            on_success=lambda _: self._finalize_mutation("تم حذف الأصل."),
+        )
+
+    def _finalize_mutation(self, message):
+        self._set_controls_enabled(True)
+        self._show_feedback(message, variant="success")
+        QTimer.singleShot(0, self.apply_filters)
 
     def _start_api_request(
-        self, method, url, payload=None, files=None, on_success=None
+        self,
+        method,
+        url,
+        payload=None,
+        files=None,
+        on_success=None,
+        reenable_on_finish=True,
     ):
-        self._set_loading(True)
-        self.thread = QThread()
+        try:
+            if (
+                hasattr(self, "_api_thread")
+                and getattr(self, "_api_thread", None) is not None
+            ):
+                if self._api_thread.isRunning():
+                    return
+        except RuntimeError:
+            pass
+
+        self._last_request_was_mutation = method in ("POST", "PATCH", "DELETE")
+        if method == "GET":
+            self.page_info_label.setText("جاري التحميل...")
+
+        self._api_thread = QThread()
         self.worker = MachineApiWorker(method, url, payload, files)
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.run)
+        self.worker.moveToThread(self._api_thread)
+        self._api_thread.started.connect(self.worker.run)
         if on_success:
             self.worker.success.connect(on_success)
+        else:
+            self.worker.success.connect(self.handle_api_response)
         self.worker.error.connect(self.show_error_message)
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(lambda: self._set_loading(False))
-        self.thread.start()
+        self.worker.finished.connect(self._api_thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self._api_thread.finished.connect(self._api_thread.deleteLater)
+        if method != "GET" and reenable_on_finish:
+            self.worker.finished.connect(lambda: self._set_controls_enabled(True))
+        self._api_thread.start()
 
     def handle_api_response(self, response_data):
         data_obj = response_data.get("data", {})
@@ -370,49 +481,169 @@ class CompanyAssetsUI(QWidget):
         self.next_page_url = data_obj.get("next")
         self.prev_page_url = data_obj.get("previous")
         self.total_count = data_obj.get("count", 0)
+        summary = data_obj.get("summary", {})
+        self._update_summary(summary)
         self.populate_table(results)
         self.update_pagination_controls()
+        self._set_controls_enabled(True)
+        self._initial_load_done = True
+        self._pending_load = False
+        self._show_table_skeleton(False)
 
-    def populate_table(self, machines):
+    def _update_summary(self, summary):
+        count = summary.get("count", self.total_count)
+        total_value = summary.get("total_value", 0)
+        self.count_display.setText(str(count))
+        self.value_display.setText(f"{float(total_value):,.2f} جنيه")
+
+    def populate_table(self, assets):
+        self.table.setUpdatesEnabled(False)
         self.table.setRowCount(0)
-        for machine in machines:
+        for asset in assets:
             row_pos = self.table.rowCount()
             self.table.insertRow(row_pos)
+            asset_id = asset.get("id")
 
-            machine_id = machine.get("id")
+            category = asset.get("category", "other")
+            status = asset.get("status", "working")
+            category_label = asset.get("category_display") or CATEGORY_LABELS.get(
+                category, "—"
+            )
+            status_label = asset.get("status_display") or STATUS_LABELS.get(status, "—")
 
-            # 1. Create the item for the ID column
-            id_item = QTableWidgetItem(str(machine_id))
+            name_item = QTableWidgetItem(asset.get("name", ""))
+            name_item.setData(Qt.UserRole, asset_id)
 
-            # 2. *** CRITICAL: Store the actual ID in Qt.UserRole ***
-            id_item.setData(Qt.UserRole, machine_id)
+            category_item = QTableWidgetItem(category_label)
+            self._color_category(category_item, category)
 
-            items = [
-                id_item,  # Column 0: ID
-                QTableWidgetItem(machine.get("name", "")),  # Column 1: Name
-            ]
-            for i, item in enumerate(items):
+            price = asset.get("price")
+            price_item = QTableWidgetItem(
+                f"{float(price):,.2f}" if price is not None else "—"
+            )
+
+            purchase_date = asset.get("purchase_date")
+            date_text = str(purchase_date)[:10] if purchase_date else "—"
+            date_item = QTableWidgetItem(date_text)
+
+            status_item = QTableWidgetItem(status_label)
+            self._color_status(status_item, status)
+
+            dep = asset.get("depreciation_value")
+            dep_item = QTableWidgetItem(
+                f"{float(dep):,.2f}" if dep is not None else "—"
+            )
+
+            location_item = QTableWidgetItem(asset.get("location") or "—")
+            responsible_item = QTableWidgetItem(asset.get("responsible_person") or "—")
+            details = (asset.get("details") or "").strip()
+            details_item = QTableWidgetItem(
+                details[:60] + "…" if len(details) > 60 else (details or "—")
+            )
+            details_item.setToolTip(details if details else "")
+
+            for col, item in enumerate(
+                (
+                    name_item,
+                    category_item,
+                    price_item,
+                    date_item,
+                    status_item,
+                    dep_item,
+                    location_item,
+                    responsible_item,
+                    details_item,
+                )
+            ):
                 item.setTextAlignment(Qt.AlignCenter)
-                self.table.setItem(row_pos, i, item)
+                self.table.setItem(row_pos, col, item)
+
+            self.table.setCellWidget(row_pos, 9, self._build_actions_widget(asset))
+        self.table.setUpdatesEnabled(True)
+
+    def _build_actions_widget(self, asset):
+        widget = QWidget()
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(4, 2, 4, 2)
+        layout.setSpacing(4)
+
+        asset_id = asset.get("id")
+        asset_name = asset.get("name", "")
+
+        edit_btn = QPushButton()
+        edit_btn.setIcon(qta.icon("fa5s.edit", color="#60a5fa"))
+        edit_btn.setToolTip("تعديل")
+        edit_btn.setFlat(True)
+        edit_btn.clicked.connect(lambda: self._open_edit_dialog(asset))
+
+        att_btn = QPushButton()
+        att_btn.setIcon(qta.icon("fa5s.paperclip", color="#9ca3af"))
+        att_btn.setToolTip("المرفقات")
+        att_btn.setFlat(True)
+        att_btn.clicked.connect(
+            lambda: self._open_attachments_dialog(asset_id, asset_name)
+        )
+
+        del_btn = QPushButton()
+        del_btn.setIcon(qta.icon("fa5s.trash", color="#ef4444"))
+        del_btn.setToolTip("حذف")
+        del_btn.setFlat(True)
+        del_btn.clicked.connect(lambda: self._confirm_delete(asset_id, asset_name))
+
+        layout.addWidget(edit_btn)
+        layout.addWidget(att_btn)
+        layout.addWidget(del_btn)
+        return widget
+
+    @staticmethod
+    def _color_category(item, category):
+        item.setForeground(CATEGORY_COLORS.get(category, MUTED_COLOR))
+
+    @staticmethod
+    def _color_status(item, status):
+        item.setForeground(STATUS_COLORS.get(status, MUTED_COLOR))
 
     def update_pagination_controls(self):
         self.next_button.setEnabled(self.next_page_url is not None)
         self.prev_button.setEnabled(self.prev_page_url is not None)
-        if self.total_count > 0:
-            self.page_info_label.setText(f"إجمالي الأصول: {self.total_count}")
+        if self.total_count > 0 and self.table.rowCount():
+            self.page_info_label.setText(f"إجمالي {self.total_count} أصل")
+        elif self.total_count == 0:
+            self.page_info_label.setText("لا توجد أصول")
         else:
-            self.page_info_label.setText("لا توجد نتائج")
-
-    def _set_loading(self, is_loading):
-        self.search_button.setDisabled(is_loading)
-        self.view_all_button.setDisabled(is_loading)
-        self.next_button.setDisabled(is_loading)
-        self.prev_button.setDisabled(is_loading)
-        self.btn_add_machine.setDisabled(is_loading)
-        if is_loading:
-            self.page_info_label.setText("جاري التحميل...")
+            self.page_info_label.setText(f"إجمالي {self.total_count} أصل")
 
     def show_error_message(self, message):
-        self._set_loading(False)
-        self.page_info_label.setText("فشل تحميل البيانات")
-        QMessageBox.critical(self, "خطأ في الاتصال", message)
+        self._set_controls_enabled(True)
+        self._initial_load_done = True
+        self._pending_load = False
+        self._show_table_skeleton(False)
+        if self.table.rowCount() == 0:
+            self.table_stack.setCurrentIndex(2)
+        self.page_info_label.setText("تعذر تحميل البيانات")
+        if self._last_request_was_mutation:
+            self._show_feedback(str(message), variant="error")
+        else:
+            self._show_feedback(f"تعذر تحميل البيانات: {message}", variant="error")
+
+    def _set_controls_enabled(self, enabled):
+        for widget in (
+            self.btn_add_asset,
+            self.show_all_button,
+            self.btn_apply_filters,
+            self.btn_reset_filters,
+            self.search_input,
+            self.category_filter,
+            self.status_filter,
+            self.next_button,
+            self.prev_button,
+        ):
+            widget.setEnabled(enabled)
+
+    def _show_table_skeleton(self, show):
+        if show:
+            self.table_stack.setCurrentIndex(1)
+        elif self.table.rowCount():
+            self.table_stack.setCurrentIndex(0)
+        else:
+            self.table_stack.setCurrentIndex(2)

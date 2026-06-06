@@ -12,16 +12,22 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QThread, QUrl, QPoint
 from PyQt5.QtGui import QDesktopServices
-from .ui_company_assets import MachineApiWorker
+from .company_assets_api_worker import MachineApiWorker
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
 import qtawesome as qta
 
 
 class AssetAttachmentsDialog(QDialog):
-    def __init__(self, asset_id, parent=None):
+    def __init__(self, asset_id, asset_name=None, parent=None):
         super().__init__(parent)
         self.asset_id = asset_id
-        self.setWindowTitle(f"مرفقات الأصل (كود: {self.asset_id})")
+        self.asset_name = asset_name or ""
+        title_suffix = (
+            f"{self.asset_name} (#{self.asset_id})"
+            if self.asset_name
+            else f"#{self.asset_id}"
+        )
+        self.setWindowTitle(f"مرفقات الأصل — {title_suffix}")
         self.resize(800, 500)
 
         # Frameless Window Setup
@@ -48,7 +54,11 @@ class AssetAttachmentsDialog(QDialog):
         title_bar_layout = QHBoxLayout(self.title_bar)
         title_bar_layout.setContentsMargins(15, 0, 5, 0)
 
-        title_text = QLabel(f"مرفقات الأصل (كود: {self.asset_id})")
+        title_text = QLabel(
+            f"مرفقات: {self.asset_name}"
+            if self.asset_name
+            else f"مرفقات الأصل #{self.asset_id}"
+        )
         title_text.setObjectName("titleBarText")
 
         close_button = QPushButton()
@@ -115,7 +125,10 @@ class AssetAttachmentsDialog(QDialog):
         results = response_data.get("results", [])
 
         if not results:
-            self.info_label.setText("لا يوجد مرفقات لهذا الأصل.")
+            self.info_label.setText(
+                "لا توجد مرفقات لهذا الأصل.\n"
+                "يمكنك إضافة فواتير أو ضمان أو صور عند إنشاء أصل جديد."
+            )
             self.info_label.show()
             return
 

@@ -210,6 +210,10 @@ class CompanySafeUI(QWidget):
             self._thread = None
 
     def update_balance(self, balance):
+        color = "#dc2626" if balance < 0 else "#059669"
+        self.balance_label.setStyleSheet(
+            f"font-size: 24px; font-weight: bold; color: {color};"
+        )
         self.balance_label.setText(f"الرصيد الحالي: {balance:,.2f} جنيه")
 
     def handle_logs_response(self, data_obj):
