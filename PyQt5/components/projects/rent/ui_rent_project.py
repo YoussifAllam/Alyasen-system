@@ -20,6 +20,7 @@ import qtawesome as qta
 
 from ...Main_Ui_Components.constant import BACKEND_BASE_URL
 from ..ui_projects import ProjectApiWorker  # Reusing API worker
+from ...utils.auth_context import enrich_payload_with_user
 from .update_rent_project_dialog import UpdateRentProjectDialog
 from .rent_project_ads_dialog import RentProjectAdsDialog
 from .rent_project_cheque_dialog import RentProjectChequeDialog
@@ -421,16 +422,11 @@ class RentProjectPage(QWidget):
         self.btn_clear_insurance_tax.setEnabled(False)
         self.btn_clear_insurance_tax.setText("جاري الاسترداد...")
 
-        from PyQt5.QtCore import QSettings
-
-        settings = QSettings("FactorySystem")
-        username = settings.value("user_name", "unknown_user")
-
         url = f"{BACKEND_BASE_URL}/projects/rent/clear-insurance-tax/"
-        payload = {"CBP_id": str(self.project_id), "user_name": username}
+        payload = enrich_payload_with_user({"CBP_id": str(self.project_id)})
 
         self.tax_thread = QThread()
-        self.tax_worker = ProjectApiWorker("PATCH", url, payload=payload, files={})
+        self.tax_worker = ProjectApiWorker("PATCH", url, payload=payload)
         self.tax_worker.moveToThread(self.tax_thread)
         self.tax_thread.started.connect(self.tax_worker.run)
         self.tax_worker.success.connect(self.on_tax_cleared_success)

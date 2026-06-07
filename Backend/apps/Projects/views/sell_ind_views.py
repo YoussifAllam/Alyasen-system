@@ -25,6 +25,17 @@ class ProjectInfoApiView(APIView):
 
     def patch(self, request: Request):
         CBP_id = request.data.get("CBP_id")
+        user_name = (
+            request.data.get("user_name") or request.data.get("username") or ""
+        ).strip()
+        if not user_name:
+            return Response(
+                {
+                    "status": "failed",
+                    "errors": {"user_name": ["This field is required."]},
+                },
+                status=HTTP_400_BAD_REQUEST,
+            )
         target_project = selectors.get_selling_ind_project_using_CBP(CBP_id)
         serializer = InputSerializers.SellingIndustrialProjectUpdateSerializer(
             target_project, data=request.data, partial=True
@@ -37,17 +48,20 @@ class ProjectInfoApiView(APIView):
         if "selling_price" in request.data:
             services.update_project_info(CBP_id, target_project)
         if "insurance_tax" in request.data:
-            try:
-                adjust_safe_balance(
-                    process="subtract",
-                    amount=float(request.data["insurance_tax"]),
-                    note=f"تم دفع تأمين لمشروع {target_project.CPB_fk.project_name}",
-                    username=request.data["user_name"],
-                )
-            except ValueError as exc:
-                return Response(
-                    {"status": "failed", "errors": str(exc)}, status=HTTP_400_BAD_REQUEST
-                )
+            insurance_amount = float(request.data["insurance_tax"])
+            if insurance_amount > 0:
+                try:
+                    adjust_safe_balance(
+                        process="subtract",
+                        amount=insurance_amount,
+                        note=f"تم دفع تأمين لمشروع {target_project.CPB_fk.project_name}",
+                        username=user_name,
+                    )
+                except ValueError as exc:
+                    return Response(
+                        {"status": "failed", "errors": str(exc)},
+                        status=HTTP_400_BAD_REQUEST,
+                    )
         return Response({"status": "success"}, status=HTTP_200_OK)
 
 
@@ -140,6 +154,17 @@ class ProjectOperationgCost(APIView):
 class ProjectInsuranceTaxApiView(APIView):
     def patch(self, request: Request):
         CBP_id = request.data.get("CBP_id")
+        user_name = (
+            request.data.get("user_name") or request.data.get("username") or ""
+        ).strip()
+        if not user_name:
+            return Response(
+                {
+                    "status": "failed",
+                    "errors": {"user_name": ["This field is required."]},
+                },
+                status=HTTP_400_BAD_REQUEST,
+            )
         sell_ind_p_instance = selectors.get_selling_ind_project_using_CBP(CBP_id)
         amount = sell_ind_p_instance.insurance_tax
         sell_ind_p_instance.insurance_tax_cleared = True
@@ -148,6 +173,6 @@ class ProjectInsuranceTaxApiView(APIView):
             process="add",
             amount=float(amount),
             note=f"تم استرداد تأمين لمشروع {sell_ind_p_instance.CPB_fk.project_name}",
-            username=request.data["user_name"],
+            username=user_name,
         )
         return Response({"status": "success"}, status=HTTP_200_OK)

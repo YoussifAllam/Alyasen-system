@@ -22,12 +22,12 @@ from PyQt5.QtCore import (
     pyqtSignal,
     pyqtSlot,
     QThread,
-    QSettings,
 )
 from requests import request, exceptions
 import qtawesome as qta
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
 from ..utils.api_errors import format_request_exception, parse_api_response
+from ..utils.auth_context import enrich_payload_with_user
 from ..validation import (
     validate_positive_number,
     validate_combo_selected,
@@ -230,20 +230,18 @@ class PaymentDialog(QDialog):
 
         amount_str = clean_number(self.amount_input.text())
 
-        settings = QSettings("FactorySystem")
-        username = settings.value("user_name", "system")
-
-        form_data = {
-            "project_id": str(self.project_id),
-            "project_type": str(self.project_type),
-            "payment_amount": amount_str,
-            "payment_date": self.date_input.date().toString("yyyy-MM-dd"),
-            "payment_type": self.payment_type_combo.currentData(),
-            "check_cleared_date": self.check_date_input.date().toString("yyyy-MM-dd"),
-            "notes": self.notes_input.toPlainText().strip(),
-            "portal_invoice_number": self.invoice_number_input.text().strip(),
-            "user_name": username,
-        }
+        form_data = enrich_payload_with_user(
+            {
+                "project_id": str(self.project_id),
+                "project_type": str(self.project_type),
+                "payment_amount": amount_str,
+                "payment_date": self.date_input.date().toString("yyyy-MM-dd"),
+                "payment_type": self.payment_type_combo.currentData(),
+                "check_cleared_date": self.check_date_input.date().toString("yyyy-MM-dd"),
+                "notes": self.notes_input.toPlainText().strip(),
+                "portal_invoice_number": self.invoice_number_input.text().strip(),
+            }
+        )
 
         # If check, include check_date
         if self.payment_type_combo.currentData() == "check":

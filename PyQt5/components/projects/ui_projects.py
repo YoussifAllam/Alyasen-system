@@ -19,6 +19,7 @@ from requests import request, exceptions
 from urllib.parse import urlencode
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
+from ..utils.auth_context import enrich_payload_with_user
 from ..validation import (
     _clear_errors,
     attach_number_formatter,
@@ -302,8 +303,7 @@ class ProjectsUI(QWidget):
             supplier_id = self.supplier_combobox.currentData()
             payload["supplier"] = str(supplier_id)
 
-        username = self.settings.value("user_name", "unknown_user")
-        payload["username"] = username
+        payload = enrich_payload_with_user(payload, include_username=True)
 
         url = f"{BACKEND_BASE_URL}/projects/"
         self._set_loading(True)

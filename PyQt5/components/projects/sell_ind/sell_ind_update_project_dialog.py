@@ -10,9 +10,10 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QFrame,
 )
-from PyQt5.QtCore import Qt, QDate, QThread, QPoint, QSettings
+from PyQt5.QtCore import Qt, QDate, QThread, QPoint
 from ..ui_projects import ProjectApiWorker
 from ...Main_Ui_Components.constant import BACKEND_BASE_URL
+from ...utils.auth_context import enrich_payload_with_user
 from ...validation import (
     validate_non_negative_number,
     run_validations,
@@ -172,17 +173,15 @@ class UpdateRentProjectDialog(QDialog):
 
         insurance_tax_val = clean_number(self.insurance_tax_input.text())
 
-        settings = QSettings("FactorySystem")
-        username = settings.value("user_name", "system")
-
-        payload = {
-            "CBP_id": str(self.project_id),
-            "selling_price": clean_number(self.selling_price_input.text()),
-            "value_added_tax": clean_number(self.vat_input.text()),
-            "commercial_profits_tax": clean_number(self.profits_tax_input.text()),
-            "insurance_tax": insurance_tax_val,
-            "user_name": username,
-        }
+        payload = enrich_payload_with_user(
+            {
+                "CBP_id": str(self.project_id),
+                "selling_price": clean_number(self.selling_price_input.text()),
+                "value_added_tax": clean_number(self.vat_input.text()),
+                "commercial_profits_tax": clean_number(self.profits_tax_input.text()),
+                "insurance_tax": insurance_tax_val,
+            }
+        )
 
         # Don't send insurance_tax_date if insurance_tax is 0 or empty
         try:

@@ -6,9 +6,16 @@ from typing import Any
 
 from requests import exceptions as requests_exceptions
 
+_DRF_MESSAGE_AR = {
+    "This field is required.": "هذا الحقل مطلوب.",
+    "This field may not be blank.": "هذا الحقل لا يمكن أن يكون فارغاً.",
+    "This field may not be null.": "هذا الحقل لا يمكن أن يكون فارغاً.",
+}
+
 _FIELD_LABELS = {
     "client_id": "كود العميل",
     "payment_amount": "المبلغ المدفوع",
+    "user_name": "اسم المستخدم",
     "username": "اسم المستخدم",
     "notes": "ملاحظات",
     "invoice_number": "رقم الفاتورة",
@@ -27,11 +34,16 @@ _FIELD_LABELS = {
 }
 
 
+def _translate_drf_message(text: str) -> str:
+    stripped = text.strip()
+    return _DRF_MESSAGE_AR.get(stripped, stripped)
+
+
 def _format_error_value(value: Any) -> str:
     if value is None:
         return ""
     if isinstance(value, str):
-        return value.strip()
+        return _translate_drf_message(value.strip())
     if isinstance(value, (int, float, bool)):
         return str(value)
     if isinstance(value, list):

@@ -11,13 +11,14 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QWidget,
 )
-from PyQt5.QtCore import Qt, QPoint, QObject, QThread, pyqtSignal, pyqtSlot, QUrl, QSettings
+from PyQt5.QtCore import Qt, QPoint, QObject, QThread, pyqtSignal, pyqtSlot, QUrl
 from PyQt5.QtGui import QDesktopServices
 import qtawesome as qta
 from requests import request, exceptions
 
 from ..Main_Ui_Components.constant import BACKEND_BASE_URL
 from ..utils.api_errors import format_request_exception, parse_api_response
+from ..utils.auth_context import enrich_payload_with_user
 
 
 class PaymentDetailsWorker(QObject):
@@ -258,10 +259,7 @@ class InvoicePaymentDetailsDialog(QDialog):
             return
 
         url = f"{BACKEND_BASE_URL}/clients/projects/payments/"
-        payload = {
-            "payment_id": str(payment_id),
-            "user_name": "system",
-        }
+        payload = enrich_payload_with_user({"payment_id": str(payment_id)})
 
         self.clear_thread = QThread()
         self.clear_worker = ClearPaymentWorker(url, payload)

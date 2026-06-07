@@ -9,6 +9,8 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
 
 
 class RentProjectsUpdateSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(required=True, write_only=True)
+
     class Meta:
         model = models.RentProjects
         fields = [
@@ -17,6 +19,7 @@ class RentProjectsUpdateSerializer(serializers.ModelSerializer):
             "commercial_profits_tax",
             "insurance_tax",
             "insurance_tax_date",
+            "user_name",
         ]
 
 
@@ -45,6 +48,8 @@ class RentProjectOperationgCostSerializer(serializers.ModelSerializer):
 
 
 class SellingIndustrialProjectUpdateSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(required=True, write_only=True)
+
     class Meta:
         model = models.SellingIndustrialProjectDetails
         fields = [
@@ -53,6 +58,7 @@ class SellingIndustrialProjectUpdateSerializer(serializers.ModelSerializer):
             "commercial_profits_tax",
             "insurance_tax",
             "insurance_tax_date",
+            "user_name",
         ]
 
 

@@ -84,7 +84,7 @@ class ProjectPayment(models.Model):
     client_project_balance_fk = models.ForeignKey(
         ClientProjectBalance, on_delete=models.CASCADE, related_name="payments"
     )
-    portal_invoice_number = models.CharField(max_length=50)
+    portal_invoice_number = models.CharField(max_length=50, null=True, blank=True)
     portal_invoice_file = models.FileField(upload_to="clients/invoices/", null=True)
     payment_amount = models.FloatField()
     payment_date = models.DateField(default=now)
