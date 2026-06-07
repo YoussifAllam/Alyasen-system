@@ -129,6 +129,9 @@ class CampaignsUI(QWidget):
         dialog.campaign_added.connect(self.load_campaigns)
         dialog.exec_()
 
+    def refresh_data(self):
+        self.load_campaigns()
+
     def load_campaigns(self):
         url = f"{BACKEND_BASE_URL}/campaine/"
         self.current_page = 1

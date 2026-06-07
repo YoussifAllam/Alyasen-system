@@ -175,4 +175,19 @@ def parse_api_response(response) -> tuple[bool, Any]:
 
 
 def format_request_exception(exc: Exception) -> str:
-    return f"فشل الاتصال بالخادم: {exc}"
+    if isinstance(exc, requests_exceptions.ConnectionError):
+        return (
+            "تعذر الاتصال بالخادم.\n"
+            "تأكد من تشغيل الخادم وصحة عنوان الاتصال في الإعدادات."
+        )
+    if isinstance(exc, requests_exceptions.Timeout):
+        return "انتهت مهلة الاتصال بالخادم. حاول مرة أخرى بعد قليل."
+    if isinstance(exc, requests_exceptions.JSONDecodeError):
+        return (
+            "استجابة غير صالحة من الخادم (ليست بيانات JSON).\n"
+            "قد يكون الخادم متوقفاً أو يعيد صفحة خطأ بدلاً من البيانات المتوقعة."
+        )
+    msg = str(exc).strip()
+    if msg:
+        return f"فشل الاتصال بالخادم: {msg}"
+    return "فشل الاتصال بالخادم."

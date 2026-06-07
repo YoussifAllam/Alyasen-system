@@ -130,6 +130,9 @@ class ProgramLogUI(QWidget):
         self.next_button.clicked.connect(self.handle_next_page)
         self.prev_button.clicked.connect(self.handle_prev_page)
 
+    def refresh_data(self):
+        self.handle_view_all()
+
     def handle_view_all(self):
         url = f"{BACKEND_BASE_URL}/transactions_log/transactions/"
         self._start_fetch_request(url)

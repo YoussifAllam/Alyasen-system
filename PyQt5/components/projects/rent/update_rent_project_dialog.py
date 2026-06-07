@@ -198,19 +198,11 @@ class UpdateRentProjectDialog(QDialog):
 
         url = f"{BACKEND_BASE_URL}/projects/rent/info/"
 
-        # The API expects form-data as per curl --form
-        # ProjectApiWorker uses json if files is None.
-        # We can pass an empty dict to files to trigger the multipart/form-data logic in the worker
-        # OR better, if the backend supports JSON, use JSON.
-        # But wait, the curl showed --form, so it's safer to use form-data.
-        # I'll pass an empty dict for files.
-
         self.update_btn.setEnabled(False)
         self.update_btn.setText("جاري التحديث...")
 
         self.thread = QThread()
-        # Passing files={} to ensure it uses 'data=' instead of 'json=' in ProjectApiWorker
-        self.worker = ProjectApiWorker("PATCH", url, payload, files={})
+        self.worker = ProjectApiWorker("PATCH", url, payload)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.worker.success.connect(self.on_success)
@@ -225,4 +217,8 @@ class UpdateRentProjectDialog(QDialog):
     def on_error(self, message):
         self.update_btn.setEnabled(True)
         self.update_btn.setText("تحديث")
-        QMessageBox.warning(self, "خطأ", f"فشل تحديث البيانات:\n{message}")
+        QMessageBox.warning(
+            self,
+            "خطأ",
+            f"تعذر تحديث بيانات المشروع.\n\n{message}",
+        )

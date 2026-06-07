@@ -123,7 +123,6 @@ class ExpensesUI(QWidget):
         self.next_page_url = None
         self.prev_page_url = None
         self.total_count = 0
-        self.is_first_load = True
 
         header = QLabel("إدارة المصروفات")
         header.setObjectName("mainHeader")
@@ -238,12 +237,9 @@ class ExpensesUI(QWidget):
         self.next_button.clicked.connect(self.handle_next_page)
         self.prev_button.clicked.connect(self.handle_prev_page)
 
-    def showEvent(self, event):
-        """Fetches initial data when the widget is first shown."""
-        super().showEvent(event)
-        if self.is_first_load:
-            self.handle_fetch_summary()
-            self.is_first_load = False
+    def refresh_data(self):
+        self.handle_fetch_summary()
+        self.handle_view_all()
 
     def handle_fetch_summary(self):
         """Fetches the expense summary data."""

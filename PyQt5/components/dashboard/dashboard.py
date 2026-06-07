@@ -141,7 +141,6 @@ class DashboardUI(QWidget):
     def __init__(self):
         super().__init__()
         self.setObjectName("mainContent")
-        self.is_first_load = True
 
         # Main layout for the widget
         main_layout = QVBoxLayout(self)
@@ -234,16 +233,12 @@ class DashboardUI(QWidget):
         # Add scroll area to main layout
         main_layout.addWidget(scroll)
 
-    def showEvent(self, event):
-        """Fetches all initial data concurrently when the widget is first shown."""
-        super().showEvent(event)
-        if self.is_first_load:
-            self.handle_fetch_expense_graph()
-            self.handle_fetch_top_lists()
-            self.handle_fetch_guarantee_checks()
-            self.handle_fetch_insurance_tax()
-            self.handle_fetch_users_status()
-            self.is_first_load = False
+    def refresh_data(self):
+        self.handle_fetch_expense_graph()
+        self.handle_fetch_top_lists()
+        self.handle_fetch_guarantee_checks()
+        self.handle_fetch_insurance_tax()
+        self.handle_fetch_users_status()
 
     def _start_api_request(self, url, success_slot, thread_name, worker_name):
         """A generic helper to start an API worker."""

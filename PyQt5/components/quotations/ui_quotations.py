@@ -319,6 +319,9 @@ class QuotationsUI(QWidget):
         self.worker.finished.connect(self.thread.quit)
         self.thread.start()
 
+    def refresh_data(self):
+        self.handle_view_all()
+
     def handle_view_all(self):
         url = f"{BACKEND_BASE_URL}/quotations/"
         self._set_loading(True)

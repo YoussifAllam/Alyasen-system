@@ -285,7 +285,7 @@ class RentProjectPage(QWidget):
         is_cleared = data.get("insurance_tax_cleared")
         cleared_text = "نعم" if is_cleared else ("لا" if is_cleared is False else "-")
         # Use an LRM character (Left-to-Right Mark) to enforce left alignment for Arabic text
-        self.lbl_insurance_tax_cleared.setText(f"\u200E{cleared_text}")
+        self.lbl_insurance_tax_cleared.setText(f"\u200e{cleared_text}")
         self.btn_clear_insurance_tax.setEnabled(not is_cleared)
         self.lbl_profits_tax.setText(f"{data.get('commercial_profits_tax', 0):,.2f}")
 

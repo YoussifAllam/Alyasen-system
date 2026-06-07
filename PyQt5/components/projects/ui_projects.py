@@ -81,7 +81,6 @@ class ProjectsUI(QWidget):
         self.total_count = 0
 
         self.setup_ui()
-        self.load_suppliers()
 
     def setup_ui(self):
         main_layout = QVBoxLayout(self)
@@ -437,6 +436,10 @@ class ProjectsUI(QWidget):
         self.name_input.clear()
         self.contract_files_paths = []
         self.contracts_label.setText("لم يتم اختيار عقود")
+        self.handle_view_all()
+
+    def refresh_data(self):
+        self.load_suppliers()
         self.handle_view_all()
 
     def handle_view_all(self):

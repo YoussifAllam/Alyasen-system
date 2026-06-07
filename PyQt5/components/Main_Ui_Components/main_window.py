@@ -307,6 +307,20 @@ class MainWindow(QMainWindow):
 
         self.stacked_widget.setCurrentWidget(new_widget)
         self.sidebar.set_active_button(index)
+        self._refresh_page_data(index)
+
+    def _get_page_content(self, widget):
+        if isinstance(widget, QScrollArea):
+            return widget.widget()
+        return widget
+
+    def _refresh_page_data(self, index):
+        content = self._get_page_content(self.page_widgets[index])
+        if content is None:
+            return
+        refresh = getattr(content, "refresh_data", None)
+        if callable(refresh):
+            QTimer.singleShot(0, refresh)
 
     def show_notifications(self):
         dialog = NotificationsDialog(self)

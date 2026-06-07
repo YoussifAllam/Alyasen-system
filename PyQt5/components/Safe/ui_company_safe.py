@@ -192,11 +192,6 @@ class CompanySafeUI(QWidget):
         self.next_button.clicked.connect(self.handle_next_page)
         self.prev_button.clicked.connect(self.handle_prev_page)
 
-    def showEvent(self, event):
-        super().showEvent(event)
-        if not self._initial_load_done and not self._safe_pending_load:
-            QTimer.singleShot(0, self.refresh_data)
-
     def _build_balance_card(self):
         page = QWidget()
         layout = QHBoxLayout(page)

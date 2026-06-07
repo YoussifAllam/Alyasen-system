@@ -297,13 +297,8 @@ class CompanyAssetsUI(QWidget):
         layout.addWidget(label)
         return page
 
-    def showEvent(self, event):
-        super().showEvent(event)
-        if not self._initial_load_done and not self._pending_load:
-            QTimer.singleShot(0, self.load_initial_data)
-
-    def load_initial_data(self):
-        if self._initial_load_done or self._pending_load:
+    def refresh_data(self):
+        if self._pending_load:
             return
         self._pending_load = True
         self._show_table_skeleton(True)
