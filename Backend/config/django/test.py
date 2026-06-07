@@ -19,6 +19,15 @@ PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 
+CELERY_TASK_ALWAYS_EAGER = True
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": True,
+    "handlers": {"null": {"class": "logging.NullHandler"}},
+    "root": {"handlers": ["null"], "level": "CRITICAL"},
+}
+
 AUTH_PASSWORD_VALIDATORS: list[dict[str, int]] = [  # type: ignore
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
